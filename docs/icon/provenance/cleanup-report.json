@@ -1,0 +1,91 @@
+{
+  "clientStopped": true,
+  "stoppedClientPids": [
+    3516476,
+    3532106
+  ],
+  "displayStopped": true,
+  "audioModuleAbsent": true,
+  "audioSinkAbsent": true,
+  "stoppedResources": [
+    "Both selected-recapture client launches exited0 through Quit Game; world All chunks/All dimensions saved.",
+    "Private Xvfb:211 stopped through hub, exit0.",
+    "Owned module-null-sink536870918 verified by name and sink arguments in the same operation before unloading."
+  ],
+  "originalModInventoryRestored": true,
+  "mods": [
+    {
+      "file": "[\u94a0] sodium-fabric-0.7.3+mc1.21.10.jar",
+      "sha256": "b0bcfa324fa6acf8934b7bd5ad1946e5a003aab86f877d2a64af220fe284b683"
+    },
+    {
+      "file": "fabric-api-0.138.4+1.21.10.jar",
+      "sha256": "4dd5d07067d5cf3e874d2780806c3da223819d39b28d6296c1005a36f2d0a5e4"
+    },
+    {
+      "file": "iris-fabric-1.9.7+mc1.21.10.jar",
+      "sha256": "2b207f51cd91f2b4928597e80f90346dec4821772d8df008d0a6b42971add7ea"
+    }
+  ],
+  "restoredFiles": [
+    {
+      "target": "runtime/options.txt",
+      "backup": "renders-dragonspine/evidence/before-options.txt",
+      "sha256": "c43e2b154578b456e4b4b14951925c8fabd82ca1cae4564059dbf9dda968213f",
+      "byteIdentical": true
+    },
+    {
+      "target": "client.args",
+      "backup": "renders-dragonspine/evidence/before-client.args",
+      "sha256": "c3c3cfc352703d3e8ea905a7022dae688e10fb42cb45772573f54490c3e47b38",
+      "byteIdentical": true
+    },
+    {
+      "target": "runtime/shaderpacks/ComplementaryReimagined_r5.7.1.zip.txt",
+      "backup": "renders-dragonspine/evidence/before-ComplementaryReimagined_r5.7.1.zip.txt",
+      "sha256": "958f584fe4159a8b7b851b48cf10233595ab0d1fd7b2b4b1beb43512e68fbc51",
+      "byteIdentical": true
+    },
+    {
+      "target": "runtime/config/sodium-options.json",
+      "backup": "renders-dragonspine/evidence/03-dh-ridge-perpendicular-fov60-sodium-options.json",
+      "sha256": "938ceb042ff5bd853bc639e4858693dfc4e9a85be42490ac0854c5739631cb48",
+      "byteIdentical": true
+    }
+  ],
+  "irisShaderEnabled": true,
+  "diagnosticOverlay": "Removed the three temporary native chunk fields and restored the original nine-entry debug profile.",
+  "selectedCameraRestored": "/tp @s 2800.5 245.0 -2509.5 48 18; matches the actual pre-recapture selected-camera position. selected-1024-runtime.log confirms teleport and successful world save.",
+  "selectedCapture": {
+    "file": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "sha256": "da1ffab30092da890a8340bbe3ed86fadeb09b900bf66f544f1587aaa512b578"
+  },
+  "retiredAlternatives": 14,
+  "retiredDirectory": "removed/captures-teyvat/renders-dragonspine/",
+  "agentRemovalLedger": "removals.DragonspineOrtho.json",
+  "sharedRemovalLedgerEditedByThisAgent": false,
+  "sharedRemovalLedgerOwner": "Main",
+  "earlierPoisAlreadyLogged": [
+    "captures-teyvat/renders/01-stormterror-cliff-windmill.png",
+    "captures-teyvat/renders/02-stormterrors-lair.png",
+    "captures-teyvat/renders/03-mondstadt-city.png",
+    "captures-teyvat/renders/04-favonius-cathedral.png",
+    "captures-teyvat/renders/05-liyue-harbor.png",
+    "captures-teyvat/renders/06-inazuma-tenshukaku.png"
+  ],
+  "allPrior15PngBytesRetained": "Fourteen alternatives plus their metadata are archived unchanged; the original selected1280 PNG and its metadata/snapshots remain in evidence/selected-1280-reference/.",
+  "retainedArtifacts": "Current manifest lists only the native1024 selection. Exact prior15-frame reports and all14 historical author versions are retained in evidence/history-15-frame-delivery/. Both prior DH caches remain outside the active runtime and were not modified by this recapture.",
+  "runtimeLogs": [
+    "evidence/selected-1024-first-launch.log",
+    "evidence/selected-1024-runtime.log"
+  ],
+  "normalRuntimeBookkeeping": "Played-world save metadata, command history, native screenshots and ordinary Fabric caches remain; no whole-runtime byte-identity claim.",
+  "sourcePolicy": "No mod/project-source edits, tracked portfolio edits, commits or pushes. All work remains under .local-icon-variants/.",
+  "originalSelectedPngSha256": "01c487ffbf122b6d9be948d9ca1b420da19a1da7ffe027f7b232cb803d3f88f2",
+  "originalInstallationReference": "captures-teyvat/renders/07-dragonspine-skyfrost-nail.png",
+  "shaderZipSha256": "24a20634a7832d422d3cd5023be16829f26840e25c69404dd418306ea79f63f0"
+}

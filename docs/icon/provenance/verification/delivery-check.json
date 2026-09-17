@@ -1,0 +1,32 @@
+{
+  "manifestEntries": 1,
+  "nativeSize": [
+    1024,
+    1024
+  ],
+  "sourceF2BytesIdentical": true,
+  "sameCameraAsSelectedReference": true,
+  "nominalFovDegrees": 60,
+  "fovEffectScale": 1,
+  "effectiveFovDegreesApproximate": 66,
+  "matchedLandmarks": 6,
+  "maximumLandmarkAxisOffsetPixels": 0,
+  "fittedScale": 1.0,
+  "nativeFullChunks": 5041,
+  "sourceHeightmapColumns": 1290496,
+  "sourceEmptyColumnsProvenBehindCamera": 361,
+  "missingSourceChunks": 0,
+  "unprovenVisibleSourceEmptyColumns": 0,
+  "automaticSkyWarningsPreserved": 1,
+  "flatBlackTiles": 0,
+  "visuallyAccepted": true,
+  "retiredAlternatives": 14,
+  "retiredOriginalHashesVerified": true,
+  "earlierPoisAlreadyLogged": 6,
+  "agentRemovalLedger": "removals.DragonspineOrtho.json",
+  "sharedLedgerOwner": "Main",
+  "authorHashesVerified": 15,
+  "historicalAuthorHashesVerified": 14,
+  "allStartedRuntimeResourcesStopped": true,
+  "blockers": []
+}

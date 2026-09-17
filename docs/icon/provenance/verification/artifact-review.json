@@ -1,0 +1,30 @@
+{
+  "allNativeBytesVerified": true,
+  "allFinalFramesVisuallyAccepted": true,
+  "automaticScanWarningsPreserved": 1,
+  "frames": [
+    {
+      "file": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60.png",
+      "sha256": "da1ffab30092da890a8340bbe3ed86fadeb09b900bf66f544f1587aaa512b578",
+      "visuallyReviewedNativeFinal": true,
+      "hudOrNametagsVisible": false,
+      "visibleMissingChunkOrBlackWaterArtifact": false,
+      "accepted": true,
+      "scope": "Owner-selected Complementary summit/Nail composition, recaptured natively at1024 with the identical camera and shader profile. Six landmark offsets are all0,0 and fitted scale1.0 against the1280 reference.",
+      "automaticScanPass": false,
+      "reviewedSkyCandidates": [
+        {
+          "tiles": 21,
+          "pixelBounds": [
+            528,
+            160,
+            784,
+            192
+          ]
+        }
+      ],
+      "manualResolution": "The sole21-tile candidate at[528,160,784,192] is ordinary upper sky/fog to the right of the Nail. The variance threshold splits the sky gradient into bands; this is not a missing-chunk hole. Raw warning retained. No flat-black tiles or black-water defect.",
+      "caveat": "Nominal FOV60 with flight effects enabled, approximately66 effective; preserved because it reproduces the selected framing. Native32 border fog and the central map beacon are intentional. This is not the retired whole-mountain DH composition."
+    }
+  ]
+}

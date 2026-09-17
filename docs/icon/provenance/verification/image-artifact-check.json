@@ -1,0 +1,195 @@
+{
+  "method": "Scan every16\u00d716 tile for near-uniform bright-blue sky (sum channel variance<3; R>90, B>1.08R, G>1.03R) and near-black voids (all means<3, variance<2), then find4-connected regions>=4 tiles. Any such sky region is suspect in an all-ground aerial DH frustum. Low-angle DH and shorter shader-native views include real horizons: boundary-connected sky/fog is expected and recorded separately; enclosed regions remain suspect. Byte-compare each delivered image against its original native F2 and verify its recorded square native dimensions. Combine image scans with DH FULL-column coverage or native source-chunk coverage and relevant F3 diagnostics; visually inspect every frame, including horizon transitions. These heuristic scans cannot prove every possible rendering defect absent.",
+  "frames": [
+    {
+      "file": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60.png",
+      "profile": "shader-native",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "expectedNativeSize": [
+        1024,
+        1024
+      ],
+      "squareNativeExpectedSize": true,
+      "sourceF2BytesIdentical": true,
+      "sha256": "da1ffab30092da890a8340bbe3ed86fadeb09b900bf66f544f1587aaa512b578",
+      "scanned16x16Tiles": 4096,
+      "flatBrightSkyTiles": 1706,
+      "connectedSkyRegions": [
+        {
+          "tiles": 662,
+          "pixelBounds": [
+            544,
+            192,
+            1024,
+            736
+          ]
+        },
+        {
+          "tiles": 637,
+          "pixelBounds": [
+            0,
+            192,
+            496,
+            768
+          ]
+        },
+        {
+          "tiles": 89,
+          "pixelBounds": [
+            528,
+            0,
+            1024,
+            64
+          ]
+        },
+        {
+          "tiles": 71,
+          "pixelBounds": [
+            0,
+            64,
+            512,
+            144
+          ]
+        },
+        {
+          "tiles": 47,
+          "pixelBounds": [
+            0,
+            144,
+            496,
+            208
+          ]
+        },
+        {
+          "tiles": 25,
+          "pixelBounds": [
+            784,
+            160,
+            1024,
+            208
+          ]
+        },
+        {
+          "tiles": 75,
+          "pixelBounds": [
+            528,
+            64,
+            1024,
+            144
+          ]
+        },
+        {
+          "tiles": 71,
+          "pixelBounds": [
+            80,
+            0,
+            512,
+            64
+          ]
+        },
+        {
+          "tiles": 21,
+          "pixelBounds": [
+            528,
+            160,
+            784,
+            192
+          ]
+        }
+      ],
+      "expectedBoundaryHorizonRegions": [
+        {
+          "tiles": 662,
+          "pixelBounds": [
+            544,
+            192,
+            1024,
+            736
+          ]
+        },
+        {
+          "tiles": 637,
+          "pixelBounds": [
+            0,
+            192,
+            496,
+            768
+          ]
+        },
+        {
+          "tiles": 89,
+          "pixelBounds": [
+            528,
+            0,
+            1024,
+            64
+          ]
+        },
+        {
+          "tiles": 71,
+          "pixelBounds": [
+            0,
+            64,
+            512,
+            144
+          ]
+        },
+        {
+          "tiles": 47,
+          "pixelBounds": [
+            0,
+            144,
+            496,
+            208
+          ]
+        },
+        {
+          "tiles": 25,
+          "pixelBounds": [
+            784,
+            160,
+            1024,
+            208
+          ]
+        },
+        {
+          "tiles": 75,
+          "pixelBounds": [
+            528,
+            64,
+            1024,
+            144
+          ]
+        },
+        {
+          "tiles": 71,
+          "pixelBounds": [
+            80,
+            0,
+            512,
+            64
+          ]
+        }
+      ],
+      "connectedSkyHoleCandidates": [
+        {
+          "tiles": 21,
+          "pixelBounds": [
+            528,
+            160,
+            784,
+            192
+          ]
+        }
+      ],
+      "flatBlackTiles": 0,
+      "connectedBlackHoleCandidates": [],
+      "automaticPass": false,
+      "verificationPathBeforeFinalRename": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60-1024.png"
+    }
+  ],
+  "allAutomaticPass": false
+}

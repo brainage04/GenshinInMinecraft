@@ -1,0 +1,23 @@
+{
+  "blocking": [],
+  "resolved": [
+    {
+      "issue": "Changing native resolution must preserve the owner-selected composition, not force a different effective FOV.",
+      "resolution": "Same camera and nominal60/FOV-effects1 setting retained. All six independent landmark matches have0-pixel offsets at1024 and fitted scale1.0.",
+      "evidence": "evidence/selected-framing-check.json"
+    },
+    {
+      "issue": "The conservative35-chunk-square cache check found361 zero-heightmap columns outside the actual native view.",
+      "resolution": "All5041 source chunks are FULL and present. Every empty-column corner is strictly behind the complete horizontal view half-space; all361 also lie in the padding outside the configured32-chunk window. The initial diagnostic and all coordinates remain recorded, rather than suppressing the finding.",
+      "evidence": "evidence/selected-native-coverage.json"
+    }
+  ],
+  "limitations": [
+    "FOV60 is nominal; flight effects remain enabled to match the chosen image. Approximately66 effective is based on earlier empirical isolation, not direct instrumentation.",
+    "Native32 with Complementary border fog is intentionally a summit/Nail detail. It is not whole-mountain long-range DH coverage.",
+    "One conservative sky-scan candidate at[528,160,784,192] is genuine upper sky/fog separated by the gradient threshold; raw warning and manual review are preserved.",
+    "The central vertical beacon is legitimate map content.",
+    "Native F3 exposed full cache counts, not DH-added render-queue counters; no unobserved zero-queue assertion is made.",
+    "Main owns merging removals.DragonspineOrtho.json into the shared ledger. The six earlier POIs were already logged and were not duplicated."
+  ]
+}

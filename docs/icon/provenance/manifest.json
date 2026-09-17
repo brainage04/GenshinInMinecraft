@@ -1,0 +1,407 @@
+[
+  {
+    "project": "GenshinInMinecraft",
+    "label": "Dragonspine \u2014 Complementary native \u2014 heading -55\u00b0 \u2014 FOV 60\u00b0",
+    "path": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60.png",
+    "method": "Actual Minecraft1.21.10/Fabric0.18.4; native1024\u00d71024 F2 screenshot, first-person spectator, HUD hidden. No crop, retouching, compositing or output resampling.",
+    "source": "captures-teyvat/runtime/screenshots/2026-09-17_14.34.46.png",
+    "notes": "Owner-selected composition recaptured at1024 square using the identical recorded camera, heading, shader profile, time and clear weather. Six static-landmark comparisons against the selected1280 reference verify framing. FOV60 is the nominal slider with flight FOV effects enabled; approximately66 effective, based on the earlier measured flight-FOV isolation. Complementary Reimagined5.7.1 LOW and native32 with BORDER_FOG=true; Iris present, DH absent. This is intentionally a summit/Nail detail with a fog-limited background, not whole-mountain long-range coverage. The central vertical beacon is legitimate map content. Fourteen alternatives were retired to round3/removed; prior15-frame evidence and exact author versions are preserved under evidence/history-15-frame-delivery/.",
+    "profile": "shader-native",
+    "modsPresent": [
+      {
+        "file": "[\u94a0] sodium-fabric-0.7.3+mc1.21.10.jar",
+        "sha256": "b0bcfa324fa6acf8934b7bd5ad1946e5a003aab86f877d2a64af220fe284b683"
+      },
+      {
+        "file": "fabric-api-0.138.4+1.21.10.jar",
+        "sha256": "4dd5d07067d5cf3e874d2780806c3da223819d39b28d6296c1005a36f2d0a5e4"
+      },
+      {
+        "file": "iris-fabric-1.9.7+mc1.21.10.jar",
+        "sha256": "2b207f51cd91f2b4928597e80f90346dec4821772d8df008d0a6b42971add7ea"
+      }
+    ],
+    "camera": {
+      "yaw": -55,
+      "pitch": 33,
+      "fov": 60,
+      "xyz": [
+        2272.722223170183,
+        350,
+        -2533.9590458133976
+      ]
+    },
+    "cameraCommandExecuted": "/tp @s 2272.722223 350.000000 -2533.959046 -55.000000 33.000000",
+    "size": [
+      1024,
+      1024
+    ],
+    "time": 4000,
+    "weather": "clear; daylight and weather cycles disabled",
+    "shaderPackInstalled": "ComplementaryReimagined_r5.7.1.zip",
+    "shaderPackEnabled": true,
+    "sha256": "da1ffab30092da890a8340bbe3ed86fadeb09b900bf66f544f1587aaa512b578",
+    "metadata": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60-metadata.json",
+    "artifactCheck": {
+      "file": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60.png",
+      "profile": "shader-native",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "expectedNativeSize": [
+        1024,
+        1024
+      ],
+      "squareNativeExpectedSize": true,
+      "sourceF2BytesIdentical": true,
+      "sha256": "da1ffab30092da890a8340bbe3ed86fadeb09b900bf66f544f1587aaa512b578",
+      "scanned16x16Tiles": 4096,
+      "flatBrightSkyTiles": 1706,
+      "connectedSkyRegions": [
+        {
+          "tiles": 662,
+          "pixelBounds": [
+            544,
+            192,
+            1024,
+            736
+          ]
+        },
+        {
+          "tiles": 637,
+          "pixelBounds": [
+            0,
+            192,
+            496,
+            768
+          ]
+        },
+        {
+          "tiles": 89,
+          "pixelBounds": [
+            528,
+            0,
+            1024,
+            64
+          ]
+        },
+        {
+          "tiles": 71,
+          "pixelBounds": [
+            0,
+            64,
+            512,
+            144
+          ]
+        },
+        {
+          "tiles": 47,
+          "pixelBounds": [
+            0,
+            144,
+            496,
+            208
+          ]
+        },
+        {
+          "tiles": 25,
+          "pixelBounds": [
+            784,
+            160,
+            1024,
+            208
+          ]
+        },
+        {
+          "tiles": 75,
+          "pixelBounds": [
+            528,
+            64,
+            1024,
+            144
+          ]
+        },
+        {
+          "tiles": 71,
+          "pixelBounds": [
+            80,
+            0,
+            512,
+            64
+          ]
+        },
+        {
+          "tiles": 21,
+          "pixelBounds": [
+            528,
+            160,
+            784,
+            192
+          ]
+        }
+      ],
+      "expectedBoundaryHorizonRegions": [
+        {
+          "tiles": 662,
+          "pixelBounds": [
+            544,
+            192,
+            1024,
+            736
+          ]
+        },
+        {
+          "tiles": 637,
+          "pixelBounds": [
+            0,
+            192,
+            496,
+            768
+          ]
+        },
+        {
+          "tiles": 89,
+          "pixelBounds": [
+            528,
+            0,
+            1024,
+            64
+          ]
+        },
+        {
+          "tiles": 71,
+          "pixelBounds": [
+            0,
+            64,
+            512,
+            144
+          ]
+        },
+        {
+          "tiles": 47,
+          "pixelBounds": [
+            0,
+            144,
+            496,
+            208
+          ]
+        },
+        {
+          "tiles": 25,
+          "pixelBounds": [
+            784,
+            160,
+            1024,
+            208
+          ]
+        },
+        {
+          "tiles": 75,
+          "pixelBounds": [
+            528,
+            64,
+            1024,
+            144
+          ]
+        },
+        {
+          "tiles": 71,
+          "pixelBounds": [
+            80,
+            0,
+            512,
+            64
+          ]
+        }
+      ],
+      "connectedSkyHoleCandidates": [
+        {
+          "tiles": 21,
+          "pixelBounds": [
+            528,
+            160,
+            784,
+            192
+          ]
+        }
+      ],
+      "flatBlackTiles": 0,
+      "connectedBlackHoleCandidates": [],
+      "automaticPass": false,
+      "verificationPathBeforeFinalRename": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60-1024.png"
+    },
+    "visualReview": {
+      "file": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60.png",
+      "sha256": "da1ffab30092da890a8340bbe3ed86fadeb09b900bf66f544f1587aaa512b578",
+      "visuallyReviewedNativeFinal": true,
+      "hudOrNametagsVisible": false,
+      "visibleMissingChunkOrBlackWaterArtifact": false,
+      "accepted": true,
+      "scope": "Owner-selected Complementary summit/Nail composition, recaptured natively at1024 with the identical camera and shader profile. Six landmark offsets are all0,0 and fitted scale1.0 against the1280 reference.",
+      "automaticScanPass": false,
+      "reviewedSkyCandidates": [
+        {
+          "tiles": 21,
+          "pixelBounds": [
+            528,
+            160,
+            784,
+            192
+          ]
+        }
+      ],
+      "manualResolution": "The sole21-tile candidate at[528,160,784,192] is ordinary upper sky/fog to the right of the Nail. The variance threshold splits the sky gradient into bands; this is not a missing-chunk hole. Raw warning retained. No flat-black tiles or black-water defect.",
+      "caveat": "Nominal FOV60 with flight effects enabled, approximately66 effective; preserved because it reproduces the selected framing. Native32 border fog and the central map beacon are intentional. This is not the retired whole-mountain DH composition."
+    },
+    "framingProof": {
+      "method": "Six spatially separated static landmarks, edge-template matching within12 pixels of their expected1024 coordinates. The1280 reference is reduced in memory for comparison only; output remains native F2. Require every landmark within2 pixels and fitted scale within0.5 percent of unity.",
+      "referenceFile": "captures-teyvat/renders-dragonspine/evidence/selected-1280-reference/06-shader-heading-minus55-fov60.png",
+      "referenceSha256": "d3d4e24e7fd43fe2ce08c274a09ce342a3954bc3c384d52d818b46de4443fb42",
+      "file": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60.png",
+      "sha256": "da1ffab30092da890a8340bbe3ed86fadeb09b900bf66f544f1587aaa512b578",
+      "sameRecordedCamera": true,
+      "nominalFovDegrees": 60,
+      "fovEffectScale": 1,
+      "effectiveFovDegreesApproximate": 66,
+      "effectiveFovBasis": "Earlier empirical spectator-flight FOV isolation, plus the current independent image-framing match. Effective FOV is not directly instrumented.",
+      "landmarks": [
+        {
+          "landmark": "Nail upper pillar",
+          "referenceCenterAt1024": [
+            512,
+            185
+          ],
+          "matchCenter": [
+            512,
+            185
+          ],
+          "offsetPixels": [
+            0,
+            0
+          ],
+          "meanEdgeAbsoluteError": 5.854600694444445
+        },
+        {
+          "landmark": "right ice arc",
+          "referenceCenterAt1024": [
+            595,
+            332
+          ],
+          "matchCenter": [
+            595,
+            332
+          ],
+          "offsetPixels": [
+            0,
+            0
+          ],
+          "meanEdgeAbsoluteError": 9.69953125
+        },
+        {
+          "landmark": "floating stone",
+          "referenceCenterAt1024": [
+            714,
+            477
+          ],
+          "matchCenter": [
+            714,
+            477
+          ],
+          "offsetPixels": [
+            0,
+            0
+          ],
+          "meanEdgeAbsoluteError": 5.155092592592593
+        },
+        {
+          "landmark": "left snow shelf",
+          "referenceCenterAt1024": [
+            345,
+            580
+          ],
+          "matchCenter": [
+            345,
+            580
+          ],
+          "offsetPixels": [
+            0,
+            0
+          ],
+          "meanEdgeAbsoluteError": 19.97421875
+        },
+        {
+          "landmark": "lower right ridge",
+          "referenceCenterAt1024": [
+            620,
+            645
+          ],
+          "matchCenter": [
+            620,
+            645
+          ],
+          "offsetPixels": [
+            0,
+            0
+          ],
+          "meanEdgeAbsoluteError": 21.9384375
+        },
+        {
+          "landmark": "lake west rim",
+          "referenceCenterAt1024": [
+            787,
+            920
+          ],
+          "matchCenter": [
+            787,
+            920
+          ],
+          "offsetPixels": [
+            0,
+            0
+          ],
+          "meanEdgeAbsoluteError": 7.88453125
+        }
+      ],
+      "fittedScale": 1.0,
+      "fittedTranslationPixels": [
+        0.0,
+        0.0
+      ],
+      "maximumLandmarkAxisOffsetPixels": 0,
+      "pass": true,
+      "verificationPathBeforeFinalRename": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60-1024.png"
+    },
+    "nativeCoverageProof": {
+      "configuredNativeRenderDistanceChunks": 32,
+      "checkedCacheRadiusChunks": 35,
+      "requiredChunks": 5041,
+      "statuses": {
+        "minecraft:full": 5041
+      },
+      "heightmapColumns": 1290496,
+      "minimumSurfaceY": -254,
+      "maximumSurfaceY": 287,
+      "pass": true,
+      "sourceEmptyColumnCount": 361,
+      "sourceEmptyColumnsInInvisiblePadding": 361,
+      "unprovenOrVisibleSourceEmptyColumns": 0,
+      "evidence": "captures-teyvat/renders-dragonspine/evidence/selected-native-coverage.json"
+    },
+    "runtimeMetrics": {
+      "jvmPid": 3532106,
+      "measuredAfterCaptureUnixTime": 1789619942.5444956,
+      "residentMiB": 8292.33984375,
+      "processPeakResidentMiB": 8791.015625,
+      "heapLimitGiB": 8,
+      "cpuAffinity": "18-19",
+      "cpuWeight": "CPUWeight=20",
+      "llvmpipeWorkers": 2,
+      "nativeLoadedClientChunks": 5041,
+      "nativeLoadedServerChunks": 8281,
+      "diagnostic": "evidence/selected-1024-final-debug.png",
+      "queueQualification": "This native profile exposes loaded-cache counts, not the DH-added queue counters; no unobserved zero-queue value is asserted."
+    },
+    "evidence": "captures-teyvat/renders-dragonspine/evidence/selected-framing-check.json"
+  }
+]

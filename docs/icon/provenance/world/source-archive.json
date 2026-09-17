@@ -1,0 +1,7 @@
+{
+  "path": "/home/thomas/01_TM/Coding/Minecraft/GenshinInMinecraft/wangg_mc/Blocky Teyvat 5.1.0-001.zip",
+  "bytes": 3948634100,
+  "mtime_ns": 1789215143126597448,
+  "sha256": "5acf999d8d35ca5f2c5b57e577c0398e58d253ce511a960b42cf12ee5921558b",
+  "handling": "Read only; source archive and owner directory never written. World files were extracted into this isolated runtime. Normal Minecraft player/time/gamerule/save changes occurred only inside the runtime copy."
+}

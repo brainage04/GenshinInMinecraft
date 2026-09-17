@@ -1,0 +1,118 @@
+{
+  "method": "Six spatially separated static landmarks, edge-template matching within12 pixels of their expected1024 coordinates. The1280 reference is reduced in memory for comparison only; output remains native F2. Require every landmark within2 pixels and fitted scale within0.5 percent of unity.",
+  "referenceFile": "captures-teyvat/renders-dragonspine/evidence/selected-1280-reference/06-shader-heading-minus55-fov60.png",
+  "referenceSha256": "d3d4e24e7fd43fe2ce08c274a09ce342a3954bc3c384d52d818b46de4443fb42",
+  "file": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60.png",
+  "sha256": "da1ffab30092da890a8340bbe3ed86fadeb09b900bf66f544f1587aaa512b578",
+  "sameRecordedCamera": true,
+  "nominalFovDegrees": 60,
+  "fovEffectScale": 1,
+  "effectiveFovDegreesApproximate": 66,
+  "effectiveFovBasis": "Earlier empirical spectator-flight FOV isolation, plus the current independent image-framing match. Effective FOV is not directly instrumented.",
+  "landmarks": [
+    {
+      "landmark": "Nail upper pillar",
+      "referenceCenterAt1024": [
+        512,
+        185
+      ],
+      "matchCenter": [
+        512,
+        185
+      ],
+      "offsetPixels": [
+        0,
+        0
+      ],
+      "meanEdgeAbsoluteError": 5.854600694444445
+    },
+    {
+      "landmark": "right ice arc",
+      "referenceCenterAt1024": [
+        595,
+        332
+      ],
+      "matchCenter": [
+        595,
+        332
+      ],
+      "offsetPixels": [
+        0,
+        0
+      ],
+      "meanEdgeAbsoluteError": 9.69953125
+    },
+    {
+      "landmark": "floating stone",
+      "referenceCenterAt1024": [
+        714,
+        477
+      ],
+      "matchCenter": [
+        714,
+        477
+      ],
+      "offsetPixels": [
+        0,
+        0
+      ],
+      "meanEdgeAbsoluteError": 5.155092592592593
+    },
+    {
+      "landmark": "left snow shelf",
+      "referenceCenterAt1024": [
+        345,
+        580
+      ],
+      "matchCenter": [
+        345,
+        580
+      ],
+      "offsetPixels": [
+        0,
+        0
+      ],
+      "meanEdgeAbsoluteError": 19.97421875
+    },
+    {
+      "landmark": "lower right ridge",
+      "referenceCenterAt1024": [
+        620,
+        645
+      ],
+      "matchCenter": [
+        620,
+        645
+      ],
+      "offsetPixels": [
+        0,
+        0
+      ],
+      "meanEdgeAbsoluteError": 21.9384375
+    },
+    {
+      "landmark": "lake west rim",
+      "referenceCenterAt1024": [
+        787,
+        920
+      ],
+      "matchCenter": [
+        787,
+        920
+      ],
+      "offsetPixels": [
+        0,
+        0
+      ],
+      "meanEdgeAbsoluteError": 7.88453125
+    }
+  ],
+  "fittedScale": 1.0,
+  "fittedTranslationPixels": [
+    0.0,
+    0.0
+  ],
+  "maximumLandmarkAxisOffsetPixels": 0,
+  "pass": true,
+  "verificationPathBeforeFinalRename": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60-1024.png"
+}

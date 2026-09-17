@@ -1,0 +1,50 @@
+{
+  "purpose": "Owner-selected Dragonspine Complementary heading-55/FOV60 image, recaptured at native1024 square with the same framing. Only this current frame is gallery-deliverable.",
+  "workingDirectory": "/home/thomas/01_TM/Coding/Websites/brainage04.github.io/.local-icon-variants/round3/captures-teyvat",
+  "selectedImage": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60.png",
+  "preserved1280Reference": "renders-dragonspine/evidence/selected-1280-reference/06-shader-heading-minus55-fov60.png",
+  "client": "Minecraft1.21.10 / Fabric0.18.4 / Iris1.9.7 / Sodium0.7.3 / Fabric API0.138.4; existing Blocky Teyvat world, minecraft:overworld. DH absent.",
+  "profile": "Exact original frame06 options.txt, iris.properties, sodium-options.json and Complementary LOW options were restored from the preserved selected1280 snapshots before launch. Native render distance32, BORDER_FOG=true, fovEffectScale1.0. Shader ZIP unchanged.",
+  "nativeFramebuffer": "Private Xvfb:211 and Minecraft window both1024\u00d71024. F1 hides all HUD, then F2 writes the PNG directly. No output crop, retouching, compositing or resampling.",
+  "resourcePolicy": {
+    "CPUWeight": 20,
+    "AllowedCPUs": "18,19",
+    "ActiveProcessorCount": 2,
+    "llvmpipeWorkers": 2,
+    "heap": "8GiB",
+    "display": ":211",
+    "audioSink": "round3_teyvat",
+    "runtimeCgroupNote": "The host watchdog moved Java to render-chunky.service; its CPUWeight20 and process affinity18-19 were verified during capture. No osu! changes."
+  },
+  "commandsExecuted": {
+    "display": "systemd-run --user --scope --unit=round3-dragonspine-display -p CPUWeight=20 -p AllowedCPUs=18,19 taskset -c 18,19 Xvfb :211 -screen 0 1024x1024x24 -nolisten tcp",
+    "client": "systemd-run --user --scope --unit=round3-dragonspine -p CPUWeight=20 -p AllowedCPUs=18,19 taskset -c 18,19 sh renders-dragonspine/capture-launch.sh",
+    "camera": "/tp @s 2272.722223 350.000000 -2533.959046 -55.000000 33.000000",
+    "world": [
+      "/time set 4000",
+      "/weather clear",
+      "/gamerule doDaylightCycle false",
+      "/gamerule doWeatherCycle false"
+    ],
+    "capture": "python3 renders-dragonspine/capture-control.py capture 0 06-shader-heading-minus55-fov60-1024 shader-native 1024",
+    "framingAndCoverage": "systemd-run --user --scope -p CPUWeight=20 -p AllowedCPUs=18,19 python3 renders-dragonspine/verify-selected.py 06-shader-heading-minus55-fov60-1024-metadata.json",
+    "imageScan": "systemd-run --user --scope -p CPUWeight=20 -p AllowedCPUs=18,19 python3 renders-dragonspine/verify-frames.py 06-shader-heading-minus55-fov60-1024-metadata.json"
+  },
+  "verificationEnvironment": {
+    "PYTHONPATH": "/nix/store/4v9j9wbzyhrlx9980ygbr812313mazy0-python3.13-pillow-12.3.0/lib/python3.13/site-packages"
+  },
+  "finalInstallation": "The direct F2 staging file was renamed from the -1024 suffix to the original canonical06 filename after fourteen alternatives were archived. Its sha256 is unchanged. Metadata/proof file fields were updated; verificationPathBeforeFinalRename preserves the staged path.",
+  "framingVerification": "verify-selected.py reduces only the preserved reference in memory, then matches six spatially separated static edges within\u00b112px. Accepted tolerance2px/0.5%; actual six offsets0,0 and fitted scale1.0. Delivered pixels are never modified. Nominal FOV60/effects1 is preserved, rather than forcing effects off and changing the selected composition.",
+  "coverageVerification": "5041 FULL Anvil chunks and1290496 WORLD_SURFACE columns inspected. Missing chunks/heightmaps0. All361 zero-heightmap columns are in cache padding and strictly behind the view; full coordinate/corner classifications retained. Initial overly conservative failure is preserved separately. Native F3 confirms client5041/server8281 cache counts and stable5369 rendered sections before/after, not unexposed render queues.",
+  "artifactVerification": "F2-source hash and native1024 square verified. Flat-black tiles0. One21-tile upper-sky/fog warning is preserved and visually adjudicated in evidence/artifact-review.json.",
+  "replayAgainstFinalCanonicalFiles": [
+    "python3 renders-dragonspine/verify-selected.py",
+    "python3 renders-dragonspine/verify-frames.py",
+    "python3 renders-dragonspine/build-manifest.py",
+    "python3 renders-dragonspine/verify-delivery.py"
+  ],
+  "retirement": "Fourteen PNGs and sidecars moved unchanged to round3/removed/captures-teyvat/renders-dragonspine/. Fragment removals.DragonspineOrtho.json is for Main to merge; shared removals.json was not edited by this agent. Six earlier POIs were already logged and archived.",
+  "cleanup": "Both private client launches exited0 after world save. Xvfb stopped, owned null sink unloaded after identity check, original four settings files/three mods/nine-entry debug overlay restored. Exact pre-stage camera position restored before save. See cleanup-report.json.",
+  "historicalEvidence": "evidence/history-15-frame-delivery/ contains the prior reports, exact14 author versions and their hashes; retired frame evidence remains available but does not imply additional current deliverables.",
+  "scriptHashes": "script-sha256.json"
+}

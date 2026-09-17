@@ -1,0 +1,91 @@
+{
+  "index": 0,
+  "camera": {
+    "yaw": -55,
+    "pitch": 33,
+    "fov": 60,
+    "xyz": [
+      2272.722223170183,
+      350,
+      -2533.9590458133976
+    ]
+  },
+  "source": "captures-teyvat/runtime/screenshots/2026-09-17_14.34.46.png",
+  "file": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60.png",
+  "size": [
+    1024,
+    1024
+  ],
+  "sha256": "da1ffab30092da890a8340bbe3ed86fadeb09b900bf66f544f1587aaa512b578",
+  "unixTime": 1789619690.6264074,
+  "nativeF2": true,
+  "uncropped": true,
+  "runtimeFov": 60.0,
+  "cameraCommand": "/tp @s 2272.722223 350.000000 -2533.959046 -55.000000 33.000000",
+  "variant": "shader-native",
+  "worldTime": 4000,
+  "weather": "clear, fixed",
+  "doDaylightCycle": false,
+  "doWeatherCycle": false,
+  "vanillaRenderDistanceChunks": 32,
+  "shaderPackInstalled": "ComplementaryReimagined_r5.7.1.zip",
+  "shaderPackEnabled": true,
+  "distantHorizonsEnabled": false,
+  "fovEffectScale": 1.0,
+  "modsPresent": [
+    {
+      "file": "[\u94a0] sodium-fabric-0.7.3+mc1.21.10.jar",
+      "sha256": "b0bcfa324fa6acf8934b7bd5ad1946e5a003aab86f877d2a64af220fe284b683"
+    },
+    {
+      "file": "fabric-api-0.138.4+1.21.10.jar",
+      "sha256": "4dd5d07067d5cf3e874d2780806c3da223819d39b28d6296c1005a36f2d0a5e4"
+    },
+    {
+      "file": "iris-fabric-1.9.7+mc1.21.10.jar",
+      "sha256": "2b207f51cd91f2b4928597e80f90346dec4821772d8df008d0a6b42971add7ea"
+    }
+  ],
+  "configurationSnapshots": {
+    "options.txt": {
+      "file": "captures-teyvat/renders-dragonspine/evidence/06-shader-heading-minus55-fov60-1024-options.txt",
+      "sha256": "395817558112ea01adc70e875905278ee308350629e34c85587af2d3ccee7c37"
+    },
+    "iris.properties": {
+      "file": "captures-teyvat/renders-dragonspine/evidence/06-shader-heading-minus55-fov60-1024-iris.properties",
+      "sha256": "c4ffde96881873237aea7fdd0b5adb17e65491d44ed9e7abe5ddafbe306c8802"
+    },
+    "sodium-options.json": {
+      "file": "captures-teyvat/renders-dragonspine/evidence/06-shader-heading-minus55-fov60-1024-sodium-options.json",
+      "sha256": "3bfd07e5bc00f68903f690b7bc074c14640e3740ce73a27ad6e8991ef05fba19"
+    },
+    "ComplementaryReimagined_r5.7.1.zip.txt": {
+      "file": "captures-teyvat/renders-dragonspine/evidence/06-shader-heading-minus55-fov60-1024-ComplementaryReimagined_r5.7.1.zip.txt",
+      "sha256": "e126130d9ca1fcb70573023f8fcc28ee41e81b2cd4c37cd382b3a952f1075330"
+    }
+  },
+  "runtimeMetrics": {
+    "jvmPid": 3532106,
+    "measuredAfterCaptureUnixTime": 1789619942.5444956,
+    "residentMiB": 8292.33984375,
+    "processPeakResidentMiB": 8791.015625,
+    "heapLimitGiB": 8,
+    "cpuAffinity": "18-19",
+    "cpuWeight": "CPUWeight=20",
+    "llvmpipeWorkers": 2,
+    "nativeLoadedClientChunks": 5041,
+    "nativeLoadedServerChunks": 8281,
+    "diagnostic": "evidence/selected-1024-final-debug.png",
+    "queueQualification": "This native profile exposes loaded-cache counts, not the DH-added queue counters; no unobserved zero-queue value is asserted."
+  },
+  "fovSemantics": "Nominal60-degree slider, flight FOV effects enabled (scale1); approximately66 effective based on prior empirical isolation. Six-landmark image comparison reproduces the selected1280 composition with zero integer-pixel offsets at1024.",
+  "selectedReference": {
+    "file": "captures-teyvat/renders-dragonspine/evidence/selected-1280-reference/06-shader-heading-minus55-fov60.png",
+    "sha256": "d3d4e24e7fd43fe2ce08c274a09ce342a3954bc3c384d52d818b46de4443fb42",
+    "size": [
+      1280,
+      1280
+    ]
+  },
+  "temporaryCapturePath": "captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60-1024.png"
+}

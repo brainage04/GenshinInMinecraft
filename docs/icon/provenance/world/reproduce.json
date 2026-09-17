@@ -1,0 +1,14 @@
+{
+  "workingDirectory": "/home/thomas/01_TM/Coding/Websites/brainage04.github.io/.local-icon-variants/round3/captures-teyvat",
+  "installationCommand": "systemd-run --user --scope -p CPUWeight=20 -p AllowedCPUs=18,19 taskset -c 18,19 python3 tools/install-world.py",
+  "provisionCommand": "systemd-run --user --scope -p CPUWeight=20 -p AllowedCPUs=18,19 python3 tools/provision-client.py",
+  "displayCommand": "Xvfb :211 -screen 0 1280x960x24 -nolisten tcp",
+  "audioCommand": "pactl load-module module-null-sink sink_name=round3_teyvat sink_properties=device.description=round3_teyvat",
+  "launchCommand": "systemd-run --user --scope --unit=round3-teyvat -p CPUWeight=20 -p AllowedCPUs=18,19 taskset -c 18,19 ./launch.sh",
+  "verifyAudioBeforeInput": "pactl list short sink-inputs; pactl list short sinks — game stream 16516 was on private sink index 16490. OpenAL log named round3_teyvat.",
+  "cameraCommands": "See per-image manifest entries and evidence/commands.txt. Wait for map chunks to finish rendering after each teleport; native F2 screenshot.",
+  "shaderProfile": "LOW; settings are explicit options extracted from the pack’s profile.LOW definition. Reloaded using Iris R; exact LOW profile and pack name logged.",
+  "mapInstructions": "Archive contains no map-specific readme. Its sole readme is generic serverconfig text (preserved in evidence). Archive options enable only fabric resource packs. YiFang archive contains player-character .ysm and model zips, not a required world resourcepack; not installed.",
+  "installed": "Entire 6,122,749,281-byte saved world including unmodified worldpainter.zip; the map-bundled Fabric API, Iris and Sodium jars; official matching 1.21.10 libraries/assets and Fabric loader; ComplementaryReimagined_r5.7.1.zip copied byte-for-byte from the provided source. No other map-bundled optional mods installed.",
+  "verificationCommand": "PYTHONPATH=/nix/store/4v9j9wbzyhrlx9980ygbr812313mazy0-python3.13-pillow-12.3.0/lib/python3.13/site-packages python3 tools/finalize.py"
+}

@@ -1,0 +1,25 @@
+{
+  "blocking": false,
+  "warnings": [
+    {
+      "message": "Missing data pack axiom / ok_zoomer",
+      "explanation": "Optional bundled editor/zoom mod data packs were not installed. The original worldpainter height datapack was installed unchanged and the world loaded successfully."
+    },
+    {
+      "message": "Offline accessToken=0 produces HTTP 401 and Realms authentication errors",
+      "explanation": "Single-player map capture does not use Realms or authenticated servers."
+    },
+    {
+      "message": "Narrator libflite.so unavailable",
+      "explanation": "Narrator initialization failed; OpenAL audio on the private null sink and game rendering both initialized successfully."
+    },
+    {
+      "message": "Shader compilation logs contain used-uninitialized warnings",
+      "explanation": "Iris successfully created the overworld pipeline; all seven final native screenshots were visually reviewed."
+    },
+    {
+      "message": "X11: Standard cursor shape unavailable",
+      "explanation": "Non-blocking Xvfb cursor-shape warning when opening menus."
+    }
+  ]
+}

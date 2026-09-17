@@ -1,0 +1,327 @@
+{
+  "mod": "GenshinInMinecraft",
+  "icon": {
+    "path": "docs/icon/icon.png",
+    "bytes": 2628251,
+    "pixels": [
+      1024,
+      1024
+    ],
+    "mode": "RGBA",
+    "sha256": "da1ffab30092da890a8340bbe3ed86fadeb09b900bf66f544f1587aaa512b578",
+    "round3Source": "round3/captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60.png",
+    "round3SourceSha256": "da1ffab30092da890a8340bbe3ed86fadeb09b900bf66f544f1587aaa512b578",
+    "byteIdentical": true,
+    "nativeF2": true,
+    "sourceScreenshot": "round3/captures-teyvat/runtime/screenshots/2026-09-17_14.34.46.png (native F2 file, uncropped, no resampling)",
+    "method": "real in-game Minecraft capture, native 1024x1024 F2 screenshot"
+  },
+  "copiedFiles": [
+    {
+      "file": "provenance/manifest.json",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/manifest.json",
+      "bytes": 12022,
+      "sha256": "26929b1d6756df0981e52bb124acdfdfe2db722e0829cdfe1e783ff1e59015a6",
+      "round3SourceSha256": "26929b1d6756df0981e52bb124acdfdfe2db722e0829cdfe1e783ff1e59015a6",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/reproduce.json",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/reproduce.json",
+      "bytes": 5195,
+      "sha256": "a49ff6bee1d481a42007a57f62a329cc58593b00337f5871956b1085c820d1f2",
+      "round3SourceSha256": "a49ff6bee1d481a42007a57f62a329cc58593b00337f5871956b1085c820d1f2",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/blockers.json",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/blockers.json",
+      "bytes": 1757,
+      "sha256": "c009fa0d843efa6ae99853f7d1e66dce33a337fc3f42baf0357e702f6a822534",
+      "round3SourceSha256": "c009fa0d843efa6ae99853f7d1e66dce33a337fc3f42baf0357e702f6a822534",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/cleanup-report.json",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/cleanup-report.json",
+      "bytes": 4440,
+      "sha256": "66f9cf8b13e05f60f341d7be43d2273da85a09e13f2eb5276ea5c5b062480a8f",
+      "round3SourceSha256": "66f9cf8b13e05f60f341d7be43d2273da85a09e13f2eb5276ea5c5b062480a8f",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/script-sha256.json",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/script-sha256.json",
+      "bytes": 1387,
+      "sha256": "31f36786f3c9906db8586b194aa34a39924373f64ed8eb7ad32c03da89524bc9",
+      "round3SourceSha256": "31f36786f3c9906db8586b194aa34a39924373f64ed8eb7ad32c03da89524bc9",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/camera/06-shader-heading-minus55-fov60-metadata.json",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/06-shader-heading-minus55-fov60-metadata.json",
+      "bytes": 3634,
+      "sha256": "6320e13d6a12ba947e2e29f7571aa483d4d4dc7619e228009d413f8f9d404db1",
+      "round3SourceSha256": "6320e13d6a12ba947e2e29f7571aa483d4d4dc7619e228009d413f8f9d404db1",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/camera/shader-camera-plan.json",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/shader-camera-plan.json",
+      "bytes": 688,
+      "sha256": "088789df8e813469ba7b211072b80e5905377e2984c115bc88b48e8d21beae68",
+      "round3SourceSha256": "088789df8e813469ba7b211072b80e5905377e2984c115bc88b48e8d21beae68",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/harness/capture-launch.sh",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/capture-launch.sh",
+      "bytes": 1548,
+      "sha256": "d21e9b1e8f5fb609602f709348280b641b094ac5b9ee0f594088b4eed3219da6",
+      "round3SourceSha256": "d21e9b1e8f5fb609602f709348280b641b094ac5b9ee0f594088b4eed3219da6",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/harness/capture-client.args",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/capture-client.args",
+      "bytes": 13988,
+      "sha256": "ba07440a6e8e84c91f81a40b397d0a168fbeb93923eac34792102f446861c3c7",
+      "round3SourceSha256": "ba07440a6e8e84c91f81a40b397d0a168fbeb93923eac34792102f446861c3c7",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/harness/capture-control.py",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/capture-control.py",
+      "bytes": 4689,
+      "sha256": "fec33dadc3cc2330633374bc8215db5c678e779e73d4dc1469591c4982e4f3fd",
+      "round3SourceSha256": "fec33dadc3cc2330633374bc8215db5c678e779e73d4dc1469591c4982e4f3fd",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/config/sodium-mixins.properties",
+      "round3Source": "round3/captures-teyvat/config/sodium-mixins.properties",
+      "bytes": 258,
+      "sha256": "b627c4456e6fa0bc4b5f85e2f1cd949faedae3cb9afdaf2a5f52e6f3b6ae1f01",
+      "round3SourceSha256": "b627c4456e6fa0bc4b5f85e2f1cd949faedae3cb9afdaf2a5f52e6f3b6ae1f01",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/config/06-shader-heading-minus55-fov60-1024-options.txt",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/evidence/06-shader-heading-minus55-fov60-1024-options.txt",
+      "bytes": 3962,
+      "sha256": "395817558112ea01adc70e875905278ee308350629e34c85587af2d3ccee7c37",
+      "round3SourceSha256": "395817558112ea01adc70e875905278ee308350629e34c85587af2d3ccee7c37",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/config/06-shader-heading-minus55-fov60-1024-iris.properties",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/evidence/06-shader-heading-minus55-fov60-1024-iris.properties",
+      "bytes": 306,
+      "sha256": "c4ffde96881873237aea7fdd0b5adb17e65491d44ed9e7abe5ddafbe306c8802",
+      "round3SourceSha256": "c4ffde96881873237aea7fdd0b5adb17e65491d44ed9e7abe5ddafbe306c8802",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/config/06-shader-heading-minus55-fov60-1024-sodium-options.json",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/evidence/06-shader-heading-minus55-fov60-1024-sodium-options.json",
+      "bytes": 721,
+      "sha256": "3bfd07e5bc00f68903f690b7bc074c14640e3740ce73a27ad6e8991ef05fba19",
+      "round3SourceSha256": "3bfd07e5bc00f68903f690b7bc074c14640e3740ce73a27ad6e8991ef05fba19",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/config/06-shader-heading-minus55-fov60-1024-ComplementaryReimagined_r5.7.1.zip.txt",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/evidence/06-shader-heading-minus55-fov60-1024-ComplementaryReimagined_r5.7.1.zip.txt",
+      "bytes": 248,
+      "sha256": "e126130d9ca1fcb70573023f8fcc28ee41e81b2cd4c37cd382b3a952f1075330",
+      "round3SourceSha256": "e126130d9ca1fcb70573023f8fcc28ee41e81b2cd4c37cd382b3a952f1075330",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/world/install-world.py",
+      "round3Source": "round3/captures-teyvat/tools/install-world.py",
+      "bytes": 2277,
+      "sha256": "9935385bab7e40069d5c073390913bec1687e1cc3bb4f1d596ac59a2d8abb5de",
+      "round3SourceSha256": "9935385bab7e40069d5c073390913bec1687e1cc3bb4f1d596ac59a2d8abb5de",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/world/provision-client.py",
+      "round3Source": "round3/captures-teyvat/tools/provision-client.py",
+      "bytes": 3642,
+      "sha256": "535c7a291a242598b172911a3e02223ca368bc15c93874fcc5815d3d0eb843c5",
+      "round3SourceSha256": "535c7a291a242598b172911a3e02223ca368bc15c93874fcc5815d3d0eb843c5",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/world/reproduce.json",
+      "round3Source": "round3/captures-teyvat/reproduce.json",
+      "bytes": 2028,
+      "sha256": "ea8e9915107e58b85bb13894e3dc24bb6f98db61568e25b8b1c49cbaf075b756",
+      "round3SourceSha256": "ea8e9915107e58b85bb13894e3dc24bb6f98db61568e25b8b1c49cbaf075b756",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/world/source-archive.json",
+      "round3Source": "round3/captures-teyvat/evidence/source-archive.json",
+      "bytes": 469,
+      "sha256": "05a2c2f10e5315dc6991e51c7bca9ab67237dcf78d9eec370fbe593425f460b0",
+      "round3SourceSha256": "05a2c2f10e5315dc6991e51c7bca9ab67237dcf78d9eec370fbe593425f460b0",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/world/archive-options.txt",
+      "round3Source": "round3/captures-teyvat/evidence/archive-options.txt",
+      "bytes": 7821,
+      "sha256": "baec01f5188eadd43bd181a56e9e32032f49dc3de7d7930ffe2ae22deb9f1d8b",
+      "round3SourceSha256": "baec01f5188eadd43bd181a56e9e32032f49dc3de7d7930ffe2ae22deb9f1d8b",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/world/archive-serverconfig-readme.txt",
+      "round3Source": "round3/captures-teyvat/evidence/archive-serverconfig-readme.txt",
+      "bytes": 469,
+      "sha256": "b1022ab932f8f0ea0cf78d9f312e95b85a4f96f59ca430e63f9a435e512d1186",
+      "round3SourceSha256": "b1022ab932f8f0ea0cf78d9f312e95b85a4f96f59ca430e63f9a435e512d1186",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/world/runtime-warnings.json",
+      "round3Source": "round3/captures-teyvat/runtime-warnings.json",
+      "bytes": 1090,
+      "sha256": "df9f6368dba0e3de588a9ad8c71370bb27f4b954dcda0147bfc6e777616a017a",
+      "round3SourceSha256": "df9f6368dba0e3de588a9ad8c71370bb27f4b954dcda0147bfc6e777616a017a",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/verification/verify-selected.py",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/verify-selected.py",
+      "bytes": 8190,
+      "sha256": "4aa12bcabdb555013c56626fb003d82e92bb555048fc58a35ac47cba87ae92b3",
+      "round3SourceSha256": "4aa12bcabdb555013c56626fb003d82e92bb555048fc58a35ac47cba87ae92b3",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/verification/verify-frames.py",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/verify-frames.py",
+      "bytes": 3770,
+      "sha256": "8a5dd1feea8d1d066a2d7b4d6c1f4b8fb8b6a616162c0525b438f4023a8b9b1e",
+      "round3SourceSha256": "8a5dd1feea8d1d066a2d7b4d6c1f4b8fb8b6a616162c0525b438f4023a8b9b1e",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/verification/verify-delivery.py",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/verify-delivery.py",
+      "bytes": 7561,
+      "sha256": "bc6a27573cb01dfc8b5b1e68a4a7473ae759af7333f2a395b70319b3532bccae",
+      "round3SourceSha256": "bc6a27573cb01dfc8b5b1e68a4a7473ae759af7333f2a395b70319b3532bccae",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/verification/build-manifest.py",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/build-manifest.py",
+      "bytes": 3470,
+      "sha256": "d9b8d5467a2f852c076cb7a983bc09b43c623675940b242143e0771d0bfa61d4",
+      "round3SourceSha256": "d9b8d5467a2f852c076cb7a983bc09b43c623675940b242143e0771d0bfa61d4",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/verification/selected-framing-check.json",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/evidence/selected-framing-check.json",
+      "bytes": 2878,
+      "sha256": "8fa2762f15bbeb10645ed9ffc836b4240e74b8e6c187537e97764aade38993c5",
+      "round3SourceSha256": "8fa2762f15bbeb10645ed9ffc836b4240e74b8e6c187537e97764aade38993c5",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/verification/image-artifact-check.json",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/evidence/image-artifact-check.json",
+      "bytes": 4379,
+      "sha256": "fb474e93656bec4984c576d5e32987d7813294319cd5cfcf43d07fce202671f5",
+      "round3SourceSha256": "fb474e93656bec4984c576d5e32987d7813294319cd5cfcf43d07fce202671f5",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/verification/artifact-review.json",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/evidence/artifact-review.json",
+      "bytes": 1476,
+      "sha256": "d3555569ec866652114731c833919309de463b6cc8918f4c268426ecf08c7553",
+      "round3SourceSha256": "d3555569ec866652114731c833919309de463b6cc8918f4c268426ecf08c7553",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/verification/delivery-check.json",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/evidence/delivery-check.json",
+      "bytes": 916,
+      "sha256": "266826462322b39d797d3724dc64e6a1e6b9f03ac17016b82bdc776dfb2436c3",
+      "round3SourceSha256": "266826462322b39d797d3724dc64e6a1e6b9f03ac17016b82bdc776dfb2436c3",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/verification/selected-native-coverage.json",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/evidence/selected-native-coverage.json",
+      "bytes": 87677,
+      "sha256": "006430a7c6c2f71e7b59b49fea49f1428d86516b781aa364fcb850c07bcc9789",
+      "round3SourceSha256": "006430a7c6c2f71e7b59b49fea49f1428d86516b781aa364fcb850c07bcc9789",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/verification/selected-native-coverage-initial-diagnostic.json",
+      "round3Source": "round3/captures-teyvat/renders-dragonspine/evidence/selected-native-coverage-initial-diagnostic.json",
+      "bytes": 14675,
+      "sha256": "0de26a23a010567dff772dee8d30dfbc2ac5fa1a2d9fcb8f9ab79d0550c65a4b",
+      "round3SourceSha256": "0de26a23a010567dff772dee8d30dfbc2ac5fa1a2d9fcb8f9ab79d0550c65a4b",
+      "byteIdentical": true
+    },
+    {
+      "file": "provenance/verification/shader-proof.txt",
+      "round3Source": "round3/captures-teyvat/evidence/shader-proof.txt",
+      "bytes": 5808,
+      "sha256": "b759628bb8827e1ebd4c57363a79cdedb27d4dc5a0c6efc9a0975a0c6d67f507",
+      "round3SourceSha256": "b759628bb8827e1ebd4c57363a79cdedb27d4dc5a0c6efc9a0975a0c6d67f507",
+      "byteIdentical": true
+    }
+  ],
+  "capture": {
+    "minecraft": "1.21.10",
+    "loader": "Fabric 0.18.4",
+    "iris": "1.9.7",
+    "sodium": "0.7.3",
+    "fabricApi": "0.138.4+1.21.10",
+    "distantHorizons": "absent",
+    "shaderPack": {
+      "name": "ComplementaryReimagined_r5.7.1.zip",
+      "profile": "LOW",
+      "sha256": "24a20634a7832d422d3cd5023be16829f26840e25c69404dd418306ea79f63f0"
+    },
+    "world": {
+      "name": "Blocky Teyvat",
+      "levelNameInLevelDat": "方块提瓦特",
+      "dataVersion": 4556,
+      "overworldSeedInWorldGenSettings": 227290,
+      "mapArchive": "Blocky Teyvat 5.1.0-001.zip",
+      "mapArchiveBytes": 3948634100,
+      "mapArchiveSha256": "5acf999d8d35ca5f2c5b57e577c0398e58d253ce511a960b42cf12ee5921558b"
+    },
+    "camera": {
+      "xyz": [
+        2272.722223170183,
+        350,
+        -2533.9590458133976
+      ],
+      "yaw": -55,
+      "pitch": 33,
+      "nominalFov": 60,
+      "effectiveFovApproximate": 66,
+      "fovEffectScale": 1.0,
+      "command": "/tp @s 2272.722223 350.000000 -2533.959046 -55.000000 33.000000"
+    },
+    "time": {
+      "dayTimeTicks": 4000,
+      "doDaylightCycle": false,
+      "weather": "clear",
+      "doWeatherCycle": false
+    },
+    "display": "private Xvfb :211, 1024x1024x24; window 1024x1024; llvmpipe software OpenGL (Mesa 26.1.8); audio null sink round3_teyvat"
+  }
+}

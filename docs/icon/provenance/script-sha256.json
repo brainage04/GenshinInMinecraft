@@ -1,0 +1,17 @@
+{
+  "build-manifest.py": "d9b8d5467a2f852c076cb7a983bc09b43c623675940b242143e0771d0bfa61d4",
+  "capture-control.py": "fec33dadc3cc2330633374bc8215db5c678e779e73d4dc1469591c4982e4f3fd",
+  "capture-low-frame.py": "5754b4a698badddc366e4e229b0b8b6351efa04765680ba84530cd0adc4a0082",
+  "check-coverage.py": "f79e4d32f78c1905ca4a9f17b4d0b34a7440b8687f84bfa0971d945b69b73692",
+  "check-ground.py": "20c3d34cfbe90347327e4f9d37e549e8f6a9e1adf6f3675be27888cc699d46d7",
+  "derive-cameras.py": "f4a23c913f89bea73086a111f8889e30a7e35ea6d484d58495e895e6f5f4d47e",
+  "plan-low-profiles.py": "0df7073ca063ac130531ba81463b228636f40c3a7184134f558d128b250626fa",
+  "terrain-analysis.py": "6eca22573809e517716cc65fba93d675fcb1ef093ad3ad5eb5564a39f31fe2d5",
+  "verify-delivery.py": "bc6a27573cb01dfc8b5b1e68a4a7473ae759af7333f2a395b70319b3532bccae",
+  "verify-frames.py": "8a5dd1feea8d1d066a2d7b4d6c1f4b8fb8b6a616162c0525b438f4023a8b9b1e",
+  "verify-low-profiles.py": "2c8b04122f0cbe8ec2c83dcfab6dbf8f4e5bce23f896f616b7069a3b34a8ef9b",
+  "verify-selected.py": "4aa12bcabdb555013c56626fb003d82e92bb555048fc58a35ac47cba87ae92b3",
+  "verify-source-voids.py": "a11dd8dff4db1891980db01b29c46177ee57a25af98eaa9ab41e65cc6e022bf3",
+  "capture-launch.sh": "d21e9b1e8f5fb609602f709348280b641b094ac5b9ee0f594088b4eed3219da6",
+  "capture-client.args": "ba07440a6e8e84c91f81a40b397d0a168fbeb93923eac34792102f446861c3c7"
+}
