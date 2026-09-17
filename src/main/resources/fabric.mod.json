@@ -1,0 +1,40 @@
+{
+	"schemaVersion": 1,
+	"id": "${mod_id}",
+	"version": "${mod_version}",
+	"name": "${mod_name}",
+	"description": "My modern Minecraft Fabric modding template.",
+	"authors": [
+		"brainage04"
+	],
+	"contact": {
+		"homepage": "https://github.com/brainage04/GenshinInMinecraft",
+		"sources": "https://github.com/brainage04/GenshinInMinecraft"
+	},
+	"license": "MIT",
+	"icon": "assets/genshininminecraft/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"client": [
+			"io.github.brainage04.genshininminecraft.GenshinInMinecraftClient"
+		],
+		"main": [
+			"io.github.brainage04.genshininminecraft.GenshinInMinecraft"
+		]
+	},
+	"mixins": [
+		"genshininminecraft.mixins.json",
+		{
+			"config": "genshininminecraft.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"java": ">=${java_version}",
+		"fabric-api": "*",
+		"fzzy_config": ">=0.7.6"
+	},
+	"accessWidener": "genshininminecraft.accesswidener"
+}
