@@ -17,6 +17,9 @@ pluginManagement {
 				includeGroup "io.github.brainage04"
 			}
 		}
+		maven { url = 'https://maven.architectury.dev/' }
+		maven { url = 'https://maven.minecraftforge.net/' }
+		maven { url = 'https://maven.neoforged.net/releases/' }
 		maven {
 			name = 'Fabric'
 			url = 'https://maven.fabricmc.net/'
@@ -28,6 +31,7 @@ pluginManagement {
 		eachPlugin {
 			def moduleName = [
 					"io.github.brainage04.fabric-mod-conventions"    : "fabric-mod-conventions-gradle",
+					'io.github.brainage04.multiloader-mod-conventions': 'multiloader-mod-conventions-gradle',
 					"io.github.brainage04.client-gametest-recorder" : "client-gametest-recorder-gradle",
 					"io.github.brainage04.production-gametests"     : "production-gametests-gradle",
 					"io.github.brainage04.workspace-dependencies"   : "workspace-dependencies-gradle",
@@ -44,3 +48,6 @@ pluginManagement {
 if (file("../FabricModdingConventions/settings.gradle").exists()) {
 	includeBuild("../FabricModdingConventions")
 }
+
+rootProject.name = 'GenshinInMinecraft'
+include 'common', 'fabric', 'neoforge'

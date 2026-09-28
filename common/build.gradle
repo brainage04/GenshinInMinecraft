@@ -1,0 +1,14 @@
+repositories {
+	// Fzzy Config
+	maven { url = "https://maven.fzzyhmstrs.me/" }
+}
+
+dependencies {
+	// Fzzy Config's API is identical on both loaders; each loader module ships its own build.
+	// Non-transitive so the Fabric build's loader dependencies stay off common's classpath;
+	// the Kotlin stdlib is the only one its API signatures need.
+	compileOnly("me.fzzyhmstrs:fzzy_config:${rootProject.fzzy_config_version}") {
+		transitive = false
+	}
+	compileOnly "org.jetbrains.kotlin:kotlin-stdlib:2.3.21"
+}

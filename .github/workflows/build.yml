@@ -1,4 +1,4 @@
-# Build, GameTest, and template-generation checks for every change.
+# Build and GameTest checks for every change.
 name: build
 
 on:

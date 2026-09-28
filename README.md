@@ -1,6 +1,8 @@
 # GenshinInMinecraft
 
-My template for modern Minecraft Fabric mods, with common code in `src/main`, client-only code in `src/client`, and GameTests in `src/gametest`.
+My template for modern Minecraft mods for Fabric and NeoForge, with shared code, mixins and resources in `common/`, and thin loader adapters (entrypoints and event wiring) in `fabric/` and `neoforge/`.
+
+`./gradlew build` produces two jars in `build/libs`: `genshininminecraft-<version>.jar` (Fabric, requires Fabric API and Fzzy Config) and `genshininminecraft-neoforge-<version>.jar` (NeoForge, requires Fzzy Config). Install exactly one loader jar.
 
 The easiest way to use this is:
 
@@ -35,10 +37,9 @@ If you run `init.sh` locally and push with your own Git credentials, the script 
 
 For local development after initialisation:
   - Use the Java version configured by `java_version` in `gradle.properties` (`25` by default) or newer for Gradle and Minecraft.
-  - `./gradlew runServer` launches the common/server side when you keep `--side=both` or choose `--side=server`.
-  - `./gradlew runClient` launches the client side when you keep `--side=both` or choose `--side=client`.
-  - Mod Menu is included as a development dependency and a minimal `modmenu` entrypoint is kept in the generated mod metadata so you can test the integration during local client development without having to re-add it by hand.
-  - The template includes both a server command example in `src/main` and a client command example in `src/client`.
+  - `./gradlew runFabricClient` / `./gradlew runNeoForgeClient` launch the development client for each loader; `./gradlew :fabric:runServer` / `./gradlew :neoforge:runServer` launch a dedicated server.
+  - Mod Menu is included as a Fabric development dependency so you can test Fzzy Config's config screen integration during local client development; on NeoForge the screen is reachable from the Mods list.
+  - The template includes both a server command example and a client command example in `common/`; each loader registers them from its command events.
 
 # Testing
 
@@ -48,18 +49,18 @@ Run:
 ./gradlew test
 ```
 
-The template includes example tests under `src/test/java` that show two useful patterns:
+The template includes example tests under `fabric/src/test/java` that show two useful patterns:
   - Fabric-aware tests that boot Fabric Loader and inspect loaded mod metadata.
   - Plain unit tests for your own code, such as command registration.
 
 For integration-style server tests, run:
 
 ```shell
-./gradlew runGameTest
+./gradlew runAllProductionGameTests
 ```
 
-The template includes a separate `src/gametest` source set with a minimal server GameTest that checks the example command was registered on the server.
-Server GameTests also run automatically as part of `./gradlew build`, which is what the included GitHub Actions workflow executes.
+The shared server GameTest in `common/src/gametest` checks the example command was registered on the server; it runs on Fabric (production server) and NeoForge (`./gradlew runNeoForgeGameTests`).
+The Fabric client GameTest lives in `fabric/src/gametest`.
 
 For client-side GameTests, run:
 
