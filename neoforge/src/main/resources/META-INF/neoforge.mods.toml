@@ -8,7 +8,7 @@ version="${version}"
 displayName="${mod_name}"
 authors="brainage04"
 description='''My modern Minecraft Fabric modding template.'''
-logoFile="assets/genshininminecraft/icon.png"
+iconFile="assets/genshininminecraft/icon.png"
 
 [[mixins]]
 config="genshininminecraft.mixins.json"
