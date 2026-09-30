@@ -8,15 +8,19 @@ modelRoles:
   plan: anthropic/claude-opus-5-5:medium
   slow: anthropic/claude-opus-5-5:medium
   vision: anthropic/claude-opus-5-5:medium
-  advisor: openai-codex/gpt-6-astra:medium
+  advisor: openai-codex/gpt-6.1-sol:medium
 
 advisor:
   enabled: true
 
+# Desktop automation (screenshots/input) for driving the game launcher and test clients.
+computer:
+  enabled: true
+
 task:
   agentModelOverrides:
-    reviewer: openai-codex/gpt-6-astra:high
+    reviewer: openai-codex/gpt-6.1-sol:high
     scout: anthropic/claude-opus-5-5:medium
     security-reviewer: anthropic/claude-opus-5-5:medium
-    sonic: anthropic/claude-opus-5-5:medium
+    sonic: openai-codex/gpt-6.1-sol:medium
     task: anthropic/claude-opus-5-5:medium

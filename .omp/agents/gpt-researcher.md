@@ -1,7 +1,7 @@
 ---
 name: gpt-researcher
 description: Compiles sourced Genshin Impact mechanics data (talent scalings, frame data, gauge/ICD tables, reaction multipliers, enemy stats) for the pinned game version into spec/mechanics/.
-model: openai-codex/gpt-6-astra
+model: openai-codex/gpt-6.1-sol
 thinking: high
 tools: read, web_search, grep, glob, write, edit
 ---

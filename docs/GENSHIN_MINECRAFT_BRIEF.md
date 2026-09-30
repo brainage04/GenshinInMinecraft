@@ -35,6 +35,8 @@ Priorities, in order: protect the owner's files; correct behaviour; a playable e
   - `gpt-researcher` agent: compiles sourced mechanics data (talent scalings, frame data, gauge/ICD tables, reaction multipliers, enemy stats) into `spec/mechanics/`. Every value carries a source; Opus spot-checks before a value becomes a test expectation.
   - `reviewer` agent: second-opinion review of diffs before merge. Advisory, not a gate.
   - Session advisor: comments on completed turns.
+  - `sonic` agent: strictly mechanical bulk edits and data entry (e.g. filling character/enemy data files from `spec/mechanics/`).
+  - All of these run on GPT-6.1 Sol.
   - When the subscriptions lapse, delete the GPT entries from `.omp/config.yml` and `.omp/agents/`.
 
 ## Hard problems
