@@ -13,10 +13,6 @@ modelRoles:
 advisor:
   enabled: true
 
-# Desktop automation (screenshots/input) for driving the game launcher and test clients.
-computer:
-  enabled: true
-
 task:
   agentModelOverrides:
     reviewer: openai-codex/gpt-6.1-sol:high

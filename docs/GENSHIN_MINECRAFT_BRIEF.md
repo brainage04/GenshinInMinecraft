@@ -13,6 +13,11 @@ Priorities, in order: protect the owner's files; correct behaviour; a playable e
 - **Private use only.** The mod is for the owner and friends. Nothing is published, hosted publicly, or distributed until the owner has contacted wangg_mc, taken legal advice, and possibly contacted HoYoverse. Fan-made or placeholder assets are fine for private play; record where every non-original asset came from (`CREDITS.md`) so a later release can be audited.
 - **Map files are read-only.** `reference/map/*.zip` is the pristine source and is git-ignored. Extract and upgrade only into disposable copies. Never commit map data, extracted worlds, or third-party packs.
 - **No leaked code, no extracted game assets, no connection to HoYoverse services or accounts.** Mechanics come from public documentation, community research (KQM Theorycrafting Library, wikis), and the owner's own gameplay observations.
+- **Isolation from the owner's desktop.** The owner uses this PC while the agent works; the agent must never appear on or interrupt the main display session.
+  - The session is started with `scripts/omp-isolated.sh`: one cgroup for everything it spawns (24 GiB RAM cap, low CPU/IO weight), no `DISPLAY`/`WAYLAND_DISPLAY`, and a dead session D-Bus, so no windows, portal prompts or notifications can reach the desktop. Size JVM heaps to fit the cap (e.g. server 6 GiB, each client 3 GiB).
+  - Never use the owner's display, D-Bus, clipboard or input devices, and never use omp's `computer` tool (it is disabled).
+  - Anything with a window (Minecraft clients, screenshots, the control bridge) runs on a private headless compositor: `sway` with `WLR_BACKENDS=headless WLR_RENDERER=gles2 WLR_LIBINPUT_NO_DEVICES=1`, its own `XDG_RUNTIME_DIR`, and `xwayland force`. Verified 2026-09-30: it renders with hardware acceleration on the Intel iGPU (`Mesa Intel(R) Graphics (RPL-S)`), leaving the NVIDIA GPU to the owner, and `grim` captures it. Xvfb (software rendering) is the fallback.
+  - Genshin runs only on the owner's desktop, so reference clips or observations from the game are requested from the owner, not captured by the agent.
 
 ## Fixed decisions
 
@@ -128,7 +133,7 @@ Keep the design as small as the features require; no generic engine or scripting
 
 - **Rules tests** (JUnit): golden cases from sourced values, boundaries, reaction/ICD edge cases.
 - **Server GameTests** (both loaders): entities, abilities in-world, save/load, rewards granted once, multiplayer ownership.
-- **Client GameTests** (Fabric, headless via Xvfb): controls, camera, HUD, screens, joining a dedicated server.
+- **Client GameTests** (Fabric, on the private headless display): controls, camera, HUD, screens, joining a dedicated server.
 - **Visual checks**: a dev-only, loopback-bound control bridge that can send inputs to a running client and capture screenshots, so behaviour can be checked by eye as well as by assertions. Never included in release builds.
 - **Bug fixes**: every accepted bug gets a reproduction and a regression test. Tests are never weakened to get a pass.
 
