@@ -1,14 +1,11 @@
 repositories {
-	// Fzzy Config
-	maven { url = "https://maven.fzzyhmstrs.me/" }
+	exclusiveContent {
+		forRepository { maven { url = "https://maven.shedaniel.me/" } }
+		filter { includeGroup "me.shedaniel.cloth" }
+	}
 }
 
 dependencies {
-	// Fzzy Config's API is identical on both loaders; each loader module ships its own build.
-	// Non-transitive so the Fabric build's loader dependencies stay off common's classpath;
-	// the Kotlin stdlib is the only one its API signatures need.
-	compileOnly("me.fzzyhmstrs:fzzy_config:${rootProject.fzzy_config_version}") {
-		transitive = false
-	}
-	compileOnly "org.jetbrains.kotlin:kotlin-stdlib:2.3.21"
+	// Cloth Config: common code compiles against its loader-neutral API (AutoConfig); each loader module ships its own build.
+	implementation "me.shedaniel.cloth:cloth-config:${rootProject.cloth_config_version}"
 }
