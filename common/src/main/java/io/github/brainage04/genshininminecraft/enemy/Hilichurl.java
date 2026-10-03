@@ -16,6 +16,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
@@ -87,26 +88,30 @@ public final class Hilichurl extends PathfinderMob {
             returnHome();
             return;
         }
-        ServerPlayer player = getTarget() instanceof ServerPlayer current ? current : null;
-        if (player != null && (!eligible(player) || player.position().distanceToSqr(campAnchor) > LEASH_RADIUS * LEASH_RADIUS
-                || distanceToSqr(campAnchor) > LEASH_RADIUS * LEASH_RADIUS)) {
+        LivingEntity target = getTarget();
+        if (target instanceof ServerPlayer player && (!eligible(player) || player.position().distanceToSqr(campAnchor) > LEASH_RADIUS * LEASH_RADIUS)
+                || target != null && distanceToSqr(campAnchor) > LEASH_RADIUS * LEASH_RADIUS) {
             resetEncounter(level);
             returnHome();
             return;
         }
-        if (player == null) {
+        LivingEntity puppet = CombatRuntime.get(level.getServer()).tauntTarget(this);
+        if (puppet != null && puppet != target) { cancelSwing(); target = puppet; }
+        if (target != null && (!target.isAlive() || target.isRemoved()
+                || !(target instanceof ServerPlayer) && target != puppet)) { cancelSwing(); target = null; }
+        if (target == null) {
             double closest = AGGRO_RADIUS * AGGRO_RADIUS;
             for (ServerPlayer candidate : level.players()) {
                 double distance = distanceToSqr(candidate);
                 if (eligible(candidate) && candidate.position().distanceToSqr(campAnchor) <= LEASH_RADIUS * LEASH_RADIUS
                         && distance < closest && hasLineOfSight(candidate)) {
-                    player = candidate;
+                    target = candidate;
                     closest = distance;
                 }
             }
-            setTarget(player);
         }
-        if (player == null) {
+        setTarget(target);
+        if (target == null) {
             returnHome();
             return;
         }
@@ -129,16 +134,23 @@ public final class Hilichurl extends PathfinderMob {
                                 HilichurlProfile.CLUB_MULTIPLIER, HilichurlProfile.LEVEL);
                     }
                 }
+                if (!(target instanceof ServerPlayer)) {
+                    double dx = target.getX() - getX(), dz = target.getZ() - getZ();
+                    double distance = dx * dx + dz * dz;
+                    if (distance <= MELEE_RADIUS * MELEE_RADIUS && Math.abs(target.getY() - getY()) <= MELEE_VERTICAL_RANGE
+                            && (distance < .01 || swingX * dx + swingZ * dz >= MELEE_ARC_COSINE * Math.sqrt(distance))
+                            && hasLineOfSight(target)) CombatRuntime.get(level.getServer()).puppetHit(target, this);
+                }
                 readyTick = tickCount + RECOVERY_TICKS;
             }
             return;
         }
-        lookControl.setLookAt(player, 30, 30);
-        if (distanceToSqr(player) <= MELEE_RADIUS * MELEE_RADIUS && Math.abs(player.getY() - getY()) <= MELEE_VERTICAL_RANGE
-                && hasLineOfSight(player)) {
+        lookControl.setLookAt(target, 30, 30);
+        if (distanceToSqr(target) <= MELEE_RADIUS * MELEE_RADIUS && Math.abs(target.getY() - getY()) <= MELEE_VERTICAL_RANGE
+                && hasLineOfSight(target)) {
             navigation.stop();
             if (tickCount >= readyTick) {
-                double dx = player.getX() - getX(), dz = player.getZ() - getZ();
+                double dx = target.getX() - getX(), dz = target.getZ() - getZ();
                 double length = Math.sqrt(dx * dx + dz * dz);
                 swingX = length > .001 ? dx / length : 0;
                 swingZ = length > .001 ? dz / length : 1;
@@ -150,7 +162,7 @@ public final class Hilichurl extends PathfinderMob {
                 entityData.set(WINDING_UP, true);
             }
         } else if (tickCount >= nextPathTick) {
-            navigation.moveTo(player, 1);
+            navigation.moveTo(target, 1);
             nextPathTick = tickCount + PATH_REFRESH_TICKS;
         }
     }

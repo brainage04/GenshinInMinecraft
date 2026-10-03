@@ -1,0 +1,7 @@
+{
+  "environment": "minecraft:default",
+  "structure": "fabricmoddingconventions:empty",
+  "max_ticks": 20,
+  "type": "minecraft:function",
+  "function": "genshininminecraft:destroyed_bunny_explodes_once_and_miss_grants_no_energy"
+}

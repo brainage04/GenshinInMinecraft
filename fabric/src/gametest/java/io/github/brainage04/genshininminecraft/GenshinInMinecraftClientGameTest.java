@@ -16,6 +16,8 @@ import io.github.brainage04.genshininminecraft.client.CombatFeedback;
 import io.github.brainage04.genshininminecraft.client.GenshinHud;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Frames;
+import io.github.brainage04.genshininminecraft.rules.kit.AmberKit;
+import net.minecraft.world.entity.animal.rabbit.Rabbit;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
@@ -109,19 +111,67 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                         || GenshinHud.party().getFirst().active())
                     throw new AssertionError("HUD must show four element-coloured rows and highlight active Amber");
             });
-            context.getInput().pressKey(GLFW.GLFW_KEY_E);
-            context.getInput().pressKey(GLFW.GLFW_KEY_Q);
-            context.waitTicks(5);
-            context.runOnClient(client -> {
-                if (client.gui.screen() instanceof InventoryScreen || CombatInput.state().skillRemainingFrames() != 0
-                        || CombatInput.state().burstRemainingFrames() != 0 || CombatInput.state().energy() != 0)
-                    throw new AssertionError("Unavailable Amber E/Q must not open inventory, spend energy or start cooldowns");
-                client.gui.hud.getChat().clearMessages(true);
-            });
             screenshot(context, "genshin-party-four");
-            context.waitTicks(22);
-            // The previous Amber rejection hint must expire before capturing Kaeya's available talents.
-            context.waitTicks(45);
+            float ordinaryFov = context.computeOnClient(client -> client.gameRenderer.mainCamera().getFov());
+            context.getInput().holdKey(options -> options.keyAttack);
+            context.waitFor(client -> CombatInput.aiming() && client.gameRenderer.mainCamera().getFov() < ordinaryFov * .85F);
+            server.waitFor(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                return ((AmberKit) CombatRuntime.get(minecraftServer).session(player).kit()).fullyCharged();
+            });
+            context.waitFor(client -> CombatInput.fullyChargedAim());
+            screenshot(context, "genshin-amber-aim");
+            context.getInput().releaseKey(options -> options.keyAttack);
+            context.waitFor(client -> !CombatInput.aiming() && client.gameRenderer.mainCamera().getFov() > ordinaryFov * .9F);
+            context.waitTicks(5);
+            context.getInput().pressKey(GLFW.GLFW_KEY_E);
+            server.waitFor(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                return !player.level().getEntitiesOfClass(Rabbit.class, new AABB(player.position(), player.position()).inflate(8)).isEmpty();
+            });
+            context.waitFor(client -> {
+                for (var entity : client.level.entitiesForRendering())
+                    if (entity instanceof Rabbit && entity.getCustomName() != null
+                            && entity.getCustomName().getString().equals("Baron Bunny")) return true;
+                return false;
+            });
+            context.waitFor(client -> CombatInput.state().skillRemainingFrames() > 0);
+            context.getInput().lookAt(0, 12);
+            context.runOnClient(client -> client.gui.hud.getChat().clearMessages(true));
+            screenshot(context, "genshin-amber-baron-bunny");
+            int pyroMobId = server.computeOnServer(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                var mob = new Hilichurl(GenshinEntities.HILICHURL, player.level());
+                mob.snapTo(player.position().add(0, 0, 3));
+                mob.setNoAi(true);
+                if (!((ServerLevel) player.level()).addFreshEntity(mob)) throw new AssertionError("Could not spawn rain target");
+                CombatRuntime.get(minecraftServer).session(player).kit().grantEnergy(40);
+                return mob.getId();
+            });
+            context.waitFor(client -> CombatInput.state().energy() == 40);
+            context.runOnClient(client -> client.particleEngine.clearParticles());
+            context.getInput().pressKey(GLFW.GLFW_KEY_Q);
+            context.waitFor(client -> CombatInput.state().energy() == 0 && CombatInput.state().burstRemainingFrames() > 0
+                    && CombatFeedback.hasDamageNumber(pyroMobId)
+                    && (CombatFeedback.auraElements(pyroMobId) & (1 << Element.PYRO.ordinal())) != 0);
+            context.waitFor(client -> {
+                String particles = client.particleEngine.countParticles();
+                return Integer.parseInt(particles.substring(particles.lastIndexOf(' ') + 1)) > 0;
+            });
+            context.runOnClient(client -> {
+                if (client.gui.screen() instanceof InventoryScreen) throw new AssertionError("Amber E must not open inventory");
+            });
+            screenshot(context, "genshin-amber-fiery-rain");
+            server.runOnServer(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                player.level().getEntity(pyroMobId).discard();
+            });
+            context.getInput().lookAt(0, 0);
+            context.waitTicks(40);
+            server.waitFor(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                return !((AmberKit) CombatRuntime.get(minecraftServer).session(player).party().kit(1)).puppetAlive();
+            });
             context.getInput().pressKey(GLFW.GLFW_KEY_3);
             context.waitFor(client -> CombatInput.state().activeSlot() == 2);
             int cryoMobId = server.computeOnServer(minecraftServer -> {
@@ -257,6 +307,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.getInput().releaseKey(GLFW.GLFW_KEY_E);
             context.getInput().releaseKey(options -> options.keySprint);
             context.getInput().releaseKey(options -> options.keyUp);
+            context.getInput().releaseKey(options -> options.keyAttack);
         } });
     }
 

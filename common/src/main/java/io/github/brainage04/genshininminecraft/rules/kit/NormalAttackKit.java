@@ -76,7 +76,7 @@ abstract class NormalAttackKit implements CharacterKit {
         });
     }
     @Override public final boolean canSwitch(long frame) { return frame >= switchReady; }
-    @Override public final void leaveField(long frame) {
+    @Override public void leaveField(long frame) {
         held = false;
         ++generation;
         state.combo = 0;

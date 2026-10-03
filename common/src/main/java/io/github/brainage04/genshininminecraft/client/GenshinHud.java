@@ -90,7 +90,7 @@ public final class GenshinHud {
         graphics.fill(hpX - 4, hpY - 3, hpX + hpWidth + 4, hpY + 20, PANEL);
         bar(graphics, hpX, hpY, hpWidth, 7, active.hp(), active.maxHp(), HP);
         graphics.centeredText(font, hpText, width / 2, hpY + 10, 0xfff5f2e9);
-        boolean available = CombatInput.state().activeSlot() == 0 || CombatInput.state().activeSlot() == 2;
+        boolean available = CombatInput.state().activeSlot() != 3;
         icon(graphics, font, width - 106, height - 63, CombatInput.SKILL.getTranslatedKeyMessage().getString(),
                 available ? skillCooldown : "SOON", available, false, active.element());
         boolean full = HudFormatting.fraction(active.energy(), active.maxEnergy()) == 1;
@@ -99,6 +99,13 @@ public final class GenshinHud {
                 available ? burstCooldown : "SOON", available && full, ready, active.element());
         bar(graphics, width - 53, height - 29, 32, 3, active.energy(), active.maxEnergy(), ElementPalette.color(active.element()));
         staminaWheel(graphics, width / 2 + 35, height / 2);
+        if (CombatInput.aiming()) {
+            int x = width / 2, y = height / 2;
+            int color = CombatInput.fullyChargedAim() ? ElementPalette.color(Element.PYRO) : BORDER;
+            graphics.outline(x - 9, y - 9, 19, 19, color);
+            graphics.fill(x - 1, y - 15, x + 1, y - 11, color);
+            graphics.fill(x - 1, y + 11, x + 1, y + 15, color);
+        }
     }
 
     public static boolean staminaVisible() {

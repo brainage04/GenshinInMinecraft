@@ -7,6 +7,7 @@ import io.github.brainage04.genshininminecraft.gametest.HilichurlGameTests;
 import io.github.brainage04.genshininminecraft.gametest.StaminaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.PartyGameTests;
 import io.github.brainage04.genshininminecraft.gametest.KaeyaGameTests;
+import io.github.brainage04.genshininminecraft.gametest.AmberGameTests;
 import java.util.Map;
 import java.util.function.Consumer;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -20,6 +21,14 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 @EventBusSubscriber(modid = GenshinInMinecraft.MOD_ID)
 public final class GenshinInMinecraftNeoForgeGameTest {
     private static final Map<String, Consumer<GameTestHelper>> TESTS = Map.ofEntries(
+            Map.entry("charged_aimed_shot_damage_and_pyro", AmberGameTests::chargedAimedShotDamageAndPyro),
+            Map.entry("baron_bunny_taunts_takes_club_and_expires", AmberGameTests::baronBunnyTauntsTakesClubAndExpires),
+            Map.entry("destroyed_bunny_explodes_once_and_miss_grants_no_energy", AmberGameTests::destroyedBunnyExplodesOnceAndMissGrantsNoEnergy),
+            Map.entry("fiery_rain_damage_over_time_preserves_blocks", AmberGameTests::fieryRainDamageOverTimePreservesBlocks),
+            Map.entry("amber_overloads_lisas_electro", AmberGameTests::amberOverloadsLisasElectro),
+            Map.entry("amber_forward_melts_kaeyas_cryo", AmberGameTests::amberForwardMeltsKaeyasCryo),
+            Map.entry("traveler_swirls_ambers_pyro", AmberGameTests::travelerSwirlsAmbersPyro),
+            Map.entry("amber_vaporizes_seeded_hydro", AmberGameTests::amberVaporizesSeededHydro),
             Map.entry("genshin_command_is_registered", GenshinInMinecraftGameTests::genshinCommandIsRegistered),
             Map.entry("managed_block_breaking", ManagedWorldGameTests::managedBlockBreaking),
             Map.entry("managed_hunger", ManagedWorldGameTests::managedHunger),

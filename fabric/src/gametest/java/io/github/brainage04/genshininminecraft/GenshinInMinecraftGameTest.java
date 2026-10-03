@@ -7,6 +7,7 @@ import io.github.brainage04.genshininminecraft.gametest.HilichurlGameTests;
 import io.github.brainage04.genshininminecraft.gametest.StaminaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.PartyGameTests;
 import io.github.brainage04.genshininminecraft.gametest.KaeyaGameTests;
+import io.github.brainage04.genshininminecraft.gametest.AmberGameTests;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 
@@ -156,4 +157,20 @@ public class GenshinInMinecraftGameTest {
     public void simultaneousBurstsKeepCharacterIcdSeparate(GameTestHelper context) {
         KaeyaGameTests.simultaneousBurstsKeepCharacterIcdSeparate(context);
     }
+    @GameTest
+    public void chargedAimedShotDamageAndPyro(GameTestHelper context) { AmberGameTests.chargedAimedShotDamageAndPyro(context); }
+    @GameTest
+    public void baronBunnyTauntsTakesClubAndExpires(GameTestHelper context) { AmberGameTests.baronBunnyTauntsTakesClubAndExpires(context); }
+    @GameTest
+    public void destroyedBunnyExplodesOnceAndMissGrantsNoEnergy(GameTestHelper context) { AmberGameTests.destroyedBunnyExplodesOnceAndMissGrantsNoEnergy(context); }
+    @GameTest
+    public void fieryRainDamageOverTimePreservesBlocks(GameTestHelper context) { AmberGameTests.fieryRainDamageOverTimePreservesBlocks(context); }
+    @GameTest
+    public void amberOverloadsLisasElectro(GameTestHelper context) { AmberGameTests.amberOverloadsLisasElectro(context); }
+    @GameTest
+    public void amberForwardMeltsKaeyasCryo(GameTestHelper context) { AmberGameTests.amberForwardMeltsKaeyasCryo(context); }
+    @GameTest
+    public void travelerSwirlsAmbersPyro(GameTestHelper context) { AmberGameTests.travelerSwirlsAmbersPyro(context); }
+    @GameTest
+    public void amberVaporizesSeededHydro(GameTestHelper context) { AmberGameTests.amberVaporizesSeededHydro(context); }
 }

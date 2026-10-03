@@ -8,6 +8,13 @@ import io.github.brainage04.genshininminecraft.rules.*;
 import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit;
 import io.github.brainage04.genshininminecraft.rules.kit.KaeyaKit;
+import io.github.brainage04.genshininminecraft.rules.kit.AmberKit;
+import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.animal.rabbit.Rabbit;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.resources.Identifier;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Hit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Kind;
@@ -56,6 +63,19 @@ public final class CombatRuntime {
     public static final double ADAPTED_FROSTGNAW_HEIGHT = 2.2;
     public static final double ADAPTED_ICICLE_ORBIT_RADIUS = 2.5;
     public static final double ADAPTED_ICICLE_CONTACT_MARGIN = .35;
+    public static final double ADAPTED_BUNNY_THROW_DISTANCE = 3;
+    public static final double ADAPTED_BUNNY_TAUNT_RADIUS = 8;
+    public static final double ADAPTED_BUNNY_EXPLOSION_RADIUS = 4;
+    public static final double ADAPTED_BUNNY_MODEL_SCALE = 2;
+    public static final double ADAPTED_RAIN_RADIUS = 3.5;
+    public static final double ADAPTED_RAIN_HEIGHT = 2;
+    public static final double ADAPTED_RAIN_FORWARD_DISTANCE = 3;
+    public static final double ADAPTED_OVERLOADED_RADIUS = 3;
+    public static final double ADAPTED_OVERLOADED_KNOCKBACK = .12;
+    private static final Identifier AIM_SPEED_ID = Identifier.fromNamespaceAndPath("genshininminecraft", "amber_aim");
+    public static final double ADAPTED_AIM_SPEED_MULTIPLIER = .5;
+    private static final AttributeModifier AIM_SPEED = new AttributeModifier(AIM_SPEED_ID,
+            ADAPTED_AIM_SPEED_MULTIPLIER - 1, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
     private static final DustParticleOptions ANEMO_DUST = new DustParticleOptions(0x80e8c0, 1.2F);
     private static final DustParticleOptions PYRO_DUST = new DustParticleOptions(0xff6622, 1.2F);
     private static final DustParticleOptions CRYO_DUST = new DustParticleOptions(0x99eeff, 1.2F);
@@ -71,11 +91,14 @@ public final class CombatRuntime {
     private final EventTimeline timeline = new EventTimeline();
     public static CombatRuntime get(MinecraftServer server) { return SERVERS.computeIfAbsent(server, ignored -> new CombatRuntime()); }
     public static void setSender(BiConsumer<ServerPlayer, CharacterStatePayload> value) { sender = value; }
-    public static void stop(MinecraftServer server) { SERVERS.remove(server); }
+    public static void stop(MinecraftServer server) {
+        CombatRuntime runtime = SERVERS.remove(server);
+        if (runtime != null) for (Session state : runtime.players.values()) state.clearFieldObjects();
+    }
     public static boolean cancelsVanillaMelee(Player player) { return ManagedWorld.isManaged(player.level()); }
     public Session session(ServerPlayer player) {
         Session previous = players.get(player.getUUID());
-        if (previous != null && previous.player != player) players.remove(player.getUUID());
+        if (previous != null && previous.player != player) { previous.clearFieldObjects(); players.remove(player.getUUID()); }
         return players.computeIfAbsent(player.getUUID(), ignored -> new Session(player));
     }
     public CombatTarget target(LivingEntity entity) {
@@ -90,7 +113,8 @@ public final class CombatRuntime {
         return target != null && target.aura().isFrozen();
     }
     public void forget(UUID uuid) {
-        players.remove(uuid);
+        Session removedPlayer = players.remove(uuid);
+        if (removedPlayer != null) removedPlayer.clearFieldObjects();
         CombatTarget removed = targets.remove(uuid);
         if (removed != null) broadcast(removed, new TargetAuraPayload(removed.entity().getId(), 0));
     }
@@ -99,6 +123,38 @@ public final class CombatRuntime {
         forget(entity.getUUID());
         entity.setHealth(entity.getMaxHealth());
         syncAura(target(entity));
+    }
+    /** Nearest live puppet has priority over players; it cannot lure a camp past its leash. */
+    public LivingEntity tauntTarget(Hilichurl enemy) {
+        Rabbit nearest = null;
+        double distance = ADAPTED_BUNNY_TAUNT_RADIUS * ADAPTED_BUNNY_TAUNT_RADIUS;
+        for (Session session : players.values()) {
+            Rabbit bunny = session.bunny;
+            if (bunny == null || !bunny.isAlive() || bunny.isRemoved() || bunny.level() != enemy.level()
+                    || !session.valid() || bunny.position().distanceToSqr(enemy.campAnchor()) > Hilichurl.LEASH_RADIUS * Hilichurl.LEASH_RADIUS)
+                continue;
+            double candidate = enemy.distanceToSqr(bunny);
+            if (candidate < distance && enemy.hasLineOfSight(bunny)) { nearest = bunny; distance = candidate; }
+        }
+        return nearest;
+    }
+    public boolean puppetHit(LivingEntity puppet, LivingEntity enemy) {
+        for (Session session : players.values()) {
+            if (session.bunny != puppet || !puppet.isAlive()) continue;
+            AmberKit amber = (AmberKit) session.party.kit(1);
+            long frame = Math.max(timeline.frame(), Frames.atServerTick(puppet.level().getServer().getTickCount()));
+            // DEF snapshot chooses Amber's DEF and neutral RES; inheritance is an explicit adaptation.
+            double damage = Damage.enemyDamage(HilichurlProfile.ADAPTED_ATK, HilichurlProfile.CLUB_MULTIPLIER,
+                    HilichurlProfile.LEVEL, amber.stats().def(), HilichurlProfile.STARTER_PLAYER_RESISTANCE);
+            amber.damagePuppet(damage, frame);
+            if (session.bunny != null) session.bunny.setHealth((float) amber.puppetHp());
+            return true;
+        }
+        return false;
+    }
+    private boolean isPuppet(LivingEntity entity) {
+        for (Session session : players.values()) if (session.bunny == entity) return true;
+        return false;
     }
     public boolean enemyHit(ServerPlayer player, LivingEntity enemy, double attack, double multiplier, int enemyLevel) {
         if (!ManagedWorld.isManaged(player.level()) || player.isCreative() || player.isSpectator() || !player.isAlive()) return false;
@@ -166,6 +222,7 @@ public final class CombatRuntime {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (!managed) {
                 Session old = players.remove(player.getUUID());
+                if (old != null) old.clearFieldObjects();
                 if (old != null) {
                     old.broadcastCharacter(-1);
                     if (sender != null) sender.accept(player, CharacterStatePayload.UNMANAGED);
@@ -177,7 +234,11 @@ public final class CombatRuntime {
             state.tickMovement(frame);
             state.sync();
         }
-        players.values().removeIf(state -> state.player.isRemoved());
+        players.values().removeIf(state -> {
+            if (!state.player.isRemoved()) return false;
+            state.clearFieldObjects();
+            return true;
+        });
         targets.values().removeIf(target -> target.entity().isRemoved());
         if (managed) {
             for (CombatTarget target : targets.values()) {
@@ -205,6 +266,11 @@ public final class CombatRuntime {
         private long lastTornadoStep = -1;
         private ServerLevel actionLevel;
         private ServerLevel icicleLevel;
+        private ServerLevel puppetLevel;
+        private Vec3 puppetLanding;
+        private Rabbit bunny;
+        private ServerLevel rainLevel;
+        private Vec3 rainOrigin;
         private ServerLevel lastSyncLevel;
         private long lastSyncFrame;
         private long lastMovementFrame = -1;
@@ -251,6 +317,20 @@ public final class CombatRuntime {
             }
             boolean accepted = kit().intent(intent, frame);
             if (accepted && (intent == Intent.ATTACK_PRESS || intent == Intent.SKILL_PRESS)) actionLevel = (ServerLevel) player.level();
+            if (accepted && kit() instanceof AmberKit) {
+                if (intent == Intent.SKILL_PRESS) {
+                    puppetLevel = (ServerLevel) player.level();
+                    Vec3 throwPoint = player.position().add(forward(player).scale(ADAPTED_BUNNY_THROW_DISTANCE));
+                    puppetLanding = puppetLevel.clip(new net.minecraft.world.level.ClipContext(
+                            throwPoint.add(0, 2, 0), throwPoint.add(0, -16, 0),
+                            net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                            net.minecraft.world.level.ClipContext.Fluid.NONE, player)).getLocation();
+                }
+                if (intent == Intent.BURST_PRESS) {
+                    rainLevel = (ServerLevel) player.level();
+                    rainOrigin = player.position().add(forward(player).scale(ADAPTED_RAIN_FORWARD_DISTANCE));
+                }
+            }
             if (accepted && intent == Intent.SKILL_PRESS) { skillCast = frame; skillAbsorbed = null; }
             if (accepted && intent == Intent.BURST_PRESS && kit() instanceof TravelerAnemoKit) {
                 tornadoStart = frame;
@@ -265,6 +345,13 @@ public final class CombatRuntime {
         }
         public void advanceTo(long frame) {
             party.advanceTo(frame);
+            AmberKit amber = (AmberKit) party.kit(1);
+            if (bunny != null && (!bunny.isAlive() || bunny.isRemoved() || bunny.getHealth() < amber.puppetHp() - .001))
+                amber.damagePuppet(Math.max(0, amber.puppetHp() - (bunny.isAlive() && !bunny.isRemoved() ? bunny.getHealth() : 0)), frame);
+            boolean aiming = kit() == amber && amber.aiming();
+            var speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
+            if (aiming && !speed.hasModifier(AIM_SPEED_ID)) speed.addTransientModifier(AIM_SPEED);
+            else if (!aiming) speed.removeModifier(AIM_SPEED_ID);
             if (tornadoStart >= 0 && frame != lastTornadoStep && frame - tornadoStart <= TravelerAnemoKit.BURST_DURATION_FRAMES
                     && party.kit(0).hp() > 0 && valid() && player.level() == tornadoLevel) {
                 lastTornadoStep = frame;
@@ -292,6 +379,8 @@ public final class CombatRuntime {
                     && !player.getAbilities().flying && !player.isInWater() && !player.isFallFlying()
                     && !input.shift();
             if (eligible && moving && held && !sprintKeyHeld && player.onGround() && stamina().dash(frame)) {
+                if (kit() instanceof AmberKit amber && amber.aiming()) amber.leaveField(frame);
+                player.getAttribute(Attributes.MOVEMENT_SPEED).removeModifier(AIM_SPEED_ID);
                 dashMotion = player.getLastClientMoveIntent().scale(ADAPTED_DASH_BLOCKS_PER_TICK);
                 dashLevel = (ServerLevel) player.level();
             }
@@ -318,6 +407,10 @@ public final class CombatRuntime {
         }
         private boolean valid() {
             return players.get(player.getUUID()) == this && player.isAlive() && !player.isRemoved() && ManagedWorld.isManaged(player.level());
+        }
+        private void clearFieldObjects() {
+            if (bunny != null) { bunny.discard(); bunny = null; }
+            player.getAttribute(Attributes.MOVEMENT_SPEED).removeModifier(AIM_SPEED_ID);
         }
         private void reconcileHealth() {
             if (player.getHealth() != mirroredHealth) kit().setHp(kit().maxHp() * player.getHealth() / player.getMaxHealth());
@@ -388,6 +481,14 @@ public final class CombatRuntime {
         private void hit(CharacterKit kit, Hit hit) {
             if (!valid()) return;
             ServerLevel level = (ServerLevel) player.level();
+            if (hit.kind() == Kind.BUNNY_LAND || hit.kind() == Kind.BUNNY_EXPLODE) {
+                puppet((AmberKit) kit, hit);
+                return;
+            }
+            if (hit.kind() == Kind.RAIN_INNER || hit.kind() == Kind.RAIN_OUTER) {
+                if (level == rainLevel) rain((AmberKit) kit, hit);
+                return;
+            }
             if (hit.kind() == Kind.ICICLES || hit.kind() == Kind.ICICLES_END) {
                 if (level == icicleLevel) icicles((KaeyaKit) kit, hit, level);
                 return;
@@ -397,7 +498,7 @@ public final class CombatRuntime {
             Vec3 origin = burst ? tornadoCenter(hit.frame()) : player.position().add(0, .8, 0);
             boolean basic = hit.kind() == Kind.NORMAL || hit.kind() == Kind.CHARGED;
             boolean sword = basic && kit.weapon() == CharacterKit.Weapon.SWORD;
-            boolean ranged = basic && !sword && hit.kind() == Kind.NORMAL;
+            boolean ranged = basic && !sword && (hit.kind() == Kind.NORMAL || kit.weapon() == CharacterKit.Weapon.BOW);
             boolean catalystCharge = basic && !sword && !ranged;
             boolean frostgnaw = hit.kind() == Kind.FROSTGNAW;
             double radius = sword ? SWORD_RADIUS : catalystCharge ? ADAPTED_LISA_CHARGED_RADIUS
@@ -430,7 +531,7 @@ public final class CombatRuntime {
             }
             if (frostgnaw) frostgnawParticles(level);
             else particles(level, origin.add(burst ? Vec3.ZERO : forward(player).scale(1.5)),
-                    basic && hit.element() == Element.ELECTRO ? Element.ELECTRO : absorbed, sword);
+                    basic && hit.element() != Element.PHYSICAL ? hit.element() : absorbed, sword);
             boolean enemyHit = false;
             for (LivingEntity enemy : enemies) {
                 CombatTarget target = target(enemy);
@@ -443,6 +544,54 @@ public final class CombatRuntime {
                 }
             }
             if (enemyHit && hit.particles() > 0) party.collect(Energy.Item.PARTICLE, hit.element(), hit.particles());
+        }
+        private void puppet(AmberKit amber, Hit hit) {
+            if (hit.kind() == Kind.BUNNY_LAND) {
+                if (player.level() != puppetLevel) return;
+                bunny = new Rabbit(EntityTypes.RABBIT, puppetLevel);
+                bunny.setNoAi(true);
+                bunny.setPersistenceRequired();
+                bunny.setCustomName(Component.literal("Baron Bunny"));
+                bunny.setCustomNameVisible(true);
+                bunny.getAttribute(Attributes.SCALE).setBaseValue(ADAPTED_BUNNY_MODEL_SCALE);
+                bunny.getAttribute(Attributes.MAX_HEALTH).setBaseValue(amber.puppetHp());
+                bunny.setHealth((float) amber.puppetHp());
+                bunny.snapTo(puppetLanding);
+                puppetLevel.addFreshEntity(bunny);
+                puppetLevel.sendParticles(PYRO_DUST, bunny.getX(), bunny.getY() + .5, bunny.getZ(), 16, .4, .5, .4, 0);
+                return;
+            }
+            if (bunny == null) return;
+            Vec3 center = bunny.position().add(0, .5, 0);
+            bunny.discard();
+            bunny = null;
+            puppetLevel.sendParticles(ParticleTypes.EXPLOSION, center.x, center.y, center.z, 1, 0, 0, 0, 0);
+            puppetLevel.sendParticles(ParticleTypes.FLAME, center.x, center.y, center.z, 45, 1.5, .6, 1.5, .04);
+            boolean connected = false;
+            for (LivingEntity enemy : nearby(puppetLevel, center, ADAPTED_BUNNY_EXPLOSION_RADIUS))
+                connected |= deal(amber, target(enemy), hit.element(), hit.multiplier(), hit.gauge(), null, hit.frame());
+            if (connected) {
+                puppetLevel.sendParticles(PYRO_DUST, center.x, center.y, center.z, 4, .3, .3, .3, .01);
+                party.collect(Energy.Item.PARTICLE, Element.PYRO, hit.particles());
+            }
+        }
+        private void rain(AmberKit amber, Hit hit) {
+            boolean inner = hit.kind() == Kind.RAIN_INNER;
+            double innerRadius = ADAPTED_RAIN_RADIUS / 2;
+            // Nine inner and nine outer waves, rather than pretending all18 connect to one target.
+            for (LivingEntity enemy : nearby(rainLevel, rainOrigin, ADAPTED_RAIN_RADIUS)) {
+                double distance = horizontalDistanceSquared(enemy, rainOrigin);
+                if ((distance <= innerRadius * innerRadius) != inner
+                        || enemy.getY() > rainOrigin.y + ADAPTED_RAIN_HEIGHT || enemy.getY() < rainOrigin.y - 1) continue;
+                deal(amber, target(enemy), hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame());
+            }
+            for (int arrow = 0; arrow < 12; arrow++) {
+                double angle = 2 * Math.PI * arrow / 12;
+                double radius = inner ? innerRadius * .7 : ADAPTED_RAIN_RADIUS * .8;
+                double x = rainOrigin.x + Math.cos(angle) * radius, z = rainOrigin.z + Math.sin(angle) * radius;
+                rainLevel.sendParticles(ParticleTypes.FLAME, x, rainOrigin.y + 2.5, z, 2, .08, .8, .08, .015);
+                rainLevel.sendParticles(PYRO_DUST, x, rainOrigin.y + .15, z, 1, .08, .1, .08, 0);
+            }
         }
         private void frostgnawParticles(ServerLevel level) {
             Vec3 facing = forward(player);
@@ -466,7 +615,7 @@ public final class CombatRuntime {
                 level.sendParticles(CRYO_DUST, point.x, point.y, point.z, end ? 8 : 2, .04, .25, .04, 0);
                 var contacts = level.getEntitiesOfClass(LivingEntity.class,
                         new AABB(point, point).inflate(ADAPTED_ICICLE_CONTACT_MARGIN),
-                        entity -> !(entity instanceof Player) && entity.isAlive() && !entity.isRemoved());
+                        entity -> !(entity instanceof Player) && !isPuppet(entity) && entity.isAlive() && !entity.isRemoved());
                 if (contacts.isEmpty() || !end && !kaeya.connectIcicle(icicle, hit.frame())) continue;
                 // One contact AoE spends this icicle's enemy-independent lock, not a per-target timer.
                 for (LivingEntity enemy : contacts)
@@ -484,7 +633,7 @@ public final class CombatRuntime {
             LivingEntity nearest = null;
             double distance = start.distanceToSqr(end);
             for (LivingEntity enemy : level.getEntitiesOfClass(LivingEntity.class, new AABB(start, end).inflate(ADAPTED_RAY_HITBOX_MARGIN),
-                    entity -> !(entity instanceof Player) && entity.isAlive() && !entity.isRemoved())) {
+                    entity -> !(entity instanceof Player) && !isPuppet(entity) && entity.isAlive() && !entity.isRemoved())) {
                 var impact = enemy.getBoundingBox().inflate(ADAPTED_RAY_HITBOX_MARGIN).clip(start, end);
                 if (impact.isPresent() && start.distanceToSqr(impact.get()) < distance) {
                     nearest = enemy;
@@ -502,7 +651,8 @@ public final class CombatRuntime {
             target.aura().advanceTo(frame);
             UUID owner = combatOwners[kit.state().character().ordinal()];
             List<Reaction> reactions = List.of();
-            if (gauge > 0 && target.application.allowsApplication(owner, tag, target.entity().getUUID(), frame)) {
+            if (gauge > 0 && target.application.allowsApplication(owner, tag, target.entity().getUUID(),
+                    kit instanceof AmberKit ? ApplicationIcd.Rule.AMBER : ApplicationIcd.Rule.STANDARD, frame)) {
                 reactions = target.aura().applyHit(element, gauge, frame);
                 if (element == Element.HYDRO || element == Element.ELECTRO) {
                     target.ecOwner = kit.stats();
@@ -533,10 +683,27 @@ public final class CombatRuntime {
                     if (target.damage(player, damage)) reactionAmount = damage;
                 }
                 feedback(target, reactionAmount, damageElement, reaction.type(), false);
+                if (reaction.type() == Reaction.Type.OVERLOADED) overloaded(kit, owner, target, frame);
             }
             syncAura(target);
             scheduleEc(target);
             return applied;
+        }
+        private void overloaded(CharacterKit kit, UUID owner, CombatTarget origin, long frame) {
+            Vec3 center = origin.entity().position();
+            ServerLevel level = (ServerLevel) origin.entity().level();
+            level.sendParticles(ParticleTypes.EXPLOSION, center.x, center.y + .5, center.z, 1, 0, 0, 0, 0);
+            for (LivingEntity enemy : nearby(level, center, ADAPTED_OVERLOADED_RADIUS)) {
+                Vec3 push = enemy.position().subtract(center).multiply(1, 0, 1);
+                if (push.lengthSqr() < .001) push = forward(player);
+                enemy.setDeltaMovement(enemy.getDeltaMovement().add(push.normalize().scale(ADAPTED_OVERLOADED_KNOCKBACK)));
+                if (enemy == origin.entity()) continue;
+                CombatTarget neighbor = target(enemy);
+                if (!neighbor.reactionDamage.allowsDamage(owner, enemy.getUUID(), Reaction.Type.OVERLOADED, Element.ELECTRO, frame)) continue;
+                double damage = Damage.transformativeDamage(Reaction.Type.OVERLOADED, kit.stats().level(),
+                        kit.stats().elementalMastery(), 0, neighbor.resistance(Element.PYRO));
+                if (neighbor.damage(player, damage)) feedback(neighbor, damage, Element.PYRO, Reaction.Type.OVERLOADED, false);
+            }
         }
         private void scheduleEc(CombatTarget target) {
             var next = target.aura().nextElectroChargedTickFrame();
@@ -572,10 +739,10 @@ public final class CombatRuntime {
         Vec3 direction = player.getLookAngle().multiply(1, 0, 1);
         return direction.lengthSqr() < .001 ? new Vec3(0, 0, 1) : direction.normalize();
     }
-    private static List<LivingEntity> nearby(ServerLevel level, Vec3 center, double radius) {
+    private List<LivingEntity> nearby(ServerLevel level, Vec3 center, double radius) {
         double radiusSquared = radius * radius;
         return level.getEntitiesOfClass(LivingEntity.class, new AABB(center, center).inflate(radius, 2, radius),
-                entity -> !(entity instanceof Player) && entity.isAlive() && !entity.isRemoved()
+                entity -> !(entity instanceof Player) && !isPuppet(entity) && entity.isAlive() && !entity.isRemoved()
                         && horizontalDistanceSquared(entity, center) <= radiusSquared);
     }
     private static double horizontalDistanceSquared(LivingEntity entity, Vec3 point) {

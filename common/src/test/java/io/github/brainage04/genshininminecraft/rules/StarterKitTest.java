@@ -62,8 +62,8 @@ class StarterKitTest {
         assertFalse(kit.canSwitch(106));
         assertTrue(kit.canSwitch(107)); // Recorded 31+76 adaptation; not an exact live-game boundary.
     }
-    @Test void missingTalentsNeverSpendEnergyOrInstallCooldownAndAmberHoldCannotAimYet() {
-        for (CharacterKit kit : List.<CharacterKit>of(new AmberKit(hit -> {}), new LisaKit(hit -> {}))) {
+    @Test void missingLisaTalentsNeverSpendEnergyOrInstallCooldown() {
+        for (CharacterKit kit : List.<CharacterKit>of(new LisaKit(hit -> {}))) {
             kit.grantEnergy(80);
             double before = kit.energy();
             assertFalse(kit.intent(Intent.SKILL_PRESS, 0));
@@ -72,13 +72,6 @@ class StarterKitTest {
             assertEquals(0, kit.skillReadyFrame());
             assertEquals(0, kit.burstReadyFrame());
         }
-        var hits = new ArrayList<Hit>();
-        var amber = new AmberKit(hits::add);
-        amber.intent(Intent.ATTACK_PRESS, 0);
-        amber.advanceTo(100);
-        assertEquals(1, hits.size());
-        assertEquals(Kind.NORMAL, hits.getFirst().kind());
-        assertEquals(100, amber.stamina().current());
     }
     @Test void insufficientChargeStaminaPreservesThePrecedingFreeNormalAndPool() {
         for (int slot : new int[]{2, 3}) {

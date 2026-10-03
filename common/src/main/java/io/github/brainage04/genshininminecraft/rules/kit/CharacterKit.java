@@ -11,7 +11,8 @@ public interface CharacterKit {
         SWITCH_1, SWITCH_2, SWITCH_3, SWITCH_4;
         public int switchSlot() { return ordinal() >= SWITCH_1.ordinal() ? ordinal() - SWITCH_1.ordinal() : -1; }
     }
-    enum Kind { NORMAL, CHARGED, CUTTING, STORM, TORNADO, FROSTGNAW, ICICLES, ICICLES_END }
+    enum Kind { NORMAL, CHARGED, CUTTING, STORM, TORNADO, FROSTGNAW, ICICLES, ICICLES_END,
+        BUNNY_LAND, BUNNY_EXPLODE, RAIN_INNER, RAIN_OUTER }
     enum Weapon { SWORD, BOW, CATALYST }
     record Hit(long frame, Kind kind, double multiplier, Element element,
             double gauge, String icdTag, boolean mayAbsorb, boolean absorbedHit,

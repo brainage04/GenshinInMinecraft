@@ -26,9 +26,13 @@ public final class CombatInput {
     private static CharacterStatePayload state = CharacterStatePayload.UNMANAGED;
     private static boolean attackHeld;
     private static boolean skillHeld;
+    public static final float ADAPTED_AIM_FOV_MULTIPLIER = .7F;
+    private static int aimTicks;
+    private static boolean aimCancelled;
     private CombatInput() {}
     public static void initialize(Consumer<CombatIntentPayload> send) { sender = send; }
     public static void accept(CharacterStatePayload payload) {
+        if (payload.activeSlot() != state.activeSlot()) { aimTicks = 0; aimCancelled = false; }
         if (payload.managed() != state.managed()) {
             attackHeld = false;
             skillHeld = false;
@@ -42,16 +46,27 @@ public final class CombatInput {
     }
     public static CharacterStatePayload state() { return state; }
     public static boolean managed() { return state.managed() && Minecraft.getInstance().level != null; }
+    public static boolean aiming() {
+        Minecraft client = Minecraft.getInstance();
+        return managed() && state.activeSlot() == 1 && attackHeld && aimTicks >= 3 && !aimCancelled
+                && client.player != null && client.player.isAlive() && client.gui.screen() == null;
+    }
+    public static boolean fullyChargedAim() { return aiming() && aimTicks >= 29; }
     public static void reset() {
         state = CharacterStatePayload.UNMANAGED;
         attackHeld = false;
         skillHeld = false;
+        aimTicks = 0;
+        aimCancelled = false;
         GenshinHud.accept(state);
         CombatFeedback.reset();
     }
     private static void send(Intent intent) { if (sender != null) sender.accept(new CombatIntentPayload(intent)); }
     public static void tick(Minecraft client) {
         CombatFeedback.tick(client);
+        if (attackHeld) aimTicks++;
+        else { aimTicks = 0; aimCancelled = false; }
+        if (aiming() && (client.options.keySprint.isDown() || client.options.keyJump.isDown())) aimCancelled = true;
         if (!managed()) {
             drain(SKILL);
             drain(BURST);

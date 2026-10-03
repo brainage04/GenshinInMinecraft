@@ -51,14 +51,15 @@ public final class PartyGameTests {
             close(context, player.getHealth(), 10, "Active Amber HP fraction mirrors to vanilla health");
             context.assertFalse(runtime.receive(player, Intent.SWITCH_3), "A second switch inside one second is rejected");
             context.assertValueEqual(session.party().activeSlot(), 1, "Rejected switch leaves Amber active");
-            session.kit().grantEnergy(40);
-            context.assertFalse(runtime.receive(player, Intent.SKILL_PRESS), "Amber skill rejected cleanly");
-            context.assertFalse(runtime.receive(player, Intent.BURST_PRESS), "Amber burst rejected cleanly");
-            close(context, session.kit().energy(), 40, "Unavailable burst does not spend energy");
-            context.assertValueEqual(session.kit().skillReadyFrame(), 0L, "Unavailable skill does not install cooldown");
-            context.assertValueEqual(session.kit().burstReadyFrame(), 0L, "Unavailable burst does not install cooldown");
             context.assertFalse(session.intent(Intent.SWITCH_3, start + 59), "One frame before sourced cooldown is still rejected");
             context.assertTrue(session.intent(Intent.SWITCH_3, start + 60), "Exact one-second boundary accepts switch");
+            context.assertTrue(session.intent(Intent.SWITCH_4, start + 120), "Select the remaining unavailable Lisa kit");
+            session.kit().grantEnergy(80);
+            context.assertFalse(session.intent(Intent.SKILL_PRESS, start + 120), "Lisa skill rejected cleanly");
+            context.assertFalse(session.intent(Intent.BURST_PRESS, start + 120), "Lisa burst rejected cleanly");
+            close(context, session.kit().energy(), 80, "Unavailable burst does not spend energy");
+            context.assertValueEqual(session.kit().skillReadyFrame(), 0L, "Unavailable skill does not install cooldown");
+            context.assertValueEqual(session.kit().burstReadyFrame(), 0L, "Unavailable burst does not install cooldown");
         });
         context.succeed();
     }

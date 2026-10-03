@@ -1,0 +1,7 @@
+{
+  "environment": "minecraft:default",
+  "structure": "fabricmoddingconventions:empty",
+  "max_ticks": 20,
+  "type": "minecraft:function",
+  "function": "genshininminecraft:fiery_rain_damage_over_time_preserves_blocks"
+}
