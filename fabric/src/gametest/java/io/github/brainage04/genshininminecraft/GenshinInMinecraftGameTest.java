@@ -6,7 +6,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 
 public class GenshinInMinecraftGameTest {
     @GameTest
-    public void exampleCommandIsRegistered(GameTestHelper context) {
-        GenshinInMinecraftGameTests.exampleCommandIsRegistered(context);
+    public void genshinCommandIsRegistered(GameTestHelper context) {
+        GenshinInMinecraftGameTests.genshinCommandIsRegistered(context);
     }
 }

@@ -3,5 +3,5 @@
   "structure": "fabricmoddingconventions:empty",
   "max_ticks": 20,
   "type": "minecraft:function",
-  "function": "genshininminecraft:example_command_is_registered"
+  "function": "genshininminecraft:genshin_command_is_registered"
 }

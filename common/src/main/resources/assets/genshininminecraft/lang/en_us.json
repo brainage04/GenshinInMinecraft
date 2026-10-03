@@ -1,6 +1,4 @@
 {
-  "genshininminecraft.example.client": "GenshinInMinecraft client resources loaded.",
   "text.autoconfig.genshininminecraft.title": "GenshinInMinecraft Settings",
-  "text.autoconfig.genshininminecraft.option.logConfigOnStartup": "Log config on startup",
-  "text.autoconfig.genshininminecraft.option.exampleMessage": "Example command message"
+  "text.autoconfig.genshininminecraft.option.logConfigOnStartup": "Log config on startup"
 }

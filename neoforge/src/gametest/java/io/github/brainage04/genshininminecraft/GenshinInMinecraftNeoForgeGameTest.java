@@ -14,7 +14,7 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 @EventBusSubscriber(modid = GenshinInMinecraft.MOD_ID)
 public final class GenshinInMinecraftNeoForgeGameTest {
     private static final Map<String, Consumer<GameTestHelper>> TESTS = Map.of(
-            "example_command_is_registered", GenshinInMinecraftGameTests::exampleCommandIsRegistered
+            "genshin_command_is_registered", GenshinInMinecraftGameTests::genshinCommandIsRegistered
     );
 
     private GenshinInMinecraftNeoForgeGameTest() {

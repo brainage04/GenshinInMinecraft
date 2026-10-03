@@ -33,7 +33,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             });
         
             ClientGameTestRecorder.startRecording(context);
-            ClientGameTestRecorder.showStep(context, "template.ready", "Template client GameTest", "client initializer and world ready");
+            ClientGameTestRecorder.showStep(context, "genshin.ready", "GenshinInMinecraft client GameTest", "client initializer and world ready");
             context.waitTicks(20);
         } finally {
             ;
