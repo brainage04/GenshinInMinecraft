@@ -4,7 +4,7 @@ import com.mojang.authlib.GameProfile;
 import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Frames;
-import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit.Intent;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import io.github.brainage04.genshininminecraft.world.ManagedWorldData;
 import java.util.UUID;
 import java.util.function.BiConsumer;

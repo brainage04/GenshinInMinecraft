@@ -13,6 +13,7 @@ import io.github.brainage04.genshininminecraft.client.CombatFeedback;
 import io.github.brainage04.genshininminecraft.client.GenshinHud;
 import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
 import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
+import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.FabricRenderState;
 import net.fabricmc.fabric.api.client.rendering.v1.RenderStateDataKey;
@@ -34,12 +35,15 @@ public class GenshinInMinecraftFabricClient implements ClientModInitializer {
         EntityRendererRegistry.register(GenshinEntities.HILICHURL, HilichurlRenderer::new);
         KeyMappingHelper.registerKeyMapping(CombatInput.SKILL);
         KeyMappingHelper.registerKeyMapping(CombatInput.BURST);
+        for (var mapping : CombatInput.PARTY) KeyMappingHelper.registerKeyMapping(mapping);
         CombatInput.initialize(ClientPlayNetworking::send);
         ClientPlayNetworking.registerGlobalReceiver(CharacterStatePayload.TYPE,
                 (packet, context) -> CombatInput.accept(packet));
         ClientPlayNetworking.registerGlobalReceiver(DamageNumberPayload.TYPE,
                 (packet, context) -> CombatFeedback.accept(packet));
         ClientPlayNetworking.registerGlobalReceiver(TargetAuraPayload.TYPE,
+                (packet, context) -> CombatFeedback.accept(packet));
+        ClientPlayNetworking.registerGlobalReceiver(PlayerCharacterPayload.TYPE,
                 (packet, context) -> CombatFeedback.accept(packet));
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, GenshinHud.ID, GenshinHud::render);
         for (Identifier layer : List.of(VanillaHudElements.HEALTH_BAR, VanillaHudElements.FOOD_BAR,

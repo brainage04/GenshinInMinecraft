@@ -92,6 +92,33 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.getInput().releaseKey(options -> options.keyUp);
             context.waitFor(client -> !client.player.isSprinting() && !CombatInput.state().staminaDraining());
             context.waitFor(client -> CombatInput.state().stamina() == 100 && !GenshinHud.staminaVisible());
+            int originalHotbar = context.computeOnClient(client -> client.player.getInventory().getSelectedSlot());
+            context.getInput().pressKey(GLFW.GLFW_KEY_2);
+            server.waitFor(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                return CombatRuntime.get(minecraftServer).session(player).party().activeSlot() == 1;
+            });
+            context.waitFor(client -> CombatInput.state().activeSlot() == 1);
+            context.runOnClient(client -> {
+                if (client.player.getInventory().getSelectedSlot() != originalHotbar)
+                    throw new AssertionError("Managed party key2 must not also change vanilla hotbar selection");
+                if (GenshinHud.party().size() != 4 || !GenshinHud.party().get(1).active()
+                        || GenshinHud.party().getFirst().active())
+                    throw new AssertionError("HUD must show four element-coloured rows and highlight active Amber");
+            });
+            context.getInput().pressKey(GLFW.GLFW_KEY_E);
+            context.getInput().pressKey(GLFW.GLFW_KEY_Q);
+            context.waitTicks(5);
+            context.runOnClient(client -> {
+                if (client.gui.screen() instanceof InventoryScreen || CombatInput.state().skillRemainingFrames() != 0
+                        || CombatInput.state().burstRemainingFrames() != 0 || CombatInput.state().energy() != 0)
+                    throw new AssertionError("Unavailable Amber E/Q must not open inventory, spend energy or start cooldowns");
+                client.gui.hud.getChat().clearMessages(true);
+            });
+            screenshot(context, "genshin-party-four");
+            context.waitTicks(22);
+            context.getInput().pressKey(GLFW.GLFW_KEY_1);
+            context.waitFor(client -> CombatInput.state().activeSlot() == 0);
             int mobId = server.computeOnServer(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
                 var mob = new Cow(EntityTypes.COW, player.level());
@@ -112,8 +139,8 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.runOnClient(client -> {
                 if (client.gui.screen() instanceof InventoryScreen) throw new AssertionError("Managed E must not also open vanilla inventory");
                 if (CombatInput.state().skillRemainingFrames() <= 0) throw new AssertionError("Server cooldown must reach the client");
-                if (GenshinHud.party().size() != 1 || !GenshinHud.party().getFirst().active()) {
-                    throw new AssertionError("HUD must expose the active Traveler party row");
+                if (GenshinHud.party().size() != 4 || !GenshinHud.party().getFirst().active()) {
+                    throw new AssertionError("HUD must expose all four members with active Traveler");
                 }
                 if (!CombatFeedback.hasDamageNumber(mobId)) throw new AssertionError("Skill hit must sync a damage number for the test mob");
                 if (CombatFeedback.extract(0).isEmpty()) throw new AssertionError("Managed HUD must extract visible world feedback");
@@ -162,6 +189,8 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             });
             context.runOnClient(client -> client.gui.hud.getChat().clearMessages(true));
             screenshot(context, "genshin-hud-vanilla");
+            context.getInput().pressKey(GLFW.GLFW_KEY_2);
+            context.waitFor(client -> client.player.getInventory().getSelectedSlot() == 1);
             context.getInput().pressKey(GLFW.GLFW_KEY_E);
             context.waitForScreen(InventoryScreen.class);
         } finally {

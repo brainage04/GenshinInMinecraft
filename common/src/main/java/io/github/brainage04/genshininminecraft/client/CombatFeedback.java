@@ -3,6 +3,9 @@ package io.github.brainage04.genshininminecraft.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
 import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
+import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
+import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
+import io.github.brainage04.genshininminecraft.rules.CharacterBaseStats;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import java.util.ArrayList;
 import io.github.brainage04.genshininminecraft.ui.HudFormatting;
@@ -30,6 +33,13 @@ public final class CombatFeedback {
     }
     private static final List<NumberEntry> numbers = new ArrayList<>();
     private static final Map<Integer, Integer> auras = new HashMap<>();
+    private static final Map<Integer, Integer> playerCharacters = new HashMap<>();
+    private static final FormattedCharSequence[] CHARACTER_TEXT = {
+        Component.literal("Traveler · Anemo").getVisualOrderText(),
+        Component.literal("Amber · Pyro").getVisualOrderText(),
+        Component.literal("Kaeya · Cryo").getVisualOrderText(),
+        Component.literal("Lisa · Electro").getVisualOrderText()
+    };
     private static ClientLevel level;
     private static long tick;
     private static int sequence;
@@ -43,7 +53,7 @@ public final class CombatFeedback {
         return numbers.stream().anyMatch(number -> number.targetId() == targetId && number.amount() != null);
     }
     public static int auraElements(int targetId) { return auras.getOrDefault(targetId, 0); }
-    public static void reset() { numbers.clear(); auras.clear(); level = null; tick = 0; sequence = 0; }
+    public static void reset() { numbers.clear(); auras.clear(); playerCharacters.clear(); level = null; tick = 0; sequence = 0; }
     private static void useLevel(ClientLevel current) {
         if (level != current) {
             reset();
@@ -55,6 +65,7 @@ public final class CombatFeedback {
         tick++;
         numbers.removeIf(number -> tick - number.bornTick() >= LIFETIME_TICKS);
         if (level != null) auras.keySet().removeIf(id -> level.getEntity(id) == null);
+        if (level != null) playerCharacters.keySet().removeIf(id -> level.getEntity(id) == null);
     }
     public static void accept(DamageNumberPayload packet) {
         ClientLevel current = Minecraft.getInstance().level;
@@ -74,10 +85,15 @@ public final class CombatFeedback {
         if (packet.elements() == 0) auras.remove(packet.targetId());
         else auras.put(packet.targetId(), packet.elements());
     }
+    public static void accept(PlayerCharacterPayload packet) {
+        useLevel(Minecraft.getInstance().level);
+        if (packet.slot() < 0) playerCharacters.remove(packet.playerId());
+        else playerCharacters.put(packet.playerId(), packet.slot());
+    }
     public static List<WorldText> extract(float partialTick) {
         Minecraft client = Minecraft.getInstance();
         if (!CombatInput.managed() || client.gui.hud.isHidden() || level == null) return List.of();
-        if (numbers.isEmpty() && auras.isEmpty()) return List.of();
+        if (numbers.isEmpty() && auras.isEmpty() && playerCharacters.isEmpty()) return List.of();
         List<WorldText> texts = new ArrayList<>();
         Font font = client.font;
         for (NumberEntry number : numbers) {
@@ -104,6 +120,15 @@ public final class CombatFeedback {
                 texts.add(new WorldText(position, text, font.width(text) / 2F - (index++ - (count - 1) / 2F) * 20,
                         ElementPalette.color(element), .025F));
             }
+        }
+        for (var entry : playerCharacters.entrySet()) {
+            Entity entity = level.getEntity(entry.getKey());
+            if (entity == null || entity == client.player || !entity.isAlive() || entity.isInvisible()) continue;
+            int slot = entry.getValue();
+            var text = CHARACTER_TEXT[slot];
+            Element element = CharacterBaseStats.at(CharacterStatePayload.ROSTER.get(slot), 20).element();
+            texts.add(new WorldText(entity.getPosition(partialTick).add(0, entity.getBbHeight() + .85, 0),
+                    text, font.width(text) / 2F, ElementPalette.color(element), .027F));
         }
         return texts;
     }

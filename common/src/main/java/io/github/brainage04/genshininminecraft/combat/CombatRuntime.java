@@ -3,11 +3,13 @@ package io.github.brainage04.genshininminecraft.combat;
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
 import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
 import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
+import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import io.github.brainage04.genshininminecraft.rules.*;
 import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit;
-import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit.Hit;
-import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit.Intent;
-import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit.Kind;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Hit;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Kind;
 import io.github.brainage04.genshininminecraft.world.ManagedWorld;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +23,7 @@ import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -41,6 +44,13 @@ public final class CombatRuntime {
     public static final double SMALL_ENEMY_MAX_HEIGHT = 2.2;
     public static final double ADAPTED_DASH_BLOCKS_PER_TICK = .6;
     public static final int CHARACTER_SYNC_INTERVAL_TICKS = 3;
+    public static final double ADAPTED_BOW_RANGE = 16;
+    public static final double ADAPTED_CATALYST_RANGE = 6;
+    public static final double ADAPTED_LISA_IMPACT_RADIUS = .75;
+    public static final double ADAPTED_LISA_CHARGED_RADIUS = 4;
+    public static final double ADAPTED_RAY_HITBOX_MARGIN = .15;
+    public static final double ADAPTED_LISA_CHARGED_HEIGHT_TOLERANCE = .1;
+    private static final DustParticleOptions ANEMO_DUST = new DustParticleOptions(0x80e8c0, 1.2F);
     private static final DustParticleOptions PYRO_DUST = new DustParticleOptions(0xff6622, 1.2F);
     private static final DustParticleOptions CRYO_DUST = new DustParticleOptions(0x99eeff, 1.2F);
     private static final DustParticleOptions HYDRO_DUST = new DustParticleOptions(0x3388ff, 1.2F);
@@ -80,29 +90,45 @@ public final class CombatRuntime {
     public boolean enemyHit(ServerPlayer player, LivingEntity enemy, double attack, double multiplier, int enemyLevel) {
         if (!ManagedWorld.isManaged(player.level()) || player.isCreative() || player.isSpectator() || !player.isAlive()) return false;
         Session state = session(player);
-        long frame = Math.max(state.kit.frame(), Frames.atServerTick(player.level().getServer().getTickCount()));
+        long frame = Math.max(state.party.frame(), Frames.atServerTick(player.level().getServer().getTickCount()));
         if (state.stamina().dashInvulnerable(frame)) return false;
         state.reconcileHealth();
-        double amount = Damage.enemyDamage(attack, multiplier, enemyLevel, state.kit.stats().def(),
+        CharacterKit kit = state.kit();
+        double amount = Damage.enemyDamage(attack, multiplier, enemyLevel, kit.stats().def(),
                 HilichurlProfile.STARTER_PLAYER_RESISTANCE);
         ServerLevel level = (ServerLevel) player.level();
         var source = level.damageSources().mobAttack(enemy);
         if (player.isInvulnerableTo(level, source)) return false;
-        state.kit.setHp(Math.max(0, state.kit.hp() - amount));
-        state.mirroredHealth = (float) (player.getMaxHealth() * state.kit.hp() / state.kit.maxHp());
+        kit.setHp(Math.max(0, kit.hp() - amount));
         player.setLastHurtByMob(enemy);
-        player.getCombatTracker().recordDamage(source, (float) (amount * player.getMaxHealth() / state.kit.maxHp()));
-        player.setHealth(state.mirroredHealth);
+        player.getCombatTracker().recordDamage(source, (float) (amount * player.getMaxHealth() / kit.maxHp()));
+        if (kit.hp() == 0) state.forceSwitch(frame);
+        state.mirrorHealth();
         level.broadcastDamageEvent(player, source);
-        if (state.kit.hp() == 0) player.die(source);
+        if (state.kit().hp() == 0) player.die(source);
         state.sync();
         return true;
+    }
+    /** Shared die hook also catches lethal vanilla/environmental damage before vanilla marks death. */
+    public boolean handleDeath(ServerPlayer player) {
+        if (!ManagedWorld.isManaged(player.level())) return false;
+        Session state = session(player);
+        state.kit().setHp(0);
+        boolean replaced = state.forceSwitch(Math.max(state.party.frame(),
+                Frames.atServerTick(player.level().getServer().getTickCount())));
+        state.mirrorHealth();
+        state.sync();
+        return replaced;
     }
     /** Loader tracking callbacks refresh existing auras for players entering tracking range. */
     public void startTracking(ServerPlayer player, Entity entity) {
         CombatTarget target = targets.get(entity.getUUID());
         if (target != null && ManagedWorld.isManaged(entity.level()) && player.connection != null) {
             player.connection.send(new ClientboundCustomPayloadPacket(new TargetAuraPayload(entity.getId(), target.auraElements())));
+        }
+        if (entity instanceof ServerPlayer other && ManagedWorld.isManaged(entity.level()) && player.connection != null) {
+            player.connection.send(new ClientboundCustomPayloadPacket(
+                    new PlayerCharacterPayload(other.getId(), session(other).party.activeSlot())));
         }
     }
     private static void broadcast(CombatTarget target, CustomPacketPayload payload) {
@@ -127,7 +153,10 @@ public final class CombatRuntime {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (!managed) {
                 Session old = players.remove(player.getUUID());
-                if (old != null && sender != null) sender.accept(player, CharacterStatePayload.UNMANAGED);
+                if (old != null) {
+                    old.broadcastCharacter(-1);
+                    if (sender != null) sender.accept(player, CharacterStatePayload.UNMANAGED);
+                }
                 continue;
             }
             Session state = session(player);
@@ -148,7 +177,7 @@ public final class CombatRuntime {
 
     public final class Session {
         private final ServerPlayer player;
-        private final TravelerAnemoKit kit;
+        private final Party party;
         private final Random random;
         private CharacterStatePayload lastSync;
         private float mirroredHealth;
@@ -167,23 +196,38 @@ public final class CombatRuntime {
         private boolean sprintKeyHeld;
         private Vec3 dashMotion;
         private ServerLevel dashLevel;
+        private int displayedSlot = -1;
+        private ServerLevel displayedLevel;
 
         private Session(ServerPlayer player) {
             this.player = player;
             random = new Random(player.getUUID().getLeastSignificantBits());
-            kit = new TravelerAnemoKit(timeline, this::hit);
+            party = new Party(timeline, this::hit);
             mirroredHealth = player.getHealth();
-            kit.setHp(kit.maxHp() * player.getHealth() / player.getMaxHealth());
+            kit().setHp(kit().maxHp() * player.getHealth() / player.getMaxHealth());
         }
-        public TravelerAnemoKit kit() { return kit; }
-        public Stamina stamina() { return kit.stamina(); }
+        public CharacterKit kit() { return party.activeKit(); }
+        public Party party() { return party; }
+        public Stamina stamina() { return party.stamina(); }
         public Element skillAbsorbedElement() { return skillAbsorbed; }
         public Element burstAbsorbedElement() { return burstAbsorbed; }
         public boolean intent(Intent intent, long frame) {
             if (!ManagedWorld.isManaged(player.level()) || !player.isAlive() || player.isSpectator()) return false;
             // Drain prior hits before installing a new cast's absorption/origin.
             advanceTo(frame);
-            boolean accepted = kit.intent(intent, frame);
+            int slot = intent.switchSlot();
+            if (slot >= 0) {
+                boolean switched = party.switchTo(slot, frame);
+                if (switched) { mirrorHealth(); switchEffect(); }
+                sync();
+                return switched;
+            }
+            if (!kit().talentsAvailable() && (intent == Intent.SKILL_PRESS || intent == Intent.BURST_PRESS)) {
+                player.sendOverlayMessage(Component.literal("This character's " +
+                        (intent == Intent.SKILL_PRESS ? "skill" : "burst") + " is not available yet."));
+                return false;
+            }
+            boolean accepted = kit().intent(intent, frame);
             if (accepted && (intent == Intent.ATTACK_PRESS || intent == Intent.SKILL_PRESS)) actionLevel = (ServerLevel) player.level();
             if (accepted && intent == Intent.SKILL_PRESS) { skillCast = frame; skillAbsorbed = null; }
             if (accepted && intent == Intent.BURST_PRESS) {
@@ -197,9 +241,9 @@ public final class CombatRuntime {
             return accepted;
         }
         public void advanceTo(long frame) {
-            kit.advanceTo(frame);
+            party.advanceTo(frame);
             if (tornadoStart >= 0 && frame != lastTornadoStep && frame - tornadoStart <= TravelerAnemoKit.BURST_DURATION_FRAMES
-                    && valid() && player.level() == tornadoLevel) {
+                    && party.kit(0).hp() > 0 && valid() && player.level() == tornadoLevel) {
                 lastTornadoStep = frame;
                 Vec3 center = tornadoCenter(frame);
                 var nearby = nearby(tornadoLevel, center, TORNADO_RADIUS);
@@ -253,55 +297,93 @@ public final class CombatRuntime {
             return players.get(player.getUUID()) == this && player.isAlive() && !player.isRemoved() && ManagedWorld.isManaged(player.level());
         }
         private void reconcileHealth() {
-            if (player.getHealth() != mirroredHealth) kit.setHp(kit.maxHp() * player.getHealth() / player.getMaxHealth());
-            mirroredHealth = (float) (player.getMaxHealth() * kit.hp() / kit.maxHp());
+            if (player.getHealth() != mirroredHealth) kit().setHp(kit().maxHp() * player.getHealth() / player.getMaxHealth());
+            if (kit().hp() == 0) forceSwitch(Math.max(party.frame(),
+                    Frames.atServerTick(player.level().getServer().getTickCount())));
+            mirrorHealth();
+        }
+        private void mirrorHealth() {
+            mirroredHealth = (float) (player.getMaxHealth() * kit().hp() / kit().maxHp());
             player.setHealth(mirroredHealth);
         }
+        private boolean forceSwitch(long frame) {
+            boolean switched = party.forceSwitch(frame);
+            if (switched) switchEffect();
+            return switched;
+        }
+        private void broadcastCharacter(int slot) {
+            ((ServerLevel) player.level()).getChunkSource().chunkMap.sendToTrackingPlayers(player,
+                    new ClientboundCustomPayloadPacket(new PlayerCharacterPayload(player.getId(), slot)));
+            displayedSlot = slot;
+            displayedLevel = (ServerLevel) player.level();
+        }
+        private void switchEffect() {
+            broadcastCharacter(party.activeSlot());
+            DustParticleOptions dust = switch (party.activeMember().element()) {
+                case ANEMO -> ANEMO_DUST; case PYRO -> PYRO_DUST; case CRYO -> CRYO_DUST; case ELECTRO -> ELECTRO_DUST;
+                default -> throw new IllegalStateException("Not a starter element");
+            };
+            ((ServerLevel) player.level()).sendParticles(dust, player.getX(), player.getY() + 1, player.getZ(),
+                    20, .4, .7, .4, .03);
+        }
         private void sync() {
-            // Simulated/offline server players have no channel; only connected clients receive feedback.
+            if (displayedSlot != party.activeSlot() || displayedLevel != player.level()) broadcastCharacter(party.activeSlot());
             if (player.connection == null || !player.connection.isAcceptingMessages()) return;
             if (lastSyncLevel != player.level()) {
                 lastSync = null;
                 lastSyncLevel = (ServerLevel) player.level();
             }
-            if (lastSync != null && kit.frame() - lastSyncFrame < Frames.atServerTick(CHARACTER_SYNC_INTERVAL_TICKS)) return;
-            float hp = (float) kit.hp();
-            float maxHp = (float) kit.maxHp();
-            float energy = (float) kit.energy();
-            int skill = (int) kit.skillRemaining();
-            int burst = (int) kit.burstRemaining();
+            if (lastSync != null && party.frame() - lastSyncFrame < Frames.atServerTick(CHARACTER_SYNC_INTERVAL_TICKS)) return;
             float stamina = (float) stamina().current();
             boolean exhausted = stamina().exhausted();
             boolean draining = stamina().draining();
-            if (lastSync == null || lastSync.hp() != hp || lastSync.maxHp() != maxHp || lastSync.energy() != energy
-                    || lastSync.skillRemainingFrames() != skill || lastSync.burstRemainingFrames() != burst
+            boolean changed = lastSync == null || lastSync.activeSlot() != party.activeSlot()
                     || lastSync.stamina() != stamina || lastSync.staminaExhausted() != exhausted
-                    || lastSync.staminaDraining() != draining) {
-                lastSync = new CharacterStatePayload(true, hp, maxHp, energy, skill, burst, stamina, exhausted, draining);
-                lastSyncFrame = kit.frame();
-                if (sender != null) sender.accept(player, lastSync);
+                    || lastSync.staminaDraining() != draining;
+            for (int index = 0; !changed && index < Party.SIZE; index++) {
+                var member = party.kit(index);
+                var previous = lastSync.members().get(index);
+                changed = previous.hpFraction() != (float) (member.hp() / member.maxHp())
+                        || previous.energy() != (float) member.energy()
+                        || previous.skillRemainingFrames() != member.skillRemaining()
+                        || previous.burstRemainingFrames() != member.burstRemaining();
             }
+            if (!changed) return;
+            var members = new java.util.ArrayList<CharacterStatePayload.Member>(Party.SIZE);
+            for (int index = 0; index < Party.SIZE; index++) {
+                var member = party.kit(index);
+                members.add(new CharacterStatePayload.Member((float) (member.hp() / member.maxHp()),
+                        (float) member.energy(), (int) member.skillRemaining(), (int) member.burstRemaining()));
+            }
+            lastSync = new CharacterStatePayload(true, party.activeSlot(), members, stamina, exhausted, draining);
+            lastSyncFrame = party.frame();
+            if (sender != null) sender.accept(player, lastSync);
         }
         private Vec3 tornadoCenter(long frame) {
             return tornadoOrigin.add(tornadoDirection.scale(Frames.seconds(frame - tornadoStart) * TORNADO_BLOCKS_PER_SECOND));
         }
-        private void hit(Hit hit) {
+        private void hit(CharacterKit kit, Hit hit) {
             if (!valid()) return;
             ServerLevel level = (ServerLevel) player.level();
             boolean burst = hit.kind() == Kind.TORNADO;
             if (level != (burst ? tornadoLevel : actionLevel)) return;
             Vec3 origin = burst ? tornadoCenter(hit.frame()) : player.position().add(0, .8, 0);
-            boolean sword = hit.kind() == Kind.NORMAL || hit.kind() == Kind.CHARGED;
-            double radius = sword ? SWORD_RADIUS : burst ? TORNADO_RADIUS : SKILL_RADIUS;
-            List<LivingEntity> enemies = nearby(level, origin, radius);
-            if (!burst) {
+            boolean basic = hit.kind() == Kind.NORMAL || hit.kind() == Kind.CHARGED;
+            boolean sword = basic && kit.weapon() == CharacterKit.Weapon.SWORD;
+            boolean ranged = basic && !sword && hit.kind() == Kind.NORMAL;
+            boolean catalystCharge = basic && !sword && !ranged;
+            double radius = sword ? SWORD_RADIUS : catalystCharge ? ADAPTED_LISA_CHARGED_RADIUS
+                    : burst ? TORNADO_RADIUS : SKILL_RADIUS;
+            List<LivingEntity> enemies = ranged ? rayTargets(level, kit.weapon()) : nearby(level, origin, radius);
+            if (!burst && !ranged) {
                 Vec3 facing = forward(player);
                 enemies.removeIf(enemy -> {
                     double dx = enemy.getX() - player.getX();
                     double dz = enemy.getZ() - player.getZ();
                     double distanceSquared = dx * dx + dz * dz;
-                    return distanceSquared > .01 && (facing.x * dx + facing.z * dz)
-                            < (sword ? SWORD_ARC_COSINE : 0) * Math.sqrt(distanceSquared);
+                    return catalystCharge && enemy.getY() > player.getY() + ADAPTED_LISA_CHARGED_HEIGHT_TOLERANCE
+                            || distanceSquared > .01 && (facing.x * dx + facing.z * dz)
+                            < (sword || catalystCharge ? SWORD_ARC_COSINE : 0) * Math.sqrt(distanceSquared);
                 });
             }
             Element absorbed = null;
@@ -314,21 +396,47 @@ public final class CombatRuntime {
                     absorbed = skillAbsorbed;
                 }
             }
-            particles(level, origin.add(burst ? Vec3.ZERO : forward(player).scale(1.5)), absorbed, sword);
+            particles(level, origin.add(burst ? Vec3.ZERO : forward(player).scale(1.5)),
+                    basic && hit.element() == Element.ELECTRO ? Element.ELECTRO : absorbed, sword);
             boolean enemyHit = false;
             for (LivingEntity enemy : enemies) {
                 CombatTarget target = target(enemy);
-                enemyHit |= deal(target, hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame());
+                enemyHit |= deal(kit, target, hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame());
                 if (absorbed != null && hit.absorbedHit() && enemy.isAlive()
                         && (!burst || enemy.position().distanceToSqr(origin) <= ABSORBED_TORNADO_RADIUS * ABSORBED_TORNADO_RADIUS)) {
-                    deal(target, absorbed, burst ? .248 : hit.multiplier() * .25,
+                    deal(kit, target, absorbed, burst ? .248 : hit.multiplier() * .25,
                             burst ? 2 : 1, hit.kind() == Kind.STORM ? null
                                     : (burst ? "Elemental Burst " : "Elemental Skill ") + absorbed, hit.frame());
                 }
             }
-            if (enemyHit && hit.particles() > 0) kit.grantParticles(hit.particles());
+            if (enemyHit && hit.particles() > 0) party.collect(Energy.Item.PARTICLE, hit.element(), hit.particles());
         }
-        private boolean deal(CombatTarget target, Element element, double multiplier, double gauge, String tag, long frame) {
+        /** Nearest unobstructed living target on the server eye ray; Amber hits at arrow release. */
+        private List<LivingEntity> rayTargets(ServerLevel level, CharacterKit.Weapon weapon) {
+            double range = weapon == CharacterKit.Weapon.BOW ? ADAPTED_BOW_RANGE : ADAPTED_CATALYST_RANGE;
+            Vec3 start = player.getEyePosition();
+            Vec3 end = start.add(player.getLookAngle().scale(range));
+            end = level.clip(new net.minecraft.world.level.ClipContext(start, end,
+                    net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                    net.minecraft.world.level.ClipContext.Fluid.NONE, player)).getLocation();
+            LivingEntity nearest = null;
+            double distance = start.distanceToSqr(end);
+            for (LivingEntity enemy : level.getEntitiesOfClass(LivingEntity.class, new AABB(start, end).inflate(ADAPTED_RAY_HITBOX_MARGIN),
+                    entity -> !(entity instanceof Player) && entity.isAlive() && !entity.isRemoved())) {
+                var impact = enemy.getBoundingBox().inflate(ADAPTED_RAY_HITBOX_MARGIN).clip(start, end);
+                if (impact.isPresent() && start.distanceToSqr(impact.get()) < distance) {
+                    nearest = enemy;
+                    distance = start.distanceToSqr(impact.get());
+                }
+            }
+            if (nearest == null) return List.of();
+            if (weapon == CharacterKit.Weapon.BOW) {
+                level.sendParticles(ParticleTypes.CRIT, nearest.getX(), nearest.getY() + 1, nearest.getZ(), 8, .1, .2, .1, .01);
+                return List.of(nearest);
+            }
+            return nearby(level, nearest.position(), ADAPTED_LISA_IMPACT_RADIUS);
+        }
+        private boolean deal(CharacterKit kit, CombatTarget target, Element element, double multiplier, double gauge, String tag, long frame) {
             target.aura().advanceTo(frame);
             List<Reaction> reactions = List.of();
             if (gauge > 0 && target.application.allowsApplication(player.getUUID(), tag, target.entity().getUUID(), frame)) {
@@ -372,7 +480,7 @@ public final class CombatRuntime {
             if (next.isEmpty() || target.ecOwner == null || next.getAsLong() == target.scheduledEc) return;
             long at = next.getAsLong();
             target.scheduledEc = at;
-            kit.schedule(at, frame -> {
+            timeline.schedule(at, frame -> {
                 if (targets.get(target.entity().getUUID()) != target || target.entity().isRemoved()
                         || !ManagedWorld.isManaged(target.entity().level())) return;
                 var tick = target.aura().tickElectroCharged(frame, target.entity().isAlive());

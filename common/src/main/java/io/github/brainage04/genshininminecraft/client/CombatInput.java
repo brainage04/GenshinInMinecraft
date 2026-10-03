@@ -3,7 +3,7 @@ package io.github.brainage04.genshininminecraft.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
 import io.github.brainage04.genshininminecraft.network.CombatIntentPayload;
-import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit.Intent;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import java.util.function.Consumer;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -15,6 +15,13 @@ public final class CombatInput {
     public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("genshininminecraft", "genshin"));
     public static final KeyMapping SKILL = new KeyMapping("key.genshininminecraft.skill", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_E, CATEGORY);
     public static final KeyMapping BURST = new KeyMapping("key.genshininminecraft.burst", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Q, CATEGORY);
+    public static final KeyMapping[] PARTY = {
+        new KeyMapping("key.genshininminecraft.party1", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_1, CATEGORY),
+        new KeyMapping("key.genshininminecraft.party2", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_2, CATEGORY),
+        new KeyMapping("key.genshininminecraft.party3", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_3, CATEGORY),
+        new KeyMapping("key.genshininminecraft.party4", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_4, CATEGORY)
+    };
+    private static final Intent[] SWITCH_INTENTS = {Intent.SWITCH_1, Intent.SWITCH_2, Intent.SWITCH_3, Intent.SWITCH_4};
     private static Consumer<CombatIntentPayload> sender;
     private static CharacterStatePayload state = CharacterStatePayload.UNMANAGED;
     private static boolean attackHeld;
@@ -27,6 +34,7 @@ public final class CombatInput {
             skillHeld = false;
             drain(SKILL);
             drain(BURST);
+            for (var mapping : PARTY) drain(mapping);
         }
         state = payload;
         GenshinHud.accept(payload);
@@ -47,6 +55,7 @@ public final class CombatInput {
         if (!managed()) {
             drain(SKILL);
             drain(BURST);
+            for (var mapping : PARTY) drain(mapping);
             attackHeld = false;
             skillHeld = false;
             return;
@@ -61,6 +70,10 @@ public final class CombatInput {
     /** Runs before vanilla inventory/drop/attack handling, on both loaders. */
     public static void beforeKeybinds(Minecraft client) {
         if (!managed() || client.player == null || client.gui.screen() != null) return;
+        for (int slot = 0; slot < PARTY.length; slot++) {
+            if (drain(PARTY[slot])) send(SWITCH_INTENTS[slot]);
+            for (var hotbar : client.options.keyHotbarSlots) if (hotbar.same(PARTY[slot])) drain(hotbar);
+        }
         boolean attackClick = drain(client.options.keyAttack);
         boolean attackDown = client.options.keyAttack.isDown();
         if (!attackHeld && (attackDown || attackClick)) send(Intent.ATTACK_PRESS);

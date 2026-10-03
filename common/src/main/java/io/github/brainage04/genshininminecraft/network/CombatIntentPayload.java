@@ -1,6 +1,6 @@
 package io.github.brainage04.genshininminecraft.network;
 
-import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit.Intent;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;

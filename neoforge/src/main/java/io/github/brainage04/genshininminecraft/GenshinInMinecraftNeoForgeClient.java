@@ -19,6 +19,7 @@ import io.github.brainage04.genshininminecraft.client.CombatFeedback;
 import io.github.brainage04.genshininminecraft.client.GenshinHud;
 import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
 import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
+import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import java.util.List;
 import java.util.Set;
 import net.minecraft.resources.Identifier;
@@ -52,11 +53,13 @@ public final class GenshinInMinecraftNeoForgeClient {
         modBus.addListener((RegisterKeyMappingsEvent event) -> {
             event.register(CombatInput.SKILL);
             event.register(CombatInput.BURST);
+            for (var mapping : CombatInput.PARTY) event.register(mapping);
         });
         modBus.addListener((RegisterClientPayloadHandlersEvent event) -> {
             event.register(CharacterStatePayload.TYPE, (packet, context) -> CombatInput.accept(packet));
             event.register(DamageNumberPayload.TYPE, (packet, context) -> CombatFeedback.accept(packet));
             event.register(TargetAuraPayload.TYPE, (packet, context) -> CombatFeedback.accept(packet));
+            event.register(PlayerCharacterPayload.TYPE, (packet, context) -> CombatFeedback.accept(packet));
         });
         modBus.addListener((RegisterGuiLayersEvent event) ->
                 event.registerAbove(VanillaGuiLayers.HOTBAR, GenshinHud.ID, GenshinHud::render));

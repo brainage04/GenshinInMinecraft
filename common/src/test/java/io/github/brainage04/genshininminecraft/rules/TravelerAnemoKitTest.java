@@ -1,9 +1,9 @@
 package io.github.brainage04.genshininminecraft.rules;
 
 import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit;
-import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit.Hit;
-import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit.Intent;
-import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit.Kind;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Hit;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Kind;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;

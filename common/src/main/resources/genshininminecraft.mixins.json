@@ -7,7 +7,8 @@
 		"BlockItemMixin",
 		"FarmlandBlockMixin",
 		"BucketItemMixin",
-		"IgnitionItemMixin"
+		"IgnitionItemMixin",
+		"ServerPlayerDeathMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -3,7 +3,7 @@ package io.github.brainage04.genshininminecraft.client;
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Stamina;
-import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit;
+import io.github.brainage04.genshininminecraft.rules.CharacterBaseStats;
 import io.github.brainage04.genshininminecraft.ui.HudFormatting;
 import java.util.List;
 import net.minecraft.client.DeltaTracker;
@@ -32,7 +32,8 @@ public final class GenshinHud {
         }
     }
     private static List<PartyMember> party = List.of();
-    private static final String[] PARTY_KEYS = {"1", "2", "3", "4"};
+    private static final String[] PARTY_NAMES = {"Traveler", "Amber", "Kaeya", "Lisa"};
+    private static final float[] BURST_COSTS = {60, 40, 60, 80};
     private static String hpText = "";
     private static String skillCooldown = "";
     private static String burstCooldown = "";
@@ -43,8 +44,17 @@ public final class GenshinHud {
     private GenshinHud() {}
     public static List<PartyMember> party() { return party; }
     public static void accept(CharacterStatePayload state) {
-        party = state.managed() ? List.of(new PartyMember("Traveler", Element.ANEMO, state.hp(),
-                state.maxHp(), state.energy(), (float) TravelerAnemoKit.BURST_COST, true)) : List.of();
+        if (!state.managed()) party = List.of();
+        else {
+            var rows = new java.util.ArrayList<PartyMember>(4);
+            for (int index = 0; index < state.members().size(); index++) {
+                var base = CharacterBaseStats.at(CharacterStatePayload.ROSTER.get(index), 20);
+                var member = state.members().get(index);
+                rows.add(new PartyMember(PARTY_NAMES[index], base.element(), member.hpFraction() * (float) base.hp(),
+                        (float) base.hp(), member.energy(), BURST_COSTS[index], index == state.activeSlot()));
+            }
+            party = List.copyOf(rows);
+        }
         hpText = Math.round(state.hp()) + " / " + Math.round(state.maxHp());
         skillCooldown = HudFormatting.cooldown(state.skillRemainingFrames());
         burstCooldown = HudFormatting.cooldown(state.burstRemainingFrames());
@@ -69,7 +79,7 @@ public final class GenshinHud {
                 graphics.fill(x, y, x + 3, y + rowHeight - 3, ElementPalette.color(member.element()));
             }
             graphics.text(font, member.name(), x + 7, y + 4, ElementPalette.color(member.element()));
-            graphics.text(font, PARTY_KEYS[index], width - 20, y + 4, BORDER);
+            graphics.text(font, CombatInput.PARTY[index].getTranslatedKeyMessage().getString(), width - 20, y + 4, BORDER);
             bar(graphics, x + 7, y + 16, 88, 4, member.hp(), member.maxHp(), HP);
             bar(graphics, x + 7, y + 23, 88, 3, member.energy(), member.maxEnergy(), ElementPalette.color(member.element()));
         }
@@ -80,12 +90,13 @@ public final class GenshinHud {
         graphics.fill(hpX - 4, hpY - 3, hpX + hpWidth + 4, hpY + 20, PANEL);
         bar(graphics, hpX, hpY, hpWidth, 7, active.hp(), active.maxHp(), HP);
         graphics.centeredText(font, hpText, width / 2, hpY + 10, 0xfff5f2e9);
+        boolean available = CombatInput.state().activeSlot() == 0;
         icon(graphics, font, width - 106, height - 63, CombatInput.SKILL.getTranslatedKeyMessage().getString(),
-                skillCooldown, true, false, active.element());
+                available ? skillCooldown : "SOON", available, false, active.element());
         boolean full = HudFormatting.fraction(active.energy(), active.maxEnergy()) == 1;
-        boolean ready = full && CombatInput.state().burstRemainingFrames() == 0;
+        boolean ready = available && full && CombatInput.state().burstRemainingFrames() == 0;
         icon(graphics, font, width - 57, height - 63, CombatInput.BURST.getTranslatedKeyMessage().getString(),
-                burstCooldown, full, ready, active.element());
+                available ? burstCooldown : "SOON", available && full, ready, active.element());
         bar(graphics, width - 53, height - 29, 32, 3, active.energy(), active.maxEnergy(), ElementPalette.color(active.element()));
         staminaWheel(graphics, width / 2 + 35, height / 2);
     }

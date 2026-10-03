@@ -5,6 +5,7 @@ import io.github.brainage04.genshininminecraft.gametest.ManagedWorldGameTests;
 import io.github.brainage04.genshininminecraft.gametest.TravelerCombatGameTests;
 import io.github.brainage04.genshininminecraft.gametest.HilichurlGameTests;
 import io.github.brainage04.genshininminecraft.gametest.StaminaGameTests;
+import io.github.brainage04.genshininminecraft.gametest.PartyGameTests;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 
@@ -105,5 +106,21 @@ public class GenshinInMinecraftGameTest {
     @GameTest
     public void chargedAttackRequiresStamina(GameTestHelper context) {
         StaminaGameTests.chargedAttackRequiresStamina(context);
+    }
+    @GameTest
+    public void lisaNormalThenTravelerSwirl(GameTestHelper context) {
+        PartyGameTests.lisaNormalThenTravelerSwirl(context);
+    }
+    @GameTest
+    public void partySwitchCooldownAndUnavailableTalents(GameTestHelper context) {
+        PartyGameTests.partySwitchCooldownAndUnavailableTalents(context);
+    }
+    @GameTest
+    public void characterDeathForcesSwitchAndPartyWipeKillsPlayer(GameTestHelper context) {
+        PartyGameTests.characterDeathForcesSwitchAndPartyWipeKillsPlayer(context);
+    }
+    @GameTest
+    public void vanillaLethalDamageAlsoForcesCharacterSwitch(GameTestHelper context) {
+        PartyGameTests.vanillaLethalDamageAlsoForcesCharacterSwitch(context);
     }
 }

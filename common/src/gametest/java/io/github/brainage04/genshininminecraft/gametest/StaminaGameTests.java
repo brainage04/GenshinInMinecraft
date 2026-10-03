@@ -3,7 +3,7 @@ package io.github.brainage04.genshininminecraft.gametest;
 import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
 import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
 import io.github.brainage04.genshininminecraft.rules.Frames;
-import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit.Intent;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.player.Input;

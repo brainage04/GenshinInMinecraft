@@ -7,7 +7,7 @@ import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
 import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Frames;
-import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit.Intent;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import io.github.brainage04.genshininminecraft.world.ManagedWorldData;
 import java.util.ArrayList;
 import java.util.List;
@@ -154,6 +154,8 @@ public final class HilichurlGameTests {
             for (int tick = 0; tick < 10; tick++) tick(context, member);
             close(context, session.kit().hp(), 2342.39, "Moving behind the telegraphed arc avoids the strike");
             session.kit().setHp(1);
+            // A one-character fall now replaces the active member; vanilla death requires a party wipe.
+            for (int slot = 1; slot < 4; slot++) session.party().members().get(slot).setHp(0);
             player.snapTo(home.add(0, 0, 1.5));
             for (int tick = 0; tick < 41 && player.isAlive(); tick++) tick(context, member);
             close(context, session.kit().hp(), 0, "Lethal enemy hit reaches zero Genshin HP");

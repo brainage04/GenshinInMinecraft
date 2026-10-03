@@ -13,7 +13,7 @@ Goal: a player can join a world (test arena now, the ported map once it exists),
 7. [x] Hilichurl enemy: custom entity with placeholder model, Genshin HP/RES, simple aggro/leash/telegraphed melee, camp spawner command; GameTests.
 8. [x] Stamina: sourced 100-unit starter pool, sprint/dash costs and drain, delayed regeneration/exhaustion lockout, server-owned movement-direction dash with six-tick i-frames, 20-stamina sword charge, synced gold/red HUD arc. Screenshot: `fabric/build/run/clientGameTest/screenshots/genshin-stamina-wheel.png` (see decisions/fidelity for adapted distance, threshold and tick rounding).
 9. Party switching and the other three starter kits:
-   - [ ] 9a. Party of four with switching (keys 1–4 in managed worlds, sourced switch cooldown, off-field cooldowns/energy), per-character kit split out of `CombatRuntime.Session`; Kaeya, Amber and Lisa present with normal attacks only.
+   - [x] 9a. Party of four with rebindable managed1–4 switching, one-second switch cooldown, fallen rejection/forced replacement, off-field cooldowns/energy and shared stamina; per-character rules kits with Kaeya/Amber/Lisa normal strings and Kaeya/Lisa charges. E/Q reject unchanged resources until9b–9d. Gate passes on both loaders; screenshot: `fabric/build/run/clientGameTest/screenshots/genshin-party-four.png` (decisions/fidelity record timing, ray geometry, weapons and death adaptations).
    - [ ] 9b. Kaeya kit (Frostgale, Glacial Waltz) and Cryo reactions in-world (Superconduct, Melt, Frozen with Hydro if available).
    - [ ] 9c. Amber kit (aimed shot, Explosive Puppet, Fiery Rain) incl. a minimal aim mode.
    - [ ] 9d. Lisa kit (Violet Arc stacks/Conductive, Lightning Rose) and Overloaded/Electro-Charged in-world.

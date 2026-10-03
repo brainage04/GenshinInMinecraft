@@ -3,6 +3,10 @@
   "key.category.genshininminecraft.genshin": "Genshin",
   "key.genshininminecraft.skill": "Elemental Skill",
   "key.genshininminecraft.burst": "Elemental Burst",
+  "key.genshininminecraft.party1": "Party member 1",
+  "key.genshininminecraft.party2": "Party member 2",
+  "key.genshininminecraft.party3": "Party member 3",
+  "key.genshininminecraft.party4": "Party member 4",
   "text.autoconfig.genshininminecraft.title": "GenshinInMinecraft Settings",
   "text.autoconfig.genshininminecraft.option.logConfigOnStartup": "Log config on startup"
 }

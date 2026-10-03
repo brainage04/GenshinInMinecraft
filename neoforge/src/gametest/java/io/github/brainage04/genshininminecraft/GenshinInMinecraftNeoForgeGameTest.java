@@ -5,6 +5,7 @@ import io.github.brainage04.genshininminecraft.gametest.ManagedWorldGameTests;
 import io.github.brainage04.genshininminecraft.gametest.TravelerCombatGameTests;
 import io.github.brainage04.genshininminecraft.gametest.HilichurlGameTests;
 import io.github.brainage04.genshininminecraft.gametest.StaminaGameTests;
+import io.github.brainage04.genshininminecraft.gametest.PartyGameTests;
 import java.util.Map;
 import java.util.function.Consumer;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -39,6 +40,10 @@ public final class GenshinInMinecraftNeoForgeGameTest {
             Map.entry("club_miss_and_player_death", HilichurlGameTests::clubMissAndPlayerDeath),
             Map.entry("sprint_drains_and_stops_at_zero", StaminaGameTests::sprintDrainsAndStopsAtZero),
             Map.entry("dash_costs_stamina_and_dodges_club", StaminaGameTests::dashCostsStaminaAndDodgesClub),
+            Map.entry("lisa_normal_then_traveler_swirl", PartyGameTests::lisaNormalThenTravelerSwirl),
+            Map.entry("party_switch_cooldown_and_unavailable_talents", PartyGameTests::partySwitchCooldownAndUnavailableTalents),
+            Map.entry("character_death_forces_switch_and_party_wipe_kills_player", PartyGameTests::characterDeathForcesSwitchAndPartyWipeKillsPlayer),
+            Map.entry("vanilla_lethal_damage_also_forces_character_switch", PartyGameTests::vanillaLethalDamageAlsoForcesCharacterSwitch),
             Map.entry("charged_attack_requires_stamina", StaminaGameTests::chargedAttackRequiresStamina)
     );
 
