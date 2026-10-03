@@ -1,6 +1,7 @@
 modLoader="javafml"
 loaderVersion="[11,)"
 license="MIT"
+issueTrackerURL="https://github.com/brainage04/GenshinInMinecraft/issues"
 
 [[mods]]
 modId="${mod_id}"
@@ -9,6 +10,7 @@ displayName="${mod_name}"
 authors="brainage04"
 description='''My modern Minecraft Fabric modding template.'''
 iconFile="assets/genshininminecraft/icon.png"
+displayURL="https://github.com/brainage04/GenshinInMinecraft"
 
 [[mixins]]
 config="genshininminecraft.mixins.json"
@@ -26,7 +28,7 @@ side="BOTH"
 [[dependencies.genshininminecraft]]
 modId="minecraft"
 type="required"
-versionRange="[${minecraft_version},)"
+versionRange="${minecraft_version_range}"
 ordering="NONE"
 side="BOTH"
 
