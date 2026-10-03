@@ -1,6 +1,11 @@
 package io.github.brainage04.genshininminecraft;
 
 import io.github.brainage04.genshininminecraft.command.core.ModCommands;
+import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
+import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import io.github.brainage04.genshininminecraft.world.ManagedWorld;
 import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
 import io.github.brainage04.genshininminecraft.network.CombatIntentPayload;
@@ -23,6 +28,8 @@ import net.fabricmc.loader.api.FabricLoader;
 public class GenshinInMinecraftFabric implements ModInitializer {
 	@Override
 	public void onInitialize() {
+        Registry.register(BuiltInRegistries.ENTITY_TYPE, GenshinEntities.HILICHURL_ID, GenshinEntities.HILICHURL);
+        FabricDefaultAttributeRegistry.register(GenshinEntities.HILICHURL, Hilichurl.attributes());
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 ModCommands.register(dispatcher));
         PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) ->

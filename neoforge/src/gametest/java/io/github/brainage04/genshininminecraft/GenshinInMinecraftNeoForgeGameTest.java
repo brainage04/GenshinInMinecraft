@@ -3,6 +3,7 @@ package io.github.brainage04.genshininminecraft;
 import io.github.brainage04.genshininminecraft.gametest.GenshinInMinecraftGameTests;
 import io.github.brainage04.genshininminecraft.gametest.ManagedWorldGameTests;
 import io.github.brainage04.genshininminecraft.gametest.TravelerCombatGameTests;
+import io.github.brainage04.genshininminecraft.gametest.HilichurlGameTests;
 import java.util.Map;
 import java.util.function.Consumer;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -30,7 +31,11 @@ public final class GenshinInMinecraftNeoForgeGameTest {
             Map.entry("palm_vortex_swirls_and_absorbs_pyro", TravelerCombatGameTests::palmVortexSwirlsAndAbsorbsPyro),
             Map.entry("managed_vanilla_melee_cancelled", TravelerCombatGameTests::managedVanillaMeleeCancelled),
             Map.entry("target_death_is_attributed", TravelerCombatGameTests::targetDeathIsAttributed),
-            Map.entry("managed_off_on_discards_queued_electro_charged", TravelerCombatGameTests::managedOffOnDiscardsQueuedElectroCharged)
+            Map.entry("managed_off_on_discards_queued_electro_charged", TravelerCombatGameTests::managedOffOnDiscardsQueuedElectroCharged),
+            Map.entry("camp_command_and_spec_damage", HilichurlGameTests::campCommandAndSpecDamage),
+            Map.entry("aggro_windup_and_character_damage", HilichurlGameTests::aggroWindupAndCharacterDamage),
+            Map.entry("leash_heals_clears_aura_and_returns", HilichurlGameTests::leashHealsClearsAuraAndReturns),
+            Map.entry("club_miss_and_player_death", HilichurlGameTests::clubMissAndPlayerDeath)
     );
 
     private GenshinInMinecraftNeoForgeGameTest() {

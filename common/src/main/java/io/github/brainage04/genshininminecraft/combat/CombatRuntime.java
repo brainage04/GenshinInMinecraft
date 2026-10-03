@@ -63,7 +63,36 @@ public final class CombatRuntime {
         if (entity instanceof Player) throw new IllegalArgumentException("Players are not kit targets");
         return targets.computeIfAbsent(entity.getUUID(), ignored -> new CombatTarget(entity));
     }
-    public void forget(UUID uuid) { players.remove(uuid); targets.remove(uuid); }
+    public void forget(UUID uuid) {
+        players.remove(uuid);
+        CombatTarget removed = targets.remove(uuid);
+        if (removed != null) broadcast(removed, new TargetAuraPayload(removed.entity().getId(), 0));
+    }
+    /** Replacing the profile invalidates queued EC callbacks as well as aura/ICD state. */
+    public void resetTarget(LivingEntity entity) {
+        forget(entity.getUUID());
+        entity.setHealth(entity.getMaxHealth());
+        syncAura(target(entity));
+    }
+    public boolean enemyHit(ServerPlayer player, LivingEntity enemy, double attack, double multiplier, int enemyLevel) {
+        if (!ManagedWorld.isManaged(player.level()) || player.isCreative() || player.isSpectator() || !player.isAlive()) return false;
+        Session state = session(player);
+        state.reconcileHealth();
+        double amount = Damage.enemyDamage(attack, multiplier, enemyLevel, state.kit.stats().def(),
+                HilichurlProfile.STARTER_PLAYER_RESISTANCE);
+        ServerLevel level = (ServerLevel) player.level();
+        var source = level.damageSources().mobAttack(enemy);
+        if (player.isInvulnerableTo(level, source)) return false;
+        state.kit.setHp(Math.max(0, state.kit.hp() - amount));
+        state.mirroredHealth = (float) (player.getMaxHealth() * state.kit.hp() / state.kit.maxHp());
+        player.setLastHurtByMob(enemy);
+        player.getCombatTracker().recordDamage(source, (float) (amount * player.getMaxHealth() / state.kit.maxHp()));
+        player.setHealth(state.mirroredHealth);
+        level.broadcastDamageEvent(player, source);
+        if (state.kit.hp() == 0) player.die(source);
+        state.sync();
+        return true;
+    }
     /** Loader tracking callbacks refresh existing auras for players entering tracking range. */
     public void startTracking(ServerPlayer player, Entity entity) {
         CombatTarget target = targets.get(entity.getUUID());

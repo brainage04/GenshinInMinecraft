@@ -3,6 +3,7 @@ package io.github.brainage04.genshininminecraft;
 import io.github.brainage04.genshininminecraft.gametest.GenshinInMinecraftGameTests;
 import io.github.brainage04.genshininminecraft.gametest.ManagedWorldGameTests;
 import io.github.brainage04.genshininminecraft.gametest.TravelerCombatGameTests;
+import io.github.brainage04.genshininminecraft.gametest.HilichurlGameTests;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 
@@ -75,5 +76,21 @@ public class GenshinInMinecraftGameTest {
     @GameTest
     public void managedOffOnDiscardsQueuedElectroCharged(GameTestHelper context) {
         TravelerCombatGameTests.managedOffOnDiscardsQueuedElectroCharged(context);
+    }
+    @GameTest
+    public void campCommandAndSpecDamage(GameTestHelper context) {
+        HilichurlGameTests.campCommandAndSpecDamage(context);
+    }
+    @GameTest
+    public void aggroWindupAndCharacterDamage(GameTestHelper context) {
+        HilichurlGameTests.aggroWindupAndCharacterDamage(context);
+    }
+    @GameTest
+    public void leashHealsClearsAuraAndReturns(GameTestHelper context) {
+        HilichurlGameTests.leashHealsClearsAuraAndReturns(context);
+    }
+    @GameTest
+    public void clubMissAndPlayerDeath(GameTestHelper context) {
+        HilichurlGameTests.clubMissAndPlayerDeath(context);
     }
 }

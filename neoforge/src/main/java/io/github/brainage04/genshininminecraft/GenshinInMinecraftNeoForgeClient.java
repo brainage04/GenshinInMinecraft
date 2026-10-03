@@ -1,6 +1,9 @@
 package io.github.brainage04.genshininminecraft;
 
 import io.github.brainage04.genshininminecraft.command.core.ClientModCommands;
+import io.github.brainage04.genshininminecraft.client.HilichurlRenderer;
+import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import io.github.brainage04.genshininminecraft.config.ModConfig;
 import me.shedaniel.autoconfig.AutoConfigClient;
 import net.minecraft.commands.CommandSourceStack;
@@ -43,6 +46,8 @@ public final class GenshinInMinecraftNeoForgeClient {
         NeoForge.EVENT_BUS.addListener((RegisterClientCommandsEvent event) ->
                 ClientModCommands.register(event.getDispatcher(), CommandSourceStack::sendSystemMessage));
         GenshinInMinecraftClient.initialize();
+        modBus.addListener((EntityRenderersEvent.RegisterRenderers event) ->
+                event.registerEntityRenderer(GenshinEntities.HILICHURL, HilichurlRenderer::new));
         CombatInput.initialize(ClientPacketDistributor::sendToServer);
         modBus.addListener((RegisterKeyMappingsEvent event) -> {
             event.register(CombatInput.SKILL);

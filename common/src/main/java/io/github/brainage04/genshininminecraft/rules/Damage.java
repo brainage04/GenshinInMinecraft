@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.random.RandomGenerator;
 
-/** Outgoing character damage only; ordinary transformative damage bypasses DEF and crit. */
+/** Character talent, incoming enemy talent, and ordinary transformative damage formulas. */
 public final class Damage {
     public enum ScalingStat { ATK, DEF, HP, EM }
     public enum CritMode { EXPECTED, ROLL, NON_CRIT, CRIT }
@@ -17,6 +17,8 @@ public final class Damage {
         59.081897, 64.420047, 69.724455, 75.123137, 80.584775
     };
     public static final double LEVEL_90_BASE = 1446.853458;
+    public static final double INCOMING_DEF_BASE = 500; // damage.md records the source's 500/501 conflict.
+    public static final double INCOMING_DEF_PER_LEVEL = 5;
 
     private Damage() {}
 
@@ -33,6 +35,14 @@ public final class Damage {
         double character = characterLevel + 100.0;
         return character / (character + (enemyLevel + 100.0)
                 * (1 - Math.min(reduction, 0.9)) * (1 - ignore));
+    }
+
+    /** Incoming attacks use the defender's actual DEF, not the outgoing equal-level multiplier. */
+    public static double enemyDamage(double attack, double multiplier, int enemyLevel,
+            double characterDefense, double characterResistance) {
+        double defenseScale = INCOMING_DEF_PER_LEVEL * enemyLevel + INCOMING_DEF_BASE;
+        return attack * multiplier * defenseScale / (characterDefense + defenseScale)
+                * resistanceMultiplier(characterResistance);
     }
 
     public static double resistanceMultiplier(double resistance) {

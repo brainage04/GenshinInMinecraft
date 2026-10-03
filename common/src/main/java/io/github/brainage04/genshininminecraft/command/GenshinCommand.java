@@ -1,9 +1,12 @@
 package io.github.brainage04.genshininminecraft.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import io.github.brainage04.genshininminecraft.GenshinInMinecraft;
 import io.github.brainage04.genshininminecraft.world.ManagedWorldData;
 import io.github.brainage04.genshininminecraft.world.TestArena;
+import io.github.brainage04.genshininminecraft.world.HilichurlCamp;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -36,13 +39,31 @@ public final class GenshinCommand {
                         })))
                 .then(Commands.literal("arena")
                         .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
-                        .executes(context -> {
-                            var center = TestArena.build(context.getSource().getPlayerOrException());
-                            context.getSource().sendSuccess(
-                                    () -> Component.literal("Built Genshin arena at " + center.toShortString()
-                                            + "; managed mode on, adventure mode enabled."), true);
-                            return 1;
-                        })));
+                        .executes(context -> arena(context.getSource(), false))
+                        .then(Commands.literal("camp").executes(context -> arena(context.getSource(), true))))
+                .then(Commands.literal("camp")
+                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                        .then(Commands.literal("hilichurl")
+                                .executes(context -> camp(context.getSource(), HilichurlCamp.DEFAULT_COUNT))
+                                .then(Commands.argument("count", IntegerArgumentType.integer(1, HilichurlCamp.MAX_COUNT))
+                                        .executes(context -> camp(context.getSource(), IntegerArgumentType.getInteger(context, "count")))))));
+    }
+
+    private static int arena(CommandSourceStack source, boolean withCamp) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var player = source.getPlayerOrException();
+        var center = TestArena.build(player);
+        if (withCamp) HilichurlCamp.spawn(player.level(), Vec3.atLowerCornerOf(center).add(0, 1, HilichurlCamp.ARENA_OFFSET),
+                HilichurlCamp.DEFAULT_COUNT);
+        source.sendSuccess(() -> Component.literal("Built Genshin arena at " + center.toShortString()
+                + "; managed mode on, adventure mode enabled" + (withCamp ? ", hilichurl camp placed." : ".")), true);
+        return 1;
+    }
+
+    private static int camp(CommandSourceStack source, int count) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var player = source.getPlayerOrException();
+        int spawned = HilichurlCamp.spawn(player.level(), player.position(), count).size();
+        source.sendSuccess(() -> Component.literal("Spawned hilichurl camp: " + spawned + " members."), true);
+        return spawned;
     }
 
     private static int setManaged(CommandSourceStack source, boolean enabled) {

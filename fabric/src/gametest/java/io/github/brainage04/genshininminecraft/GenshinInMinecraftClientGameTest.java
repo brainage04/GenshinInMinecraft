@@ -9,6 +9,9 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.resources.Identifier;
 import io.github.brainage04.genshininminecraft.client.CombatInput;
 import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
+import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
+import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
+import net.minecraft.world.phys.AABB;
 import io.github.brainage04.genshininminecraft.client.CombatFeedback;
 import io.github.brainage04.genshininminecraft.client.GenshinHud;
 import io.github.brainage04.genshininminecraft.rules.Element;
@@ -96,6 +99,33 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.waitFor(client -> CombatInput.state().energy() == 60 && CombatInput.state().burstRemainingFrames() == 0);
             screenshot(context, "genshin-hud-burst-ready");
             ClientGameTestRecorder.showStep(context, "genshin.skill", "Managed arena controls", "E starts server-owned Palm Vortex, not inventory");
+            server.runCommand("execute as @a at @s run genshin arena camp");
+            context.waitFor(client -> CombatInput.managed());
+            // Move close enough to inspect the original masks, but remain out of aggro in creative.
+            server.runCommand("gamemode creative @a");
+            server.runCommand("execute as @a at @s run tp @s ~ ~ ~10 0 0");
+            context.getInput().lookAt(0, 0);
+            context.waitFor(client -> {
+                int count = 0;
+                for (var entity : client.level.entitiesForRendering()) if (entity.getType() == GenshinEntities.HILICHURL) count++;
+                return count == 3;
+            });
+            server.runOnServer(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                var camp = player.level().getEntitiesOfClass(Hilichurl.class, new AABB(player.position(), player.position()).inflate(12));
+                if (camp.size() != 3) throw new AssertionError("Arena camp command must spawn three hilichurls");
+                for (Hilichurl member : camp) {
+                    // Present each original mask to the camera rather than taking a back-view only.
+                    member.setYRot(180);
+                    member.setYBodyRot(180);
+                    member.setYHeadRot(180);
+                }
+            });
+            context.waitTicks(10);
+            context.runOnClient(client -> client.gui.hud.getChat().clearMessages(true));
+            screenshot(context, "genshin-hilichurl-camp");
+            server.runCommand("gamemode adventure @a");
+            context.waitFor(client -> !client.player.isCreative());
             server.runCommand("genshin managed off");
             context.waitFor(client -> !CombatInput.managed());
             context.runOnClient(client -> {
@@ -103,6 +133,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                     throw new AssertionError("Managed-off must clear HUD resources and world feedback");
                 }
             });
+            context.runOnClient(client -> client.gui.hud.getChat().clearMessages(true));
             screenshot(context, "genshin-hud-vanilla");
             context.getInput().pressKey(GLFW.GLFW_KEY_E);
             context.waitForScreen(InventoryScreen.class);

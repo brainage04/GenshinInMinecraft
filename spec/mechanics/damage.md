@@ -77,6 +77,15 @@ Let `r = base resistance − applicable resistance reduction`, using the **damag
 
 At the upper breakpoint the adjacent expressions coincide; use the published inclusive high-resistance branch. RES can be negative; do not clamp it to zero. Immunity and shield rules are separate from this scalar formula.
 
+## Incoming enemy talent damage
+
+For an ordinary unbuffed enemy attack, `D_in = enemyATK × attackMultiplier × A/(characterDEF + A) × M_RES`, where `A = 5 × enemyLevel + 500`. This uses the **player character's actual total DEF**, not the outgoing character/enemy level ratio. The Japanese [damage-calculation reference](https://wikiwiki.jp/genshinwiki/%E7%A0%82%E5%A0%B4/%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E8%A8%88%E7%AE%97%E5%BC%8F/%E5%8F%82%E7%85%A7%E3%82%B9%E3%83%86%E3%83%BC%E3%82%BF%E3%82%B9#g7b168eb), inspected 2026-10-04, explicitly derives a general attacker/defender formula with **5 and 500**. The indexed [English DEF reference](https://genshin-impact.fandom.com/wiki/DEF) reports the same form (direct page retrieval returned HTTP 403).
+
+**Conflict:** that Japanese page's separate [incoming section](https://wikiwiki.jp/genshinwiki/%E7%A0%82%E5%A0%B4/%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E8%A8%88%E7%AE%97%E5%BC%8F/%E5%8F%82%E7%85%A7%E3%82%B9%E3%83%86%E3%83%BC%E3%82%BF%E3%82%B9#yfe0e4a2) instead prints **501**. Pinned-release exactness is unknown; `Damage.INCOMING_DEF_BASE = 500` deliberately selects the general derivation/English-reference baseline rather than hiding this discrepancy. The separate damage-reduction factor is neutral for this unshielded starter; shields and reduction buffs are not granted. The starter's Physical RES is an explicit `HilichurlProfile.STARTER_PLAYER_RESISTANCE = 0` adaptation until character RES is separately sourced.
+
+The camp implements the published Fighter **100% Physical club hit** from [hilichurls.md](hilichurls.md). Its ATK curve is absent from the researched specification: `HilichurlProfile.ADAPTED_ATK = 120` is a named level-20 gameplay substitution, **not sourced enemy ATK**. No enemy crit, infusion, multi-hit combo, jump attack or loot/particle emission is inferred. Tests calculate the selected inputs without rounding intermediate damage, not exact live-game golden output.
+
+
 ## Amplifying reactions: Melt and Vaporize
 
 All constants in this formula are from [KQM Amplifying Reaction][D]:

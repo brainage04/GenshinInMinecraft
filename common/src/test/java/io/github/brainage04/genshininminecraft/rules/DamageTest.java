@@ -28,6 +28,16 @@ class DamageTest {
         assertEquals(expected, Damage.resistanceMultiplier(resistance), EPS);
     }
 
+    @Test
+    void incomingEnemyDamageUsesActualCharacterDefenseAndResistance() {
+        // damage.md Incoming enemy talent damage: defender DEF, not outgoing equal-level .5.
+        assertEquals(120 * 600 / (147.01 + 600), Damage.enemyDamage(120, 1, 20, 147.01, 0), EPS);
+        assertEquals(200, Damage.enemyDamage(100, 2, 20, 0, 0), EPS);
+        assertEquals(90, Damage.enemyDamage(100, 2, 20, 600, .1), EPS);
+        assertEquals(60, Damage.enemyDamage(100, 1, 20, 600, -.4), EPS);
+        assertEquals(25, Damage.enemyDamage(100, 2, 20, 600, .75), EPS);
+    }
+
     @ParameterizedTest
     @CsvSource({"-0.1,0.5,1", "0,0.5,1", "0.05,0.5,1.025", "0.5,1,1.5", "1,0.5,1.5", "1.2,0.5,1.5"})
     void expectedCrit(double rate, double damage, double expected) {
