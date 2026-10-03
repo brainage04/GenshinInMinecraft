@@ -8,7 +8,7 @@ modId="${mod_id}"
 version="${version}"
 displayName="${mod_name}"
 authors="brainage04"
-description='''My modern Minecraft Fabric modding template.'''
+description='''Recreates Genshin Impact gameplay in Minecraft on top of the WanggMC Blocky Teyvat map.'''
 iconFile="assets/genshininminecraft/icon.png"
 displayURL="https://github.com/brainage04/GenshinInMinecraft"
 

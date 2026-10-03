@@ -3,7 +3,7 @@
 	"id": "${mod_id}",
 	"version": "${mod_version}",
 	"name": "${mod_name}",
-	"description": "My modern Minecraft Fabric modding template.",
+	"description": "Recreates Genshin Impact gameplay in Minecraft on top of the WanggMC Blocky Teyvat map.",
 	"authors": [
 		"brainage04"
 	],
