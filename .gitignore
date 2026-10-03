@@ -48,3 +48,7 @@ replay_*.log
 
 # Purchased WanggMC / wangg_mc Blocky Teyvat map archives: never committed (see docs/GENSHIN_MINECRAFT_BRIEF.md)
 /reference/map/*.zip
+
+# Disposable map extractions, upgrades and palette reports (never map data in git).
+/run/map-port/
+/scripts/map-port/__pycache__/
