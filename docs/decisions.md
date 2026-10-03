@@ -31,3 +31,26 @@ Develop and test gameplay in a generated flat test arena until the map port is a
 Remove the template command, client command and empty injection classes rather than carrying them into gameplay code. `/genshin` is the real server command root and initially reports the mod version obtained from loader metadata. Keep the shared command-registration plumbing for later commands, with no client-only commands registered yet.
 
 Replace the old command-registration tests with `/genshin` registration coverage, including one shared server GameTest registered on each loader. Preserve the Fabric loader metadata test and the client dedicated-server join/in-world checks. Keep both mixin JSON files and their loader references, with valid empty lists, so the existing cross-loader resource setup remains consistent.
+
+## 2026-10-04 — saved-world managed mode and bounded developer arena
+
+`/genshin managed on|off|status` and `/genshin arena` require operator level 2 (`Commands.LEVEL_GAMEMASTERS` in 26.2). Managed mode is one switch for the entire world save, including all dimensions, persisted as overworld saved data under `genshininminecraft:managed_world`. Enabling snapshots only the changed gamerules; repeated `on` preserves that snapshot, and `off` restores the exact original values even after a saved-data reload.
+
+The identifiers below were read from the decompiled mapped Minecraft 26.2 `GameRules`, `FoodData`, `FireBlock`, `LavaFluid`, `ChunkMap`, `Creeper` and `ServerLevel` sources, not copied from older Minecraft gamerule names:
+
+| Vanilla system | Managed behaviour and implementation |
+| --- | --- |
+| Hunger, exhaustion and starvation | Shared `FoodData.tick` mixin keeps food and saturation at 20, clears exhaustion and the hunger timer, and skips vanilla hunger processing. Hunger-driven healing is skipped as well. |
+| Natural health regeneration | `minecraft:natural_health_regeneration = false`. |
+| Natural mob spawning | `minecraft:spawn_mobs = false`; explicit custom entity spawning remains available for future encounters. Existing mobs are not removed. |
+| Fire consumption/spread and lava ignition | `minecraft:fire_spread_radius_around_player = 0`. There is no `doFireTick` rule in 26.2: both fire ticks and lava ignition check `ServerLevel.canSpreadFireAround`; `ChunkMap` requires player distance strictly less than the radius, so zero disables them everywhere. Fire may remain visible and still deal vanilla entity damage; it never consumes map blocks. |
+| Mob griefing and mob explosions | `minecraft:mob_griefing = false`. `Creeper` uses `ExplosionInteraction.MOB`; `ServerLevel` chooses `BlockInteraction.KEEP` for these explosions when griefing is disabled. Entity damage is not replaced by this slice. |
+| Player block breaking | Fabric's `PlayerBlockBreakEvents.BEFORE` and NeoForge's `BreakBlockEvent` reject the shared server policy for survival/adventure players. NeoForge also requests the corrective block update. |
+| Player block placement | Shared `BlockItem.place` mixin rejects survival/adventure placement without consuming the item. Shared bucket and ignition-item mixins also prevent fluid pickup/placement and flint-and-steel/fire-charge placement from bypassing the policy. |
+| Farmland trampling by players | Shared `FarmlandBlock.turnToDirt` mixin rejects survival/adventure conversion while preserving vanilla fall damage. Mob trampling is already prevented by mob griefing. |
+| Owner map editing | Creative players bypass breaking, placement and player-trampling protections. |
+| Weather and day/night | Unchanged; no gamerules are modified for these systems. |
+
+`/genshin arena` is deliberately destructive within its fixed volume: 48×48 walkable interior, a one-block polished-andesite border over a smooth-stone floor, five blocks of cleared height, and a total write volume of 50×50×6 = 15,000 positions. It is centred on the executing player's horizontal block coordinates; the floor is one block below their feet, clamped to build height. It enables managed mode, teleports that player to the exact centre and changes them to adventure mode. Block side effects are suppressed during construction so clearing containers/unstable blocks cannot cascade outside the volume. Use only generated/disposable development worlds, never the purchased map archives.
+
+Vanilla damage/knockback, inventory/hotbar, durability and traversal are not replaced here; they remain assigned to later gameplay slices. TNT and player/block-sourced explosions are outside the mob-explosion protection.

@@ -23,6 +23,13 @@ Use Java 25 for Minecraft 26.2, as configured in `gradle.properties`. Run comman
 
 The root build places Fabric and NeoForge release jars in `build/libs`; install exactly one loader jar. Fabric requires Fabric API and Cloth Config; NeoForge requires Cloth Config. Loader dependencies and convention plugins are configured in the Gradle files; do not replace their conventions with a second build/test path.
 
+### In-game development commands
+
+- `/genshin` reports the loaded mod version.
+- `/genshin managed on|off|status` requires operator level 2. The switch covers the entire saved world/all dimensions, persists in overworld saved data and restores previous gamerules when switched off.
+- `/genshin arena` requires operator level 2 and a player source. **Destructive:** rewrites a fixed 50×50×6 volume around that player with a smooth-stone floor, a one-block border and cleared air; enables managed mode, teleports the player to the centre and sets adventure mode. Use generated/disposable development worlds only.
+- Managed survival/adventure players cannot break/place blocks or trample farmland. Creative players bypass those editing protections. Hunger, natural regeneration, natural spawning, environmental fire spread and mob griefing are disabled; weather/day-night remain unchanged. See [the detailed decision](docs/decisions.md#2026-10-04--saved-world-managed-mode-and-bounded-developer-arena).
+
 ### Private headless clients
 
 Start agent sessions using `scripts/omp-isolated.sh`. Never use the owner's display, session D-Bus, clipboard, input devices or audio services. Keep all spawned clients and servers inside the isolated session's resource limits (12 GiB RAM and 3 CPUs); size JVM heaps accordingly.
@@ -40,7 +47,7 @@ Xvfb needs the OpenGL/X11 runtime libraries listed in [README.md](README.md). Re
 ## Module layout
 
 - `common/src/main/java`: shared implementation. Plain-Java rules belong here and have **no Minecraft types**: stats, damage, elements, ICD, abilities, ordered event timelines, cooldowns, progression and save schemas. Keep them deterministic with seeded randomness and stable ordering.
-- `common/src/main/resources`: shared resources, translations and mixin configurations. Empty mixin lists are intentional until a feature needs a mixin; both loader metadata files still reference these configurations.
+- `common/src/main/resources`: shared resources, translations and mixin configurations. The server mixins protect managed hunger, block placement and farmland; both loader metadata files reference the shared configurations.
 - `common/src/gametest`: shared server GameTest bodies.
 - `fabric/`: thin Fabric entrypoints and event wiring; `src/client` holds client entrypoints, `src/test` JUnit tests, and `src/gametest` server registrations plus the client GameTest.
 - `neoforge/`: thin NeoForge entrypoints and event wiring; `src/gametest` registers the shared server tests and provides their test-instance JSON files.
