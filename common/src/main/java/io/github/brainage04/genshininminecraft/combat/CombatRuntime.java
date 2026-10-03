@@ -9,6 +9,7 @@ import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit;
 import io.github.brainage04.genshininminecraft.rules.kit.KaeyaKit;
 import io.github.brainage04.genshininminecraft.rules.kit.AmberKit;
+import io.github.brainage04.genshininminecraft.rules.kit.LisaKit;
 import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.animal.rabbit.Rabbit;
@@ -72,6 +73,18 @@ public final class CombatRuntime {
     public static final double ADAPTED_RAIN_FORWARD_DISTANCE = 3;
     public static final double ADAPTED_OVERLOADED_RADIUS = 3;
     public static final double ADAPTED_OVERLOADED_KNOCKBACK = .12;
+    public static final double ADAPTED_VIOLET_ACQUISITION_RADIUS = 16;
+    public static final double ADAPTED_VIOLET_SPEED_PER_FRAME = .18;
+    public static final double ADAPTED_VIOLET_IMPACT_RADIUS = 1;
+    public static final double ADAPTED_CONDUCTIVE_BOUNCE_RADIUS = 1.5;
+    public static final double ADAPTED_SUPERCONDUCT_RADIUS = 3;
+    public static final double VIOLET_HOLD_RADIUS = 10;
+    public static final double ADAPTED_VIOLET_HOLD_HEIGHT = 3;
+    public static final double ROSE_RADIUS = 7;
+    public static final double ROSE_IMPACT_RADIUS = 1;
+    public static final double ADAPTED_ROSE_PLACEMENT_HEIGHT = .5;
+    public static final double ADAPTED_ROSE_KNOCKBACK = .15;
+    public static final int ADAPTED_ORB_SAMPLE_FRAMES = 3;
     private static final Identifier AIM_SPEED_ID = Identifier.fromNamespaceAndPath("genshininminecraft", "amber_aim");
     public static final double ADAPTED_AIM_SPEED_MULTIPLIER = .5;
     private static final AttributeModifier AIM_SPEED = new AttributeModifier(AIM_SPEED_ID,
@@ -116,7 +129,7 @@ public final class CombatRuntime {
         Session removedPlayer = players.remove(uuid);
         if (removedPlayer != null) removedPlayer.clearFieldObjects();
         CombatTarget removed = targets.remove(uuid);
-        if (removed != null) broadcast(removed, new TargetAuraPayload(removed.entity().getId(), 0));
+        if (removed != null) broadcast(removed, new TargetAuraPayload(removed.entity().getId(), 0, 0));
     }
     /** Replacing the profile invalidates queued EC callbacks as well as aura/ICD state. */
     public void resetTarget(LivingEntity entity) {
@@ -193,7 +206,8 @@ public final class CombatRuntime {
     public void startTracking(ServerPlayer player, Entity entity) {
         CombatTarget target = targets.get(entity.getUUID());
         if (target != null && ManagedWorld.isManaged(entity.level()) && player.connection != null) {
-            player.connection.send(new ClientboundCustomPayloadPacket(new TargetAuraPayload(entity.getId(), target.auraElements())));
+            player.connection.send(new ClientboundCustomPayloadPacket(new TargetAuraPayload(entity.getId(),
+                    target.auraElements(), target.conductive().stacks())));
         }
         if (entity instanceof ServerPlayer other && ManagedWorld.isManaged(entity.level()) && player.connection != null) {
             player.connection.send(new ClientboundCustomPayloadPacket(
@@ -208,7 +222,8 @@ public final class CombatRuntime {
         broadcast(target, new DamageNumberPayload(target.entity().getId(), (float) amount, element, reaction, critical));
     }
     private static void syncAura(CombatTarget target) {
-        if (target.auraChanged()) broadcast(target, new TargetAuraPayload(target.entity().getId(), target.auraElements()));
+        if (target.auraChanged()) broadcast(target, new TargetAuraPayload(target.entity().getId(),
+                target.auraElements(), target.entity().isAlive() ? target.conductive().stacks() : 0));
     }
     public boolean receive(ServerPlayer player, Intent intent) {
         if (!ManagedWorld.isManaged(player.level()) || !player.isAlive() || player.isSpectator()) return false;
@@ -219,6 +234,8 @@ public final class CombatRuntime {
     public void tick(MinecraftServer server) {
         long frame = Frames.atServerTick(server.getTickCount());
         boolean managed = ManagedWorld.isManaged(server.overworld());
+        // EC must drain before natural decay even when its owner has no ticking session.
+        if (managed) timeline.advanceTo(frame);
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (!managed) {
                 Session old = players.remove(player.getUUID());
@@ -243,6 +260,7 @@ public final class CombatRuntime {
         if (managed) {
             for (CombatTarget target : targets.values()) {
                 if (frame >= target.aura().frame()) target.aura().advanceTo(frame);
+                target.conductive().advanceTo(frame);
                 syncAura(target);
             }
         }
@@ -253,6 +271,7 @@ public final class CombatRuntime {
         private final ServerPlayer player;
         private final Party party;
         private final Random random;
+        private final Random roseTargets;
         private final UUID[] combatOwners = new UUID[Party.SIZE];
         private CharacterStatePayload lastSync;
         private float mirroredHealth;
@@ -271,6 +290,9 @@ public final class CombatRuntime {
         private Rabbit bunny;
         private ServerLevel rainLevel;
         private Vec3 rainOrigin;
+        private ServerLevel roseLevel;
+        private Vec3 roseOrigin;
+        private long lastRoseVisual = -1;
         private ServerLevel lastSyncLevel;
         private long lastSyncFrame;
         private long lastMovementFrame = -1;
@@ -283,6 +305,7 @@ public final class CombatRuntime {
         private Session(ServerPlayer player) {
             this.player = player;
             random = new Random(player.getUUID().getLeastSignificantBits());
+            roseTargets = new Random(player.getUUID().getMostSignificantBits());
             party = new Party(timeline, this::hit);
             // ICD belongs to a character+player, not to the shared Minecraft player entity.
             ByteBuffer identity = ByteBuffer.allocate(2 * Long.BYTES + Integer.BYTES);
@@ -310,11 +333,6 @@ public final class CombatRuntime {
                 sync();
                 return switched;
             }
-            if (!kit().talentsAvailable() && (intent == Intent.SKILL_PRESS || intent == Intent.BURST_PRESS)) {
-                player.sendOverlayMessage(Component.literal("This character's " +
-                        (intent == Intent.SKILL_PRESS ? "skill" : "burst") + " is not available yet."));
-                return false;
-            }
             boolean accepted = kit().intent(intent, frame);
             if (accepted && (intent == Intent.ATTACK_PRESS || intent == Intent.SKILL_PRESS)) actionLevel = (ServerLevel) player.level();
             if (accepted && kit() instanceof AmberKit) {
@@ -340,6 +358,10 @@ public final class CombatRuntime {
                 burstAbsorbed = null;
             }
             if (accepted && intent == Intent.BURST_PRESS && kit() instanceof KaeyaKit) icicleLevel = (ServerLevel) player.level();
+            if (accepted && intent == Intent.BURST_PRESS && kit() instanceof LisaKit) {
+                roseLevel = (ServerLevel) player.level();
+                roseOrigin = player.position();
+            }
             sync();
             return accepted;
         }
@@ -365,6 +387,11 @@ public final class CombatRuntime {
                     }
                 }
                 particles(tornadoLevel, center, burstAbsorbed, false);
+            }
+            if (frame != lastRoseVisual && roseOrigin != null && player.level() == roseLevel && valid()
+                    && ((LisaKit) party.kit(3)).roseActive(frame)) {
+                lastRoseVisual = frame;
+                roseParticles();
             }
         }
         /** Vanilla's input packet supplies the sprint-key edge and camera-relative WASD direction. */
@@ -496,6 +523,18 @@ public final class CombatRuntime {
                 if (level == icicleLevel) icicles((KaeyaKit) kit, hit, level);
                 return;
             }
+            if (hit.kind() == Kind.VIOLET_ORB) {
+                if (level == actionLevel) launchVioletOrb((LisaKit) kit, hit, level);
+                return;
+            }
+            if (hit.kind() == Kind.VIOLET_HOLD) {
+                if (level == actionLevel) violetHold((LisaKit) kit, hit, level);
+                return;
+            }
+            if (hit.kind() == Kind.ROSE_PLACE || hit.kind() == Kind.ROSE_DISCHARGE) {
+                if (level == roseLevel) rose((LisaKit) kit, hit);
+                return;
+            }
             boolean burst = hit.kind() == Kind.TORNADO;
             if (level != (burst ? tornadoLevel : actionLevel)) return;
             Vec3 origin = burst ? tornadoCenter(hit.frame()) : player.position().add(0, .8, 0);
@@ -538,15 +577,143 @@ public final class CombatRuntime {
             boolean enemyHit = false;
             for (LivingEntity enemy : enemies) {
                 CombatTarget target = target(enemy);
-                enemyHit |= deal(kit, target, hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame());
+                enemyHit |= deal(kit, target, hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame(), false);
                 if (absorbed != null && hit.absorbedHit() && enemy.isAlive()
                         && (!burst || enemy.position().distanceToSqr(origin) <= ABSORBED_TORNADO_RADIUS * ABSORBED_TORNADO_RADIUS)) {
                     deal(kit, target, absorbed, burst ? .248 : hit.multiplier() * .25,
                             burst ? 2 : 1, hit.kind() == Kind.STORM ? null
-                                    : (burst ? "Elemental Burst " : "Elemental Skill ") + absorbed, hit.frame());
+                                    : (burst ? "Elemental Burst " : "Elemental Skill ") + absorbed, hit.frame(), false);
                 }
             }
             if (enemyHit && hit.particles() > 0) party.collect(Energy.Item.PARTICLE, hit.element(), hit.particles());
+        }
+        private LivingEntity nearestEnemy(ServerLevel level, Vec3 center, double radius) {
+            LivingEntity nearest = null;
+            double distance = Double.POSITIVE_INFINITY;
+            for (LivingEntity enemy : nearby(level, center, radius)) {
+                double candidate = enemy.position().distanceToSqr(center);
+                if (candidate < distance || candidate == distance && nearest != null && enemy.getId() < nearest.getId()) {
+                    nearest = enemy;
+                    distance = candidate;
+                }
+            }
+            return nearest;
+        }
+        private final class VioletOrb {
+            final LisaKit lisa;
+            final Hit hit;
+            final ServerLevel level;
+            final Vec3 direction;
+            LivingEntity enemy;
+            Vec3 position;
+            long lastFrame;
+            VioletOrb(LisaKit lisa, Hit hit, ServerLevel level) {
+                this.lisa = lisa;
+                this.hit = hit;
+                this.level = level;
+                direction = player.getLookAngle();
+                position = player.getEyePosition();
+                enemy = nearestEnemy(level, position, ADAPTED_VIOLET_ACQUISITION_RADIUS);
+                lastFrame = hit.frame();
+            }
+        }
+        private void launchVioletOrb(LisaKit lisa, Hit hit, ServerLevel level) {
+            VioletOrb orb = new VioletOrb(lisa, hit, level);
+            sampleVioletOrb(orb, hit.frame() + LisaKit.TAP_FIRST_IMPACT_FRAME - LisaKit.TAP_LAUNCH_FRAME);
+        }
+        private void sampleVioletOrb(VioletOrb orb, long frame) {
+            timeline.schedule(frame, at -> {
+                if (!valid() || !orb.lisa.state().alive() || player.level() != orb.level
+                        || at >= orb.hit.frame() + LisaKit.TAP_LIFETIME_FRAMES) return;
+                if (orb.enemy == null || !orb.enemy.isAlive() || orb.enemy.isRemoved())
+                    orb.enemy = nearestEnemy(orb.level, orb.position, ADAPTED_VIOLET_ACQUISITION_RADIUS);
+                Vec3 destination = orb.enemy == null ? orb.position.add(orb.direction)
+                        : orb.enemy.position().add(0, orb.enemy.getBbHeight() / 2, 0);
+                Vec3 difference = destination.subtract(orb.position);
+                double step = ADAPTED_VIOLET_SPEED_PER_FRAME * (at - orb.lastFrame);
+                boolean impact = orb.enemy != null && difference.lengthSqr() <= step * step;
+                Vec3 next = impact ? destination : orb.position.add(difference.normalize().scale(step));
+                var obstruction = orb.level.clip(new net.minecraft.world.level.ClipContext(orb.position, next,
+                        net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                        net.minecraft.world.level.ClipContext.Fluid.NONE, player));
+                if (obstruction.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK) return;
+                orb.position = next;
+                orb.lastFrame = at;
+                orb.level.sendParticles(ELECTRO_DUST, next.x, next.y, next.z, 5, .08, .08, .08, 0);
+                if (impact) violetImpact(orb, at);
+                else sampleVioletOrb(orb, at + ADAPTED_ORB_SAMPLE_FRAMES);
+            });
+        }
+        private void violetImpact(VioletOrb orb, long frame) {
+            var direct = nearby(orb.level, orb.position, ADAPTED_VIOLET_IMPACT_RADIUS);
+            boolean stacks = party.activeKit() == orb.lisa;
+            for (LivingEntity enemy : direct) {
+                CombatTarget target = target(enemy);
+                deal(orb.lisa, target, Element.ELECTRO, orb.hit.multiplier(), 1, LisaKit.NORMAL_ICD_TAG, frame, stacks);
+                if (stacks) {
+                    target.conductive().add(frame);
+                    syncAura(target);
+                }
+            }
+            // Each initially affected enemy emits one non-recursive bounce; self is not a second stack.
+            if (stacks) for (LivingEntity origin : direct) {
+                for (LivingEntity enemy : nearby(orb.level, origin.position(), ADAPTED_CONDUCTIVE_BOUNCE_RADIUS)) {
+                    if (enemy == origin) continue;
+                    CombatTarget target = target(enemy);
+                    target.conductive().add(frame);
+                    syncAura(target);
+                }
+            }
+        }
+        private void violetHold(LisaKit lisa, Hit hit, ServerLevel level) {
+            Vec3 center = player.position();
+            boolean connected = false;
+            for (LivingEntity enemy : level.getEntitiesOfClass(LivingEntity.class,
+                    new AABB(center, center).inflate(VIOLET_HOLD_RADIUS, ADAPTED_VIOLET_HOLD_HEIGHT, VIOLET_HOLD_RADIUS),
+                    entity -> !(entity instanceof Player) && !isPuppet(entity) && entity.isAlive() && !entity.isRemoved()
+                            && horizontalDistanceSquared(entity, center) <= VIOLET_HOLD_RADIUS * VIOLET_HOLD_RADIUS)) {
+                CombatTarget target = target(enemy);
+                int stacks = target.conductive().consume(hit.frame());
+                connected |= deal(lisa, target, Element.ELECTRO, LisaKit.holdMultiplier(stacks), 2, null, hit.frame(), false);
+                syncAura(target);
+            }
+            for (int index = 0; index < 32; index++) {
+                double angle = 2 * Math.PI * index / 32;
+                level.sendParticles(ELECTRO_DUST, center.x + Math.cos(angle) * VIOLET_HOLD_RADIUS,
+                        center.y + .2, center.z + Math.sin(angle) * VIOLET_HOLD_RADIUS, 2, .1, .5, .1, 0);
+            }
+            if (connected) party.collect(Energy.Item.PARTICLE, Element.ELECTRO, hit.particles());
+        }
+        private void roseParticles() {
+            for (int petal = 0; petal < 6; petal++) {
+                double angle = Math.PI * petal / 3;
+                roseLevel.sendParticles(ELECTRO_DUST, roseOrigin.x + .45 * Math.cos(angle),
+                        roseOrigin.y + 1.1, roseOrigin.z + .45 * Math.sin(angle), 1, .04, .08, .04, 0);
+            }
+            roseLevel.sendParticles(ELECTRO_DUST, roseOrigin.x, roseOrigin.y + .7, roseOrigin.z, 3, .05, .4, .05, 0);
+        }
+        private void rose(LisaKit lisa, Hit hit) {
+            roseParticles();
+            if (hit.kind() == Kind.ROSE_PLACE) {
+                for (LivingEntity enemy : nearby(roseLevel, roseOrigin, ROSE_RADIUS)) {
+                    if (Math.abs(enemy.getY() - roseOrigin.y) > ADAPTED_ROSE_PLACEMENT_HEIGHT) continue;
+                    deal(lisa, target(enemy), Element.ELECTRO, hit.multiplier(), 0, null, hit.frame(), false);
+                    Vec3 push = enemy.position().subtract(roseOrigin).multiply(1, 0, 1).normalize().scale(ADAPTED_ROSE_KNOCKBACK);
+                    enemy.setDeltaMovement(enemy.getDeltaMovement().add(push.x, .08, push.z));
+                }
+                return;
+            }
+            var candidates = nearby(roseLevel, roseOrigin, ROSE_RADIUS);
+            if (candidates.isEmpty()) return;
+            // Source says random enemy priority; uniform weighting/seed are explicit adaptations.
+            LivingEntity selected = candidates.get(candidates.size() == 1 ? 0 : roseTargets.nextInt(candidates.size()));
+            Vec3 start = roseOrigin.add(0, 1.1, 0), end = selected.position().add(0, selected.getBbHeight() / 2, 0);
+            for (int point = 0; point <= 12; point++) {
+                Vec3 bolt = start.lerp(end, point / 12.0);
+                roseLevel.sendParticles(ELECTRO_DUST, bolt.x, bolt.y, bolt.z, 1, .02, .02, .02, 0);
+            }
+            for (LivingEntity enemy : nearby(roseLevel, selected.position(), ROSE_IMPACT_RADIUS))
+                deal(lisa, target(enemy), Element.ELECTRO, hit.multiplier(), 1, hit.icdTag(), hit.frame(), false);
         }
         private void puppet(AmberKit amber, Hit hit) {
             if (hit.kind() == Kind.BUNNY_LAND) {
@@ -572,7 +739,7 @@ public final class CombatRuntime {
             puppetLevel.sendParticles(ParticleTypes.FLAME, center.x, center.y, center.z, 45, 1.5, .6, 1.5, .04);
             boolean connected = false;
             for (LivingEntity enemy : nearby(puppetLevel, center, ADAPTED_BUNNY_EXPLOSION_RADIUS))
-                connected |= deal(amber, target(enemy), hit.element(), hit.multiplier(), hit.gauge(), null, hit.frame());
+                connected |= deal(amber, target(enemy), hit.element(), hit.multiplier(), hit.gauge(), null, hit.frame(), false);
             if (connected) {
                 puppetLevel.sendParticles(PYRO_DUST, center.x, center.y, center.z, 4, .3, .3, .3, .01);
                 party.collect(Energy.Item.PARTICLE, Element.PYRO, hit.particles());
@@ -586,7 +753,7 @@ public final class CombatRuntime {
                 double distance = horizontalDistanceSquared(enemy, rainOrigin);
                 if ((distance <= innerRadius * innerRadius) != inner
                         || enemy.getY() > rainOrigin.y + ADAPTED_RAIN_HEIGHT || enemy.getY() < rainOrigin.y - 1) continue;
-                deal(amber, target(enemy), hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame());
+                deal(amber, target(enemy), hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame(), false);
             }
             for (int arrow = 0; arrow < 12; arrow++) {
                 double angle = 2 * Math.PI * arrow / 12;
@@ -622,12 +789,11 @@ public final class CombatRuntime {
                 if (contacts.isEmpty() || !end && !kaeya.connectIcicle(icicle, hit.frame())) continue;
                 // One contact AoE spends this icicle's enemy-independent lock, not a per-target timer.
                 for (LivingEntity enemy : contacts)
-                    deal(kaeya, target(enemy), hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame());
+                    deal(kaeya, target(enemy), hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame(), false);
             }
         }
-        /** Nearest unobstructed living target on the server eye ray; Amber hits at arrow release. */
-        private List<LivingEntity> rayTargets(ServerLevel level, CharacterKit.Weapon weapon) {
-            double range = weapon == CharacterKit.Weapon.BOW ? ADAPTED_BOW_RANGE : ADAPTED_CATALYST_RANGE;
+        /** Nearest unobstructed living target on the server eye ray. */
+        private LivingEntity aimedEnemy(ServerLevel level, double range) {
             Vec3 start = player.getEyePosition();
             Vec3 end = start.add(player.getLookAngle().scale(range));
             end = level.clip(new net.minecraft.world.level.ClipContext(start, end,
@@ -643,6 +809,10 @@ public final class CombatRuntime {
                     distance = start.distanceToSqr(impact.get());
                 }
             }
+            return nearest;
+        }
+        private List<LivingEntity> rayTargets(ServerLevel level, CharacterKit.Weapon weapon) {
+            LivingEntity nearest = aimedEnemy(level, weapon == CharacterKit.Weapon.BOW ? ADAPTED_BOW_RANGE : ADAPTED_CATALYST_RANGE);
             if (nearest == null) return List.of();
             if (weapon == CharacterKit.Weapon.BOW) {
                 level.sendParticles(ParticleTypes.CRIT, nearest.getX(), nearest.getY() + 1, nearest.getZ(), 8, .1, .2, .1, .01);
@@ -650,8 +820,10 @@ public final class CombatRuntime {
             }
             return nearby(level, nearest.position(), ADAPTED_LISA_IMPACT_RADIUS);
         }
-        private boolean deal(CharacterKit kit, CombatTarget target, Element element, double multiplier, double gauge, String tag, long frame) {
+        private boolean deal(CharacterKit kit, CombatTarget target, Element element, double multiplier,
+                double gauge, String tag, long frame, boolean conductiveTap) {
             target.aura().advanceTo(frame);
+            target.conductive().advanceTo(frame);
             UUID owner = combatOwners[kit.state().character().ordinal()];
             List<Reaction> reactions = List.of();
             if (gauge > 0 && target.application.allowsApplication(owner, tag, target.entity().getUUID(),
@@ -674,6 +846,15 @@ public final class CombatRuntime {
             for (Reaction reaction : reactions) {
                 if (reaction.type() == Reaction.Type.SWIRL) target.countSwirl();
                 if (reaction.amplifying()) continue;
+                if (conductiveTap && (reaction.type() == Reaction.Type.OVERLOADED || reaction.type() == Reaction.Type.SUPERCONDUCT)) {
+                    double radius = reaction.type() == Reaction.Type.OVERLOADED ? ADAPTED_OVERLOADED_RADIUS : ADAPTED_SUPERCONDUCT_RADIUS;
+                    // Reaction-only targets get a mark, not Electro gauge from transformative damage.
+                    for (LivingEntity enemy : nearby((ServerLevel) target.entity().level(), target.entity().position(), radius)) {
+                        CombatTarget neighbor = target(enemy);
+                        neighbor.conductive().add(frame);
+                        syncAura(neighbor);
+                    }
+                }
                 if (reaction.type() == Reaction.Type.FROZEN || reaction.type() == Reaction.Type.ELECTRO_CHARGED) {
                     feedback(target, 0, element, reaction.type(), false);
                     continue;
@@ -715,8 +896,8 @@ public final class CombatRuntime {
             target.scheduledEc = at;
             timeline.schedule(at, frame -> {
                 if (targets.get(target.entity().getUUID()) != target || target.entity().isRemoved()
-                        || !ManagedWorld.isManaged(target.entity().level())) return;
-                var tick = target.aura().tickElectroCharged(frame, target.entity().isAlive());
+                        || !ManagedWorld.isManaged(target.entity().level()) || target.scheduledEc != frame) return;
+                var tick = target.aura().tickElectroCharged(frame, target.acceptsDamage(target.ecPlayer));
                 if (tick.dealsDamage()) {
                     double damage = Damage.transformativeDamage(Reaction.Type.ELECTRO_CHARGED,
                             target.ecOwner.level(), target.ecOwner.elementalMastery(), 0, target.resistance(Element.ELECTRO));
@@ -726,6 +907,23 @@ public final class CombatRuntime {
                 if (target.scheduledEc == frame) target.scheduledEc = -1;
                 scheduleEc(target);
             });
+        }
+        /** Debug applications obey the same aura/reaction rules but are not talent damage or ICD hits. */
+        public LivingEntity debugAura(Element element, double gauge, long frame) {
+            advanceTo(frame);
+            ServerLevel level = (ServerLevel) player.level();
+            LivingEntity enemy = aimedEnemy(level, ADAPTED_VIOLET_ACQUISITION_RADIUS);
+            if (enemy == null) enemy = nearestEnemy(level, player.position(), ADAPTED_VIOLET_ACQUISITION_RADIUS);
+            if (enemy == null) return null;
+            CombatTarget target = target(enemy);
+            target.aura().applyHit(element, gauge, frame);
+            if (element == Element.HYDRO || element == Element.ELECTRO) {
+                target.ecOwner = kit().stats();
+                target.ecPlayer = player;
+            }
+            syncAura(target);
+            scheduleEc(target);
+            return enemy;
         }
     }
     private Element absorb(List<LivingEntity> enemies, long frame) {

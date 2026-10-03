@@ -12,7 +12,7 @@ public interface CharacterKit {
         public int switchSlot() { return ordinal() >= SWITCH_1.ordinal() ? ordinal() - SWITCH_1.ordinal() : -1; }
     }
     enum Kind { NORMAL, CHARGED, CUTTING, STORM, TORNADO, FROSTGNAW, ICICLES, ICICLES_END,
-        BUNNY_LAND, BUNNY_EXPLODE, RAIN_INNER, RAIN_OUTER }
+        BUNNY_LAND, BUNNY_EXPLODE, RAIN_INNER, RAIN_OUTER, VIOLET_ORB, VIOLET_HOLD, ROSE_PLACE, ROSE_DISCHARGE }
     enum Weapon { SWORD, BOW, CATALYST }
     record Hit(long frame, Kind kind, double multiplier, Element element,
             double gauge, String icdTag, boolean mayAbsorb, boolean absorbedHit,
@@ -26,7 +26,6 @@ public interface CharacterKit {
     boolean intent(Intent intent, long frame);
     boolean canSwitch(long frame);
     void leaveField(long frame);
-    default boolean talentsAvailable() { return false; }
     default Stats stats() { return state().stats(); }
     default double hp() { return state().hp(); }
     default double maxHp() { return state().maxHp(); }

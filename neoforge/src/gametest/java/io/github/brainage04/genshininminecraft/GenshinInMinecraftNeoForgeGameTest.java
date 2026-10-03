@@ -8,6 +8,7 @@ import io.github.brainage04.genshininminecraft.gametest.StaminaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.PartyGameTests;
 import io.github.brainage04.genshininminecraft.gametest.KaeyaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.AmberGameTests;
+import io.github.brainage04.genshininminecraft.gametest.LisaGameTests;
 import java.util.Map;
 import java.util.function.Consumer;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -21,6 +22,14 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 @EventBusSubscriber(modid = GenshinInMinecraft.MOD_ID)
 public final class GenshinInMinecraftNeoForgeGameTest {
     private static final Map<String, Consumer<GameTestHelper>> TESTS = Map.ofEntries(
+            Map.entry("violet_tap_stacks_and_unascended_charge", LisaGameTests::violetTapStacksAndUnascendedCharge),
+            Map.entry("violet_hold_consumes_three_stacks", LisaGameTests::violetHoldConsumesThreeStacks),
+            Map.entry("violet_tap_multistacks_and_off_field_projectile", LisaGameTests::violetTapMultistacksAndOffFieldProjectile),
+            Map.entry("lightning_rose_energy_timing_and_switch", LisaGameTests::lightningRoseEnergyTimingAndSwitch),
+            Map.entry("electro_charged_ticks_consume_both_gauges", LisaGameTests::electroChargedTicksConsumeBothGauges),
+            Map.entry("lisa_overloads_ambers_pyro", LisaGameTests::lisaOverloadsAmbersPyro),
+            Map.entry("aura_command_permissions_and_targeting", LisaGameTests::auraCommandPermissionsAndTargeting),
+            Map.entry("lisa_effects_never_damage_puppets_or_players", LisaGameTests::lisaEffectsNeverDamagePuppetsOrPlayers),
             Map.entry("charged_aimed_shot_damage_and_pyro", AmberGameTests::chargedAimedShotDamageAndPyro),
             Map.entry("jump_cancels_aimed_shot", AmberGameTests::jumpCancelsAimedShot),
             Map.entry("stationary_sprint_cancels_aimed_shot", AmberGameTests::stationarySprintCancelsAimedShot),
@@ -54,7 +63,7 @@ public final class GenshinInMinecraftNeoForgeGameTest {
             Map.entry("sprint_drains_and_stops_at_zero", StaminaGameTests::sprintDrainsAndStopsAtZero),
             Map.entry("dash_costs_stamina_and_dodges_club", StaminaGameTests::dashCostsStaminaAndDodgesClub),
             Map.entry("lisa_normal_then_traveler_swirl", PartyGameTests::lisaNormalThenTravelerSwirl),
-            Map.entry("party_switch_cooldown_and_unavailable_talents", PartyGameTests::partySwitchCooldownAndUnavailableTalents),
+            Map.entry("party_switch_cooldown_and_health_mirror", PartyGameTests::partySwitchCooldownAndHealthMirror),
             Map.entry("character_death_forces_switch_and_party_wipe_kills_player", PartyGameTests::characterDeathForcesSwitchAndPartyWipeKillsPlayer),
             Map.entry("vanilla_lethal_damage_also_forces_character_switch", PartyGameTests::vanillaLethalDamageAlsoForcesCharacterSwitch),
             Map.entry("charged_attack_requires_stamina", StaminaGameTests::chargedAttackRequiresStamina),

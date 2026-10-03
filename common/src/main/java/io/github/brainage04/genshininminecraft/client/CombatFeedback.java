@@ -33,6 +33,11 @@ public final class CombatFeedback {
     }
     private static final List<NumberEntry> numbers = new ArrayList<>();
     private static final Map<Integer, Integer> auras = new HashMap<>();
+    private static final Map<Integer, Integer> conductive = new HashMap<>();
+    private static final FormattedCharSequence[] CONDUCTIVE_TEXT = {
+        null, Component.literal("•").getVisualOrderText(), Component.literal("••").getVisualOrderText(),
+        Component.literal("•••").getVisualOrderText()
+    };
     private static final Map<Integer, Integer> playerCharacters = new HashMap<>();
     private static final FormattedCharSequence[] CHARACTER_TEXT = {
         Component.literal("Traveler · Anemo").getVisualOrderText(),
@@ -53,7 +58,8 @@ public final class CombatFeedback {
         return numbers.stream().anyMatch(number -> number.targetId() == targetId && number.amount() != null);
     }
     public static int auraElements(int targetId) { return auras.getOrDefault(targetId, 0); }
-    public static void reset() { numbers.clear(); auras.clear(); playerCharacters.clear(); level = null; tick = 0; sequence = 0; }
+    public static int conductiveStacks(int targetId) { return conductive.getOrDefault(targetId, 0); }
+    public static void reset() { numbers.clear(); auras.clear(); conductive.clear(); playerCharacters.clear(); level = null; tick = 0; sequence = 0; }
     private static void useLevel(ClientLevel current) {
         if (level != current) {
             reset();
@@ -65,6 +71,7 @@ public final class CombatFeedback {
         tick++;
         numbers.removeIf(number -> tick - number.bornTick() >= LIFETIME_TICKS);
         if (level != null) auras.keySet().removeIf(id -> level.getEntity(id) == null);
+        if (level != null) conductive.keySet().removeIf(id -> level.getEntity(id) == null);
         if (level != null) playerCharacters.keySet().removeIf(id -> level.getEntity(id) == null);
     }
     public static void accept(DamageNumberPayload packet) {
@@ -84,6 +91,8 @@ public final class CombatFeedback {
         useLevel(Minecraft.getInstance().level);
         if (packet.elements() == 0) auras.remove(packet.targetId());
         else auras.put(packet.targetId(), packet.elements());
+        if (packet.conductiveStacks() == 0) conductive.remove(packet.targetId());
+        else conductive.put(packet.targetId(), packet.conductiveStacks());
     }
     public static void accept(PlayerCharacterPayload packet) {
         useLevel(Minecraft.getInstance().level);
@@ -93,7 +102,7 @@ public final class CombatFeedback {
     public static List<WorldText> extract(float partialTick) {
         Minecraft client = Minecraft.getInstance();
         if (!CombatInput.managed() || client.gui.hud.isHidden() || level == null) return List.of();
-        if (numbers.isEmpty() && auras.isEmpty() && playerCharacters.isEmpty()) return List.of();
+        if (numbers.isEmpty() && auras.isEmpty() && conductive.isEmpty() && playerCharacters.isEmpty()) return List.of();
         List<WorldText> texts = new ArrayList<>();
         Font font = client.font;
         for (NumberEntry number : numbers) {
@@ -120,6 +129,13 @@ public final class CombatFeedback {
                 texts.add(new WorldText(position, text, font.width(text) / 2F - (index++ - (count - 1) / 2F) * 20,
                         ElementPalette.color(element), .025F));
             }
+        }
+        for (var entry : conductive.entrySet()) {
+            Entity entity = level.getEntity(entry.getKey());
+            if (entity == null || !entity.isAlive() || entity.isInvisible()) continue;
+            var text = CONDUCTIVE_TEXT[entry.getValue()];
+            texts.add(new WorldText(entity.getPosition(partialTick).add(0, entity.getBbHeight() + .9, 0),
+                    text, font.width(text) / 2F, ElementPalette.color(Element.ELECTRO), .025F));
         }
         for (var entry : playerCharacters.entrySet()) {
             Entity entity = level.getEntity(entry.getKey());

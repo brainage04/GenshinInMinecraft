@@ -42,7 +42,6 @@ public final class KaeyaKit extends NormalAttackKit {
         super(CharacterBaseStats.Character.KAEYA, Weapon.SWORD, CharacterState.TRAINING_SWORD_BASE_ATK,
                 BURST_COST, timeline, stamina, hits);
     }
-    @Override public boolean talentsAvailable() { return true; }
     @Override public boolean intent(Intent intent, long frame) {
         if (intent != Intent.SKILL_PRESS && intent != Intent.BURST_PRESS) return super.intent(intent, frame);
         advanceTo(frame);

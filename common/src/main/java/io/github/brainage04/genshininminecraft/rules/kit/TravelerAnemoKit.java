@@ -48,7 +48,6 @@ public final class TravelerAnemoKit implements CharacterKit {
     @Override public CharacterState state() { return state; }
     @Override public Stamina stamina() { return stamina; }
     @Override public Weapon weapon() { return Weapon.SWORD; }
-    @Override public boolean talentsAvailable() { return true; }
     @Override public long frame() { return timeline.frame(); }
     @Override public long skillRemaining() { return skillHeld ? 480 : CharacterKit.super.skillRemaining(); }
     public boolean skillHeld() { return skillHeld; }

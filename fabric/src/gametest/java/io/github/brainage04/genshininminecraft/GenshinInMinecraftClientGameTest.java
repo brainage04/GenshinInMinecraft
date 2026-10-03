@@ -250,6 +250,62 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                         CombatRuntime.get(minecraftServer).session(player).party().kit(2)).burstActive(
                                 Frames.atServerTick(minecraftServer.getTickCount()));
             });
+            context.getInput().pressKey(GLFW.GLFW_KEY_4);
+            context.waitFor(client -> CombatInput.state().activeSlot() == 3);
+            int electroMobId = server.computeOnServer(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                var mob = new Hilichurl(GenshinEntities.HILICHURL, player.level());
+                mob.snapTo(player.position().add(0, 0, 3));
+                mob.setNoAi(true);
+                mob.setYRot(180); mob.setYBodyRot(180); mob.setYHeadRot(180);
+                if (!((ServerLevel) player.level()).addFreshEntity(mob)) throw new AssertionError("Could not spawn Lisa/EC target");
+                return mob.getId();
+            });
+            server.runCommand("execute as @a at @s run genshin aura hydro 4");
+            context.getInput().pressKey(GLFW.GLFW_KEY_E);
+            context.waitFor(client -> CombatFeedback.conductiveStacks(electroMobId) == 1
+                    && CombatInput.state().skillRemainingFrames() > 0 && CombatFeedback.hasDamageNumber(electroMobId));
+            context.runOnClient(client -> {
+                if (client.gui.screen() instanceof InventoryScreen)
+                    throw new AssertionError("Lisa E must cast Violet Arc, not open inventory");
+            });
+            server.runOnServer(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                CombatRuntime.get(minecraftServer).session(player).kit().grantEnergy(80);
+            });
+            context.waitFor(client -> CombatInput.state().energy() == 80);
+            context.runOnClient(client -> client.particleEngine.clearParticles());
+            context.getInput().pressKey(GLFW.GLFW_KEY_Q);
+            context.waitFor(client -> CombatInput.state().energy() == 0 && CombatInput.state().burstRemainingFrames() > 0);
+            server.waitFor(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                var session = CombatRuntime.get(minecraftServer).session(player);
+                var target = CombatRuntime.get(minecraftServer).target((Hilichurl) player.level().getEntity(electroMobId));
+                long cast = session.kit().burstReadyFrame() - 53 - 1200;
+                return Frames.atServerTick(minecraftServer.getTickCount()) >= cast + 119
+                        && target.aura().gauge(Element.HYDRO) > 0 && target.aura().gauge(Element.ELECTRO) > 0;
+            });
+            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
+            server.runCommand("execute as @a at @s run tp @s ~-2 ~ ~ 0 0");
+            context.getInput().lookAt(-15, 15);
+            context.waitFor(client -> (CombatFeedback.auraElements(electroMobId) & (1 << Element.HYDRO.ordinal())) != 0
+                    && (CombatFeedback.auraElements(electroMobId) & (1 << Element.ELECTRO.ordinal())) != 0
+                    && CombatFeedback.hasDamageNumber(electroMobId) && CombatFeedback.conductiveStacks(electroMobId) == 1);
+            context.waitFor(client -> {
+                String particles = client.particleEngine.countParticles();
+                return Integer.parseInt(particles.substring(particles.lastIndexOf(' ') + 1)) > 0;
+            });
+            context.runOnClient(client -> client.gui.hud.getChat().clearMessages(true));
+            screenshot(context, "genshin-lisa-rose-electro-charged");
+            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
+            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
+            context.getInput().lookAt(0, 0);
+            server.runOnServer(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                player.level().getEntity(electroMobId).discard();
+            });
+            context.getInput().pressKey(GLFW.GLFW_KEY_1);
+            context.waitFor(client -> CombatInput.state().activeSlot() == 0);
             int mobId = server.computeOnServer(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
                 var mob = new Cow(EntityTypes.COW, player.level());

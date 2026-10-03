@@ -62,17 +62,6 @@ class StarterKitTest {
         assertFalse(kit.canSwitch(106));
         assertTrue(kit.canSwitch(107)); // Recorded 31+76 adaptation; not an exact live-game boundary.
     }
-    @Test void missingLisaTalentsNeverSpendEnergyOrInstallCooldown() {
-        for (CharacterKit kit : List.<CharacterKit>of(new LisaKit(hit -> {}))) {
-            kit.grantEnergy(80);
-            double before = kit.energy();
-            assertFalse(kit.intent(Intent.SKILL_PRESS, 0));
-            assertFalse(kit.intent(Intent.BURST_PRESS, 0));
-            assertEquals(before, kit.energy());
-            assertEquals(0, kit.skillReadyFrame());
-            assertEquals(0, kit.burstReadyFrame());
-        }
-    }
     @Test void insufficientChargeStaminaPreservesThePrecedingFreeNormalAndPool() {
         for (int slot : new int[]{2, 3}) {
             var hits = new ArrayList<Hit>();

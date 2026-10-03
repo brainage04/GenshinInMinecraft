@@ -3,6 +3,7 @@ package io.github.brainage04.genshininminecraft.combat;
 import io.github.brainage04.genshininminecraft.rules.ApplicationIcd;
 import io.github.brainage04.genshininminecraft.rules.AuraState;
 import io.github.brainage04.genshininminecraft.rules.Element;
+import io.github.brainage04.genshininminecraft.rules.ConductiveState;
 import io.github.brainage04.genshininminecraft.rules.ReactionDamageIcd;
 import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
 import io.github.brainage04.genshininminecraft.rules.HilichurlProfile;
@@ -23,6 +24,7 @@ public final class CombatTarget {
     private double hp;
     private float mirroredHealth;
     private final AuraState aura = new AuraState();
+    private final ConductiveState conductive = new ConductiveState();
     final ApplicationIcd application = new ApplicationIcd();
     final ReactionDamageIcd reactionDamage = new ReactionDamageIcd();
     Stats ecOwner;
@@ -30,6 +32,7 @@ public final class CombatTarget {
     long scheduledEc = -1;
     private int swirlCount;
     private int syncedAura = -1;
+    private int syncedConductive = -1;
 
     CombatTarget(LivingEntity entity) {
         this.entity = entity;
@@ -47,6 +50,7 @@ public final class CombatTarget {
     public double hp() { return hp; }
     public double maxHp() { return maxHp; }
     public AuraState aura() { return aura; }
+    public ConductiveState conductive() { return conductive; }
     public int swirlCount() { return swirlCount; }
     void countSwirl() { swirlCount++; }
     public int auraElements() {
@@ -60,8 +64,10 @@ public final class CombatTarget {
     }
     boolean auraChanged() {
         int mask = auraElements();
-        if (mask == syncedAura) return false;
+        int stacks = entity.isAlive() ? conductive.stacks() : 0;
+        if (mask == syncedAura && stacks == syncedConductive) return false;
         syncedAura = mask;
+        syncedConductive = stacks;
         return true;
     }
     public double resistance(Element element) {
@@ -69,6 +75,10 @@ public final class CombatTarget {
     }
     void reconcileVanillaHealth() {
         if (entity.getHealth() != mirroredHealth) hp = maxHp * entity.getHealth() / entity.getMaxHealth();
+    }
+    boolean acceptsDamage(ServerPlayer player) {
+        ServerLevel level = (ServerLevel) entity.level();
+        return entity.isAlive() && !entity.isInvulnerableTo(level, level.damageSources().playerAttack(player));
     }
     boolean damage(ServerPlayer player, double amount) {
         ServerLevel level = (ServerLevel) entity.level();

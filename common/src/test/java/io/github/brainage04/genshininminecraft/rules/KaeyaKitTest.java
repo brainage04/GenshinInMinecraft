@@ -15,7 +15,6 @@ class KaeyaKitTest {
     @Test void frostgnawHitsAtOriginalFrame28WithTwoGaugeAndNoIcd() {
         var hits = new ArrayList<Hit>();
         var kit = new KaeyaKit(hits::add);
-        assertTrue(kit.talentsAvailable());
         assertTrue(kit.intent(Intent.SKILL_PRESS, 0));
         assertFalse(kit.intent(Intent.SKILL_RELEASE, 0)); // No hold variant.
         kit.advanceTo(27);

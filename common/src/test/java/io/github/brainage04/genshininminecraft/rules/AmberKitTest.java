@@ -77,7 +77,6 @@ class AmberKitTest {
     @Test void bunnyHpTimerAndExplosionAreFromLandingNotCooldownStart() {
         var hits = new ArrayList<Hit>();
         var kit = new AmberKit(hits::add);
-        assertTrue(kit.talentsAvailable());
         assertTrue(kit.intent(Intent.SKILL_PRESS, 0));
         assertEquals(5 + 15 * 60, kit.skillReadyFrame());
         assertFalse(kit.canSwitch(22));

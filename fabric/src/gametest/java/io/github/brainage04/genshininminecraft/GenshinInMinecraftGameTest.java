@@ -8,6 +8,7 @@ import io.github.brainage04.genshininminecraft.gametest.StaminaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.PartyGameTests;
 import io.github.brainage04.genshininminecraft.gametest.KaeyaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.AmberGameTests;
+import io.github.brainage04.genshininminecraft.gametest.LisaGameTests;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 
@@ -114,8 +115,8 @@ public class GenshinInMinecraftGameTest {
         PartyGameTests.lisaNormalThenTravelerSwirl(context);
     }
     @GameTest
-    public void partySwitchCooldownAndUnavailableTalents(GameTestHelper context) {
-        PartyGameTests.partySwitchCooldownAndUnavailableTalents(context);
+    public void partySwitchCooldownAndHealthMirror(GameTestHelper context) {
+        PartyGameTests.partySwitchCooldownAndHealthMirror(context);
     }
     @GameTest
     public void characterDeathForcesSwitchAndPartyWipeKillsPlayer(GameTestHelper context) {
@@ -179,4 +180,20 @@ public class GenshinInMinecraftGameTest {
     public void travelerSwirlsAmbersPyro(GameTestHelper context) { AmberGameTests.travelerSwirlsAmbersPyro(context); }
     @GameTest
     public void amberVaporizesSeededHydro(GameTestHelper context) { AmberGameTests.amberVaporizesSeededHydro(context); }
+    @GameTest
+    public void violetTapStacksAndUnascendedCharge(GameTestHelper context) { LisaGameTests.violetTapStacksAndUnascendedCharge(context); }
+    @GameTest
+    public void violetHoldConsumesThreeStacks(GameTestHelper context) { LisaGameTests.violetHoldConsumesThreeStacks(context); }
+    @GameTest
+    public void violetTapMultistacksAndOffFieldProjectile(GameTestHelper context) { LisaGameTests.violetTapMultistacksAndOffFieldProjectile(context); }
+    @GameTest
+    public void lightningRoseEnergyTimingAndSwitch(GameTestHelper context) { LisaGameTests.lightningRoseEnergyTimingAndSwitch(context); }
+    @GameTest
+    public void electroChargedTicksConsumeBothGauges(GameTestHelper context) { LisaGameTests.electroChargedTicksConsumeBothGauges(context); }
+    @GameTest
+    public void lisaOverloadsAmbersPyro(GameTestHelper context) { LisaGameTests.lisaOverloadsAmbersPyro(context); }
+    @GameTest
+    public void auraCommandPermissionsAndTargeting(GameTestHelper context) { LisaGameTests.auraCommandPermissionsAndTargeting(context); }
+    @GameTest
+    public void lisaEffectsNeverDamagePuppetsOrPlayers(GameTestHelper context) { LisaGameTests.lisaEffectsNeverDamagePuppetsOrPlayers(context); }
 }

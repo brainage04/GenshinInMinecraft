@@ -50,7 +50,6 @@ public final class AmberKit extends NormalAttackKit {
         super(CharacterBaseStats.Character.AMBER, Weapon.BOW, CharacterState.TRAINING_BOW_BASE_ATK,
                 BURST_COST, timeline, stamina, hits);
     }
-    @Override public boolean talentsAvailable() { return true; }
     public boolean aiming() { return aiming; }
     public boolean fullyCharged() { return aiming && frame() - attackStart >= FULL_CHARGE_FRAME; }
     public double puppetHp() { return puppetHp; }

@@ -3,5 +3,5 @@
   "structure": "fabricmoddingconventions:empty",
   "max_ticks": 20,
   "type": "minecraft:function",
-  "function": "genshininminecraft:party_switch_cooldown_and_unavailable_talents"
+  "function": "genshininminecraft:violet_tap_stacks_and_unascended_charge"
 }

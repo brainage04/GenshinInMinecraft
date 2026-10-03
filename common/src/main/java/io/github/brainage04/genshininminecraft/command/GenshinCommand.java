@@ -2,6 +2,12 @@ package io.github.brainage04.genshininminecraft.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.DoubleArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
+import io.github.brainage04.genshininminecraft.rules.Element;
+import io.github.brainage04.genshininminecraft.rules.Frames;
+import io.github.brainage04.genshininminecraft.world.ManagedWorld;
 import io.github.brainage04.genshininminecraft.GenshinInMinecraft;
 import io.github.brainage04.genshininminecraft.world.ManagedWorldData;
 import io.github.brainage04.genshininminecraft.world.TestArena;
@@ -27,6 +33,7 @@ public final class GenshinCommand {
     public static void initialize(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal(COMMAND_NAME)
                 .executes(context -> execute(context.getSource()))
+                .then(auraCommand())
                 .then(Commands.literal("managed")
                         .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.literal("on").executes(context -> setManaged(context.getSource(), true)))
@@ -47,6 +54,36 @@ public final class GenshinCommand {
                                 .executes(context -> camp(context.getSource(), HilichurlCamp.DEFAULT_COUNT))
                                 .then(Commands.argument("count", IntegerArgumentType.integer(1, HilichurlCamp.MAX_COUNT))
                                         .executes(context -> camp(context.getSource(), IntegerArgumentType.getInteger(context, "count")))))));
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> auraCommand() {
+        var command = Commands.literal("aura").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS));
+        for (Element element : new Element[]{Element.PYRO, Element.CRYO, Element.ELECTRO, Element.HYDRO}) {
+            command.then(Commands.literal(element.name().toLowerCase(java.util.Locale.ROOT))
+                    .then(Commands.argument("gauge", DoubleArgumentType.doubleArg(Double.MIN_VALUE))
+                            .executes(context -> aura(context.getSource(), element, DoubleArgumentType.getDouble(context, "gauge")))));
+        }
+        return command;
+    }
+
+    private static int aura(CommandSourceStack source, Element element, double gauge)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var player = source.getPlayerOrException();
+        if (!ManagedWorld.isManaged(player.level())) {
+            source.sendFailure(Component.literal("Enable Genshin managed mode before applying a debug aura."));
+            return 0;
+        }
+        var runtime = CombatRuntime.get(source.getServer());
+        var session = runtime.session(player);
+        long frame = Math.max(session.party().frame(), Frames.atServerTick(source.getServer().getTickCount()));
+        var target = session.debugAura(element, gauge, frame);
+        if (target == null) {
+            source.sendFailure(Component.literal("No combat target within16 blocks."));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Applied " + gauge + "U " + element.name()
+                + " to " + target.getName().getString() + "."), false);
+        return 1;
     }
 
     private static int arena(CommandSourceStack source, boolean withCamp) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
