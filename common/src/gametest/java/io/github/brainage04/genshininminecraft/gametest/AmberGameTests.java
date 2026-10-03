@@ -13,6 +13,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.rabbit.Rabbit;
+import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -43,6 +44,50 @@ public final class AmberGameTests {
             session.intent(Intent.ATTACK_RELEASE, start + 111);
             session.advanceTo(start + 111);
             close(context, target.hp(), 885.200 - talent(1.24) - talent(.4386), "Uncharged aimed shot is43.86% Physical, not Pyro");
+        });
+        context.succeed();
+    }
+    public static void jumpCancelsAimedShot(GameTestHelper context) {
+        aimCancellation(context, new Input(false, false, false, false, true, false, false), false);
+    }
+    public static void stationarySprintCancelsAimedShot(GameTestHelper context) {
+        aimCancellation(context, new Input(false, false, false, false, false, false, true), false);
+    }
+    public static void exhaustedSprintCancelsAimedShot(GameTestHelper context) {
+        aimCancellation(context, new Input(true, false, false, false, false, false, true), true);
+    }
+    private static void aimCancellation(GameTestHelper context, Input cancel, boolean exhausted) {
+        HilichurlGameTests.withManaged(context, (runtime, player) -> {
+            var enemy = hilichurl(context, player.position().add(0, 0, 4), false);
+            var target = runtime.target(enemy);
+            var session = runtime.session(player);
+            long start = now(context);
+            context.assertTrue(runtime.receive(player, Intent.SWITCH_2), "Select Amber for live movement cancellation");
+            var amber = (AmberKit) session.kit();
+            double speed = player.getAttributeValue(Attributes.MOVEMENT_SPEED);
+            if (exhausted) context.assertTrue(session.stamina().consume(100, start), "Exhaust stamina before free bow aim");
+            context.assertTrue(runtime.receive(player, Intent.ATTACK_PRESS), "Hold real server attack intent");
+            session.advanceTo(start + 86);
+            context.assertTrue(amber.fullyCharged(), "Precondition: server holds a fully charged shot");
+            close(context, player.getAttributeValue(Attributes.MOVEMENT_SPEED), speed * .5, "Precondition: aim slowdown is active");
+            player.setOnGround(true);
+            player.setLastClientInput(cancel);
+            session.tickMovement(start + 87);
+            context.assertFalse(amber.aiming(), "Jump or Sprint input cancels authoritative aim without requiring a dash");
+            close(context, player.getAttributeValue(Attributes.MOVEMENT_SPEED), speed, "Cancellation removes server aim speed modifier immediately");
+            context.assertFalse(session.stamina().dashing(start + 87), "Stationary Jump/Sprint or exhausted moving Sprint cannot start a dash");
+            close(context, session.stamina().current(), exhausted ? 0 : 100, "Aim cancellation does not itself consume stamina");
+            if (exhausted) context.assertFalse(player.isSprinting(), "Exhausted Sprint still respects stamina lockout");
+            context.assertTrue(session.intent(Intent.ATTACK_RELEASE, start + 88), "Release cancelled hold");
+            session.advanceTo(start + 100);
+            close(context, target.hp(), 885.200, "Release after movement cancellation cannot fire the fully charged arrow");
+            context.assertValueEqual(target.auraElements(), 0, "Cancelled arrow cannot install Pyro aura");
+            player.setLastClientInput(Input.EMPTY);
+            session.tickMovement(start + 102);
+            context.assertTrue(session.intent(Intent.ATTACK_PRESS, start + 102), "A fresh attack remains available after cancellation");
+            session.intent(Intent.ATTACK_RELEASE, start + 102);
+            session.advanceTo(start + 116);
+            close(context, target.hp(), 885.200 - talent(.3612), "Fresh tap launches the sourced free normal, not the cancelled charge");
         });
         context.succeed();
     }

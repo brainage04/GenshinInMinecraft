@@ -22,6 +22,9 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 public final class GenshinInMinecraftNeoForgeGameTest {
     private static final Map<String, Consumer<GameTestHelper>> TESTS = Map.ofEntries(
             Map.entry("charged_aimed_shot_damage_and_pyro", AmberGameTests::chargedAimedShotDamageAndPyro),
+            Map.entry("jump_cancels_aimed_shot", AmberGameTests::jumpCancelsAimedShot),
+            Map.entry("stationary_sprint_cancels_aimed_shot", AmberGameTests::stationarySprintCancelsAimedShot),
+            Map.entry("exhausted_sprint_cancels_aimed_shot", AmberGameTests::exhaustedSprintCancelsAimedShot),
             Map.entry("baron_bunny_taunts_takes_club_and_expires", AmberGameTests::baronBunnyTauntsTakesClubAndExpires),
             Map.entry("destroyed_bunny_explodes_once_and_miss_grants_no_energy", AmberGameTests::destroyedBunnyExplodesOnceAndMissGrantsNoEnergy),
             Map.entry("fiery_rain_damage_over_time_preserves_blocks", AmberGameTests::fieryRainDamageOverTimePreservesBlocks),

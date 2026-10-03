@@ -373,14 +373,17 @@ public final class CombatRuntime {
             if (lastMovementFrame == frame) return;
             lastMovementFrame = frame;
             var input = player.getLastClientInput();
+            // Mirror client aim cancellation even when stationary, airborne or stamina-exhausted.
+            if ((input.jump() || input.sprint()) && kit() instanceof AmberKit amber && amber.aiming()) {
+                amber.leaveField(frame);
+                player.getAttribute(Attributes.MOVEMENT_SPEED).removeModifier(AIM_SPEED_ID);
+            }
             boolean held = input.sprint();
             boolean moving = input.forward() != input.backward() || input.left() != input.right();
             boolean eligible = valid() && !player.isSpectator() && !player.isPassenger()
                     && !player.getAbilities().flying && !player.isInWater() && !player.isFallFlying()
                     && !input.shift();
             if (eligible && moving && held && !sprintKeyHeld && player.onGround() && stamina().dash(frame)) {
-                if (kit() instanceof AmberKit amber && amber.aiming()) amber.leaveField(frame);
-                player.getAttribute(Attributes.MOVEMENT_SPEED).removeModifier(AIM_SPEED_ID);
                 dashMotion = player.getLastClientMoveIntent().scale(ADAPTED_DASH_BLOCKS_PER_TICK);
                 dashLevel = (ServerLevel) player.level();
             }

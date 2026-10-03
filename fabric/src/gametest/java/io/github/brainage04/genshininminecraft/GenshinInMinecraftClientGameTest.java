@@ -135,6 +135,11 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                             && entity.getCustomName().getString().equals("Baron Bunny")) return true;
                 return false;
             });
+            int bunnyId = server.computeOnServer(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                return player.level().getEntitiesOfClass(Rabbit.class,
+                        new AABB(player.position(), player.position()).inflate(8)).getFirst().getId();
+            });
             context.waitFor(client -> CombatInput.state().skillRemainingFrames() > 0);
             context.getInput().lookAt(0, 12);
             context.runOnClient(client -> client.gui.hud.getChat().clearMessages(true));
@@ -142,7 +147,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             int pyroMobId = server.computeOnServer(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
                 var mob = new Hilichurl(GenshinEntities.HILICHURL, player.level());
-                mob.snapTo(player.position().add(0, 0, 3));
+                mob.snapTo(player.position().add(1.25, 0, 3)); // Separate silhouettes, still inside the inner rain region.
                 mob.setNoAi(true);
                 if (!((ServerLevel) player.level()).addFreshEntity(mob)) throw new AssertionError("Could not spawn rain target");
                 CombatRuntime.get(minecraftServer).session(player).kit().grantEnergy(40);
@@ -160,14 +165,30 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             });
             context.runOnClient(client -> {
                 if (client.gui.screen() instanceof InventoryScreen) throw new AssertionError("Amber E must not open inventory");
+                if (CombatFeedback.auraElements(bunnyId) != 0 || CombatFeedback.hasDamageNumber(bunnyId))
+                    throw new AssertionError("Fiery Rain must not apply aura or damage feedback to Amber's own Bunny");
             });
             screenshot(context, "genshin-amber-fiery-rain");
             server.runOnServer(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                var bunny = (Rabbit) player.level().getEntity(bunnyId);
+                if (bunny.getHealth() != bunny.getMaxHealth()
+                        || ((AmberKit) CombatRuntime.get(minecraftServer).session(player).kit()).puppetHp() != 2037.88 * .4136)
+                    throw new AssertionError("Fiery Rain must leave the source-scaled Bunny HP full");
                 player.level().getEntity(pyroMobId).discard();
             });
             context.getInput().lookAt(0, 0);
             context.waitTicks(40);
+            server.runOnServer(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                var bunny = (Rabbit) player.level().getEntity(bunnyId);
+                if (bunny.getHealth() != bunny.getMaxHealth())
+                    throw new AssertionError("All Fiery Rain waves must leave Bunny HP full");
+            });
+            context.runOnClient(client -> {
+                if (CombatFeedback.auraElements(bunnyId) != 0 || CombatFeedback.hasDamageNumber(bunnyId))
+                    throw new AssertionError("No Bunny aura/damage feedback may appear throughout Fiery Rain");
+            });
             server.waitFor(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
                 return !((AmberKit) CombatRuntime.get(minecraftServer).session(player).party().kit(1)).puppetAlive();

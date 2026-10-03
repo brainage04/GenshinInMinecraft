@@ -160,6 +160,12 @@ public class GenshinInMinecraftGameTest {
     @GameTest
     public void chargedAimedShotDamageAndPyro(GameTestHelper context) { AmberGameTests.chargedAimedShotDamageAndPyro(context); }
     @GameTest
+    public void jumpCancelsAimedShot(GameTestHelper context) { AmberGameTests.jumpCancelsAimedShot(context); }
+    @GameTest
+    public void stationarySprintCancelsAimedShot(GameTestHelper context) { AmberGameTests.stationarySprintCancelsAimedShot(context); }
+    @GameTest
+    public void exhaustedSprintCancelsAimedShot(GameTestHelper context) { AmberGameTests.exhaustedSprintCancelsAimedShot(context); }
+    @GameTest
     public void baronBunnyTauntsTakesClubAndExpires(GameTestHelper context) { AmberGameTests.baronBunnyTauntsTakesClubAndExpires(context); }
     @GameTest
     public void destroyedBunnyExplodesOnceAndMissGrantsNoEnergy(GameTestHelper context) { AmberGameTests.destroyedBunnyExplodesOnceAndMissGrantsNoEnergy(context); }
