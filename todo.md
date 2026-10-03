@@ -5,7 +5,7 @@
 Goal: a player can join a world (test arena now, the ported map once it exists), play as the Anemo Traveler against a hilichurl camp with a Genshin-style HUD, then switch to Amber, Kaeya and Lisa and trigger reactions. Every step keeps the game runnable on both loaders and passes `./gradlew --no-daemon build runAllGameTests`.
 
 1. [x] Project records: `AGENTS.md` (verified commands, invariants), `docs/decisions.md` (seeded with the brief's fixed decisions and tonight's choices), `CREDITS.md`, `spec/fidelity.md`; remove the template example command/mixins and their tests.
-2. [ ] Mechanics research for the slice (`gpt-researcher`, 7.1): damage formula and elemental gauge/decay/ICD/reaction rules for Anemo, Pyro, Cryo, Electro, Hydro; Traveler (Anemo), Amber, Kaeya, Lisa kits at talent level 1; hilichurl/slime stats.
+2. [x] Mechanics research for the slice (`gpt-researcher`, 7.1): damage formula and elemental gauge/decay/ICD/reaction rules for Anemo, Pyro, Cryo, Electro, Hydro; Traveler (Anemo), Amber, Kaeya, Lisa kits at talent level 1; hilichurl/slime stats.
 3. [ ] Rules layer in `common/` (no Minecraft types): stats, damage formula, aura application and decay, ICD, reactions for the starter elements, 60 fps event timeline; JUnit golden cases from `spec/mechanics/`.
 4. [ ] Managed world: a per-world switch that disables hunger, natural regeneration, block breaking/placing and natural mob spawning, plus a `/genshin arena` command that builds a flat test arena; server GameTests on both loaders.
 5. [ ] Active character and Traveler (Anemo) kit: server-owned character state (HP, energy, cooldowns), normal attack string, elemental skill, burst, keybinds sent as intent, Genshin damage applied to entities; GameTests.
