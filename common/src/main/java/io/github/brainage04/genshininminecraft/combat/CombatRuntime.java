@@ -1,6 +1,8 @@
 package io.github.brainage04.genshininminecraft.combat;
 
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
+import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
+import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import io.github.brainage04.genshininminecraft.rules.*;
 import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit;
 import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit.Hit;
@@ -15,10 +17,12 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
@@ -60,6 +64,23 @@ public final class CombatRuntime {
         return targets.computeIfAbsent(entity.getUUID(), ignored -> new CombatTarget(entity));
     }
     public void forget(UUID uuid) { players.remove(uuid); targets.remove(uuid); }
+    /** Loader tracking callbacks refresh existing auras for players entering tracking range. */
+    public void startTracking(ServerPlayer player, Entity entity) {
+        CombatTarget target = targets.get(entity.getUUID());
+        if (target != null && ManagedWorld.isManaged(entity.level()) && player.connection != null) {
+            player.connection.send(new ClientboundCustomPayloadPacket(new TargetAuraPayload(entity.getId(), target.auraElements())));
+        }
+    }
+    private static void broadcast(CombatTarget target, CustomPacketPayload payload) {
+        ((ServerLevel) target.entity().level()).getChunkSource().chunkMap.sendToTrackingPlayers(
+                target.entity(), new ClientboundCustomPayloadPacket(payload));
+    }
+    private static void feedback(CombatTarget target, double amount, Element element, Reaction.Type reaction, boolean critical) {
+        broadcast(target, new DamageNumberPayload(target.entity().getId(), (float) amount, element, reaction, critical));
+    }
+    private static void syncAura(CombatTarget target) {
+        if (target.auraChanged()) broadcast(target, new TargetAuraPayload(target.entity().getId(), target.auraElements()));
+    }
     public boolean receive(ServerPlayer player, Intent intent) {
         if (!ManagedWorld.isManaged(player.level()) || !player.isAlive() || player.isSpectator()) return false;
         var state = session(player);
@@ -82,6 +103,12 @@ public final class CombatRuntime {
         }
         players.values().removeIf(state -> state.player.isRemoved());
         targets.values().removeIf(target -> target.entity().isRemoved());
+        if (managed) {
+            for (CombatTarget target : targets.values()) {
+                if (frame >= target.aura().frame()) target.aura().advanceTo(frame);
+                syncAura(target);
+            }
+        }
         if (!managed) targets.clear();
     }
 
@@ -90,7 +117,6 @@ public final class CombatRuntime {
         private final TravelerAnemoKit kit;
         private final Random random;
         private CharacterStatePayload lastSync;
-        private long lastActionbar = -60;
         private float mirroredHealth;
         private long skillCast = -1;
         private Element skillAbsorbed;
@@ -172,12 +198,6 @@ public final class CombatRuntime {
                 lastSync = new CharacterStatePayload(true, hp, maxHp, energy, skill, burst);
                 if (sender != null) sender.accept(player, lastSync);
             }
-            if (kit.frame() - lastActionbar >= 30) {
-                player.sendOverlayMessage(Component.literal(String.format(java.util.Locale.ROOT,
-                        "Traveler (Anemo)  HP %.0f/%.0f  Energy %.0f/60  E %.1fs  Q %.1fs",
-                        kit.hp(), kit.maxHp(), kit.energy(), Frames.seconds(kit.skillRemaining()), Frames.seconds(kit.burstRemaining()))));
-                lastActionbar = kit.frame();
-            }
         }
         private Vec3 tornadoCenter(long frame) {
             return tornadoOrigin.add(tornadoDirection.scale(Frames.seconds(frame - tornadoStart) * TORNADO_BLOCKS_PER_SECOND));
@@ -239,18 +259,28 @@ public final class CombatRuntime {
             for (Reaction reaction : reactions) {
                 if (reaction.amplifying()) { amplification = reaction; break; }
             }
+            boolean critical = random.nextDouble() < Math.clamp(kit.stats().critRate(), 0, 1);
             double amount = Damage.talentDamage(kit.stats(), multiplier, element, target.level(), 0, 0,
-                    target.resistance(element), amplification, 0, Damage.CritMode.ROLL, random);
+                    target.resistance(element), amplification, 0, critical ? Damage.CritMode.CRIT : Damage.CritMode.NON_CRIT, null);
             boolean applied = target.damage(player, amount);
+            if (applied) feedback(target, amount, element, amplification == null ? null : amplification.type(), critical);
             for (Reaction reaction : reactions) {
                 if (reaction.type() == Reaction.Type.SWIRL) target.countSwirl();
-                if (reaction.amplifying() || reaction.type() == Reaction.Type.FROZEN || reaction.type() == Reaction.Type.ELECTRO_CHARGED) continue;
-                if (target.reactionDamage.allowsDamage(player.getUUID(), target.entity().getUUID(), reaction.type(), reaction.auraElement(), frame)) {
-                    Element damageElement = Reaction.damageElement(reaction.type(), reaction.auraElement());
-                    target.damage(player, Damage.transformativeDamage(reaction.type(), kit.stats().level(), kit.stats().elementalMastery(), 0,
-                            target.resistance(damageElement)));
+                if (reaction.amplifying()) continue;
+                if (reaction.type() == Reaction.Type.FROZEN || reaction.type() == Reaction.Type.ELECTRO_CHARGED) {
+                    feedback(target, 0, element, reaction.type(), false);
+                    continue;
                 }
+                Element damageElement = Reaction.damageElement(reaction.type(), reaction.auraElement());
+                double reactionAmount = 0;
+                if (target.reactionDamage.allowsDamage(player.getUUID(), target.entity().getUUID(), reaction.type(), reaction.auraElement(), frame)) {
+                    double damage = Damage.transformativeDamage(reaction.type(), kit.stats().level(), kit.stats().elementalMastery(), 0,
+                            target.resistance(damageElement));
+                    if (target.damage(player, damage)) reactionAmount = damage;
+                }
+                feedback(target, reactionAmount, damageElement, reaction.type(), false);
             }
+            syncAura(target);
             scheduleEc(target);
             return applied;
         }
@@ -260,10 +290,15 @@ public final class CombatRuntime {
             long at = next.getAsLong();
             target.scheduledEc = at;
             kit.schedule(at, frame -> {
-                if (target.entity().isRemoved() || !ManagedWorld.isManaged(target.entity().level())) return;
+                if (targets.get(target.entity().getUUID()) != target || target.entity().isRemoved()
+                        || !ManagedWorld.isManaged(target.entity().level())) return;
                 var tick = target.aura().tickElectroCharged(frame, target.entity().isAlive());
-                if (tick.dealsDamage()) target.damage(target.ecPlayer, Damage.transformativeDamage(Reaction.Type.ELECTRO_CHARGED,
-                        target.ecOwner.level(), target.ecOwner.elementalMastery(), 0, target.resistance(Element.ELECTRO)));
+                if (tick.dealsDamage()) {
+                    double damage = Damage.transformativeDamage(Reaction.Type.ELECTRO_CHARGED,
+                            target.ecOwner.level(), target.ecOwner.elementalMastery(), 0, target.resistance(Element.ELECTRO));
+                    if (target.damage(target.ecPlayer, damage)) feedback(target, damage, Element.ELECTRO, Reaction.Type.ELECTRO_CHARGED, false);
+                }
+                syncAura(target);
                 if (target.scheduledEc == frame) target.scheduledEc = -1;
                 scheduleEc(target);
             });

@@ -120,6 +120,39 @@ public final class TravelerCombatGameTests {
         context.succeed();
     }
 
+    public static void managedOffOnDiscardsQueuedElectroCharged(GameTestHelper context) {
+        withManaged(context, (runtime, player) -> {
+            var server = context.getLevel().getServer();
+            long start = Frames.atServerTick(server.getTickCount());
+            LivingEntity mob = mob(context, player);
+            var oldProfile = runtime.target(mob);
+            oldProfile.aura().applyHit(Element.HYDRO, 4, start);
+            oldProfile.aura().applyHit(Element.ELECTRO, 4, start);
+            // No owner exists for the seeded setup tick; the first owned tick is at start+60.
+            oldProfile.aura().tickElectroCharged(start, false);
+            runtime.receive(player, Intent.SKILL_PRESS);
+            runtime.receive(player, Intent.SKILL_RELEASE);
+            var session = runtime.session(player);
+            session.advanceTo(start + 32);
+            context.assertValueEqual(session.skillAbsorbedElement(), Element.HYDRO, "Hydro absorption installs the EC owner");
+            context.assertValueEqual(oldProfile.aura().nextElectroChargedTickFrame().orElseThrow(), start + 60, "Owned EC damage is queued");
+            var managed = ManagedWorldData.get(server);
+            managed.setManaged(server, false);
+            runtime.tick(server); // Unmanaged tick discards profiles, without draining the combat timeline.
+            managed.setManaged(server, true);
+            mob.setHealth(20);
+            var replacement = runtime.target(mob);
+            context.assertTrue(replacement != oldProfile, "Managed re-entry creates a fresh target profile");
+            session.advanceTo(start + 120);
+            close(context, mob.getHealth(), 20, "Discarded profile cannot replay queued EC damage after managed off/on");
+            close(context, replacement.hp(), 2000, "Replacement profile retains full Genshin HP");
+            close(context, replacement.aura().gauge(Element.HYDRO), 0, "Discarded Hydro aura does not return");
+            close(context, replacement.aura().gauge(Element.ELECTRO), 0, "Discarded Electro aura does not return");
+            mob.discard();
+        });
+        context.succeed();
+    }
+
     private static LivingEntity mob(GameTestHelper context, ServerPlayer player) {
         var mob = context.spawnWithNoFreeWill(EntityTypes.ZOMBIE, new Vec3(1, 2, 1));
         mob.snapTo(player.position().add(0, 0, 2));

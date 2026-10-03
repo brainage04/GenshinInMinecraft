@@ -6,6 +6,9 @@ import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
 import io.github.brainage04.genshininminecraft.network.CombatIntentPayload;
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
+import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
+import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -26,6 +29,10 @@ public class GenshinInMinecraftFabric implements ModInitializer {
                 !ManagedWorld.preventsBlockModification(level, player));
         PayloadTypeRegistry.serverboundPlay().register(CombatIntentPayload.TYPE, CombatIntentPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(CharacterStatePayload.TYPE, CharacterStatePayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(DamageNumberPayload.TYPE, DamageNumberPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(TargetAuraPayload.TYPE, TargetAuraPayload.CODEC);
+        EntityTrackingEvents.START_TRACKING.register((entity, player) ->
+                CombatRuntime.get(player.level().getServer()).startTracking(player, entity));
         ServerPlayNetworking.registerGlobalReceiver(CombatIntentPayload.TYPE, (packet, context) ->
                 CombatRuntime.get(context.server()).receive(context.player(), packet.intent()));
         CombatRuntime.setSender(ServerPlayNetworking::send);

@@ -29,12 +29,21 @@ public final class CombatInput {
             drain(BURST);
         }
         state = payload;
+        GenshinHud.accept(payload);
+        if (!payload.managed()) CombatFeedback.reset();
     }
     public static CharacterStatePayload state() { return state; }
     public static boolean managed() { return state.managed() && Minecraft.getInstance().level != null; }
-    public static void reset() { state = CharacterStatePayload.UNMANAGED; attackHeld = false; skillHeld = false; }
+    public static void reset() {
+        state = CharacterStatePayload.UNMANAGED;
+        attackHeld = false;
+        skillHeld = false;
+        GenshinHud.accept(state);
+        CombatFeedback.reset();
+    }
     private static void send(Intent intent) { if (sender != null) sender.accept(new CombatIntentPayload(intent)); }
     public static void tick(Minecraft client) {
+        CombatFeedback.tick(client);
         if (!managed()) {
             drain(SKILL);
             drain(BURST);

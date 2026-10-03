@@ -98,6 +98,11 @@ class DamageTest {
         Reaction melt = new Reaction(Reaction.Type.MELT, 0.8, Element.PYRO, Element.CRYO);
         assertEquals(648, Damage.talentDamage(stats, 1, Element.PYRO, 20, 0, 0, 0.1,
                 melt, 0, Damage.CritMode.ROLL, new Random(0)), EPS);
+        // HUD metadata uses the same explicit server roll as the formula, without a second draw.
+        assertEquals(432, Damage.talentDamage(stats, 1, Element.PYRO, 20, 0, 0, 0.1,
+                melt, 0, Damage.CritMode.NON_CRIT, null), EPS);
+        assertEquals(648, Damage.talentDamage(stats, 1, Element.PYRO, 20, 0, 0, 0.1,
+                melt, 0, Damage.CritMode.CRIT, null), EPS);
         assertEquals(29.25, Damage.talentDamage(stats, 0.1, Damage.ScalingStat.DEF,
                 Element.PYRO, 20, 0, 0, 0, melt, 0, Damage.CritMode.EXPECTED, null), EPS);
         assertEquals(112.125, Damage.talentDamage(stats, 0.1, Damage.ScalingStat.HP,

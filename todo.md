@@ -9,7 +9,7 @@ Goal: a player can join a world (test arena now, the ported map once it exists),
 3. [x] Rules layer in `common/` (no Minecraft types): stats, damage formula, aura application and decay, ICD, reactions for the starter elements, 60 fps event timeline; JUnit golden cases from `spec/mechanics/`.
 4. [x] Managed world: a per-world switch that disables hunger, natural regeneration, block breaking/placing and natural mob spawning, plus a `/genshin arena` command that builds a flat test arena; server GameTests on both loaders.
 5. [x] Active character and Traveler (Anemo) kit: server-owned character state (HP, energy, cooldowns), normal/charged attack string, tap/hold elemental skill, burst, keybinds sent as intent, Genshin damage applied to entities; plain-Java JUnit, shared server GameTests on both loaders and Fabric client arena/key-conflict GameTest. State is intentionally memory-only (relog/respawn/managed-off reset resources); see decisions/fidelity for timing, geometry, equipment and direct-energy adaptations.
-6. [ ] HUD: party list with HP and energy, skill/burst cooldowns, damage numbers, element icons over enemies; client GameTest screenshot.
+6. [x] Managed-world HUD: four-row-capable party list with HP and energy, active numeric HP, skill/burst cooldowns and ready state, tracked floating damage/reaction numbers and synced enemy aura icons; vanilla bars return outside managed worlds. Pure formatting/layout tests and Fabric client arena/input/state GameTest pass; screenshots are in `fabric/build/run/clientGameTest/screenshots/genshin-hud-{aura,skill,burst-ready,vanilla}.png` (see decisions).
 7. [ ] Hilichurl enemy: custom entity with placeholder model, Genshin HP/RES, simple aggro/leash/telegraphed melee, camp spawner command; GameTests.
 8. [ ] Stamina: sprint, dash with i-frames, charged-attack cost, stamina wheel on the HUD.
 9. [ ] Party switching with Amber, Kaeya and Lisa kits (one at a time), reactions between them in-world.
@@ -18,7 +18,9 @@ Goal: a player can join a world (test arena now, the ported map once it exists),
 
 ## Questions for the owner
 
-(none yet)
+1. **Controls in managed worlds.** Item 5 makes E = Elemental Skill, Q = Elemental Burst and left click = Genshin normal attack, and suppresses the vanilla inventory/drop/melee on those keys *only while in a managed world*. Options: (a) keep this (Genshin muscle memory; vanilla inventory unreachable on E in managed worlds); (b) default to non-conflicting keys (e.g. R/F) and leave vanilla untouched. Recommendation: (a), since the vanilla inventory is replaced by Genshin menus later anyway.
+2. **Where is Mondstadt on the map?** The spike found spawn at (3458, 63, -4002) and populated regions x −29..29, z −17..24 (region coords). Options: (a) you give block coordinates for Mondstadt city / Starfell Valley / Windrise; (b) the agent screenshots candidate areas on a headless client and you pick. Recommendation: (a) — a few coordinates from your own play save a lot of guessing; then only those regions get upgraded first.
+3. **Running the 26.2 force-upgrade.** `scripts/map-port/port-map.py upgrade --accept-eula …` writes `eula=true` for a vanilla 26.2 server on the extracted copy (same EULA the GameTests already accept). Options: (a) the agent runs it overnight in the isolated session (~6 GB copy, likely hours at nice 19); (b) you run it yourself. Recommendation: (a), once Mondstadt coordinates are known, or for the whole world if you prefer.
 
 ## Loader parity findings (2026-09-29)
 

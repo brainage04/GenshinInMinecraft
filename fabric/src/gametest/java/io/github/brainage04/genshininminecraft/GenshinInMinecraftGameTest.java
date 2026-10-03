@@ -72,4 +72,8 @@ public class GenshinInMinecraftGameTest {
     public void targetDeathIsAttributed(GameTestHelper context) {
         TravelerCombatGameTests.targetDeathIsAttributed(context);
     }
+    @GameTest
+    public void managedOffOnDiscardsQueuedElectroCharged(GameTestHelper context) {
+        TravelerCombatGameTests.managedOffOnDiscardsQueuedElectroCharged(context);
+    }
 }

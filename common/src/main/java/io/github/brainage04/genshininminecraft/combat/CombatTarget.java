@@ -25,6 +25,7 @@ public final class CombatTarget {
     ServerPlayer ecPlayer;
     long scheduledEc = -1;
     private int swirlCount;
+    private int syncedAura = -1;
 
     CombatTarget(LivingEntity entity) {
         this.entity = entity;
@@ -39,6 +40,20 @@ public final class CombatTarget {
     public AuraState aura() { return aura; }
     public int swirlCount() { return swirlCount; }
     void countSwirl() { swirlCount++; }
+    public int auraElements() {
+        int mask = 0;
+        if (aura.gauge(Element.PYRO) > 0) mask |= 1 << Element.PYRO.ordinal();
+        if (aura.gauge(Element.CRYO) > 0 || aura.isFrozen()) mask |= 1 << Element.CRYO.ordinal();
+        if (aura.gauge(Element.ELECTRO) > 0) mask |= 1 << Element.ELECTRO.ordinal();
+        if (aura.gauge(Element.HYDRO) > 0) mask |= 1 << Element.HYDRO.ordinal();
+        return mask;
+    }
+    boolean auraChanged() {
+        int mask = auraElements();
+        if (mask == syncedAura) return false;
+        syncedAura = mask;
+        return true;
+    }
     public double resistance(Element element) {
         return DEFAULT_RESISTANCE - (element == Element.PHYSICAL ? aura.physicalResistanceReduction() : 0);
     }

@@ -7,7 +7,7 @@ import java.util.random.RandomGenerator;
 /** Outgoing character damage only; ordinary transformative damage bypasses DEF and crit. */
 public final class Damage {
     public enum ScalingStat { ATK, DEF, HP, EM }
-    public enum CritMode { EXPECTED, ROLL }
+    public enum CritMode { EXPECTED, ROLL, NON_CRIT, CRIT }
 
     // spec/mechanics/damage.md: Character Level Multiplier K(L), never enemy/environment K(L).
     private static final double[] LEVEL_BASE = {
@@ -46,6 +46,8 @@ public final class Damage {
         double chance = Math.clamp(rate, 0, 1);
         return switch (mode) {
             case EXPECTED -> 1 + chance * damage;
+            case NON_CRIT -> 1;
+            case CRIT -> 1 + damage;
             case ROLL -> Objects.requireNonNull(random, "random").nextDouble() < chance
                     ? 1 + damage : 1;
         };

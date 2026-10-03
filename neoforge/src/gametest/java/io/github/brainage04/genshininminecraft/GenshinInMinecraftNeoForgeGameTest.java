@@ -29,7 +29,8 @@ public final class GenshinInMinecraftNeoForgeGameTest {
             Map.entry("burst_energy_and_tornado", TravelerCombatGameTests::burstEnergyAndTornado),
             Map.entry("palm_vortex_swirls_and_absorbs_pyro", TravelerCombatGameTests::palmVortexSwirlsAndAbsorbsPyro),
             Map.entry("managed_vanilla_melee_cancelled", TravelerCombatGameTests::managedVanillaMeleeCancelled),
-            Map.entry("target_death_is_attributed", TravelerCombatGameTests::targetDeathIsAttributed)
+            Map.entry("target_death_is_attributed", TravelerCombatGameTests::targetDeathIsAttributed),
+            Map.entry("managed_off_on_discards_queued_electro_charged", TravelerCombatGameTests::managedOffOnDiscardsQueuedElectroCharged)
     );
 
     private GenshinInMinecraftNeoForgeGameTest() {

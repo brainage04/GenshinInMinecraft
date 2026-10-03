@@ -10,6 +10,8 @@ import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
 import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
 import io.github.brainage04.genshininminecraft.network.CombatIntentPayload;
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
+import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
+import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
@@ -37,12 +39,19 @@ public final class GenshinInMinecraftNeoForge {
                 }
             });
             registrar.playToClient(CharacterStatePayload.TYPE, CharacterStatePayload.CODEC);
+            registrar.playToClient(DamageNumberPayload.TYPE, DamageNumberPayload.CODEC);
+            registrar.playToClient(TargetAuraPayload.TYPE, TargetAuraPayload.CODEC);
         });
         CombatRuntime.setSender(PacketDistributor::sendToPlayer);
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> CombatRuntime.get(event.getServer()).tick(event.getServer()));
         NeoForge.EVENT_BUS.addListener((ServerStoppedEvent event) -> CombatRuntime.stop(event.getServer()));
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedOutEvent event) -> {
             if (event.getEntity() instanceof ServerPlayer player) CombatRuntime.get(player.level().getServer()).forget(player.getUUID());
+        });
+        NeoForge.EVENT_BUS.addListener((PlayerEvent.StartTracking event) -> {
+            if (event.getEntity() instanceof ServerPlayer player) {
+                CombatRuntime.get(player.level().getServer()).startTracking(player, event.getTarget());
+            }
         });
         NeoForge.EVENT_BUS.addListener((AttackEntityEvent event) -> {
             if (CombatRuntime.cancelsVanillaMelee(event.getEntity())) event.setCanceled(true);

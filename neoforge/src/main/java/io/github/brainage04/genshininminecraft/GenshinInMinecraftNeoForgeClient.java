@@ -12,6 +12,19 @@ import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
 import io.github.brainage04.genshininminecraft.client.CombatInput;
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
+import io.github.brainage04.genshininminecraft.client.CombatFeedback;
+import io.github.brainage04.genshininminecraft.client.GenshinHud;
+import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
+import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
+import java.util.List;
+import java.util.Set;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.context.ContextKey;
+import net.neoforged.neoforge.client.event.ExtractLevelRenderStateEvent;
+import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
+import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
+import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
@@ -19,6 +32,10 @@ import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlers
 
 @Mod(value = GenshinInMinecraft.MOD_ID, dist = Dist.CLIENT)
 public final class GenshinInMinecraftNeoForgeClient {
+    private static final ContextKey<List<CombatFeedback.WorldText>> COMBAT_TEXT = new ContextKey<>(GenshinHud.ID);
+    private static final Set<Identifier> REPLACED = Set.of(VanillaGuiLayers.PLAYER_HEALTH,
+            VanillaGuiLayers.FOOD_LEVEL, VanillaGuiLayers.ARMOR_LEVEL, VanillaGuiLayers.CONTEXTUAL_INFO_BAR_BACKGROUND,
+            VanillaGuiLayers.CONTEXTUAL_INFO_BAR, VanillaGuiLayers.EXPERIENCE_LEVEL);
     public GenshinInMinecraftNeoForgeClient(ModContainer container, IEventBus modBus) {
         container.registerExtensionPoint(
                 IConfigScreenFactory.class,
@@ -31,7 +48,21 @@ public final class GenshinInMinecraftNeoForgeClient {
             event.register(CombatInput.SKILL);
             event.register(CombatInput.BURST);
         });
-        modBus.addListener((RegisterClientPayloadHandlersEvent event) ->
-                event.register(CharacterStatePayload.TYPE, (packet, context) -> CombatInput.accept(packet)));
+        modBus.addListener((RegisterClientPayloadHandlersEvent event) -> {
+            event.register(CharacterStatePayload.TYPE, (packet, context) -> CombatInput.accept(packet));
+            event.register(DamageNumberPayload.TYPE, (packet, context) -> CombatFeedback.accept(packet));
+            event.register(TargetAuraPayload.TYPE, (packet, context) -> CombatFeedback.accept(packet));
+        });
+        modBus.addListener((RegisterGuiLayersEvent event) ->
+                event.registerAbove(VanillaGuiLayers.HOTBAR, GenshinHud.ID, GenshinHud::render));
+        NeoForge.EVENT_BUS.addListener((RenderGuiLayerEvent.Pre event) -> {
+            if (CombatInput.managed() && REPLACED.contains(event.getName())) event.setCanceled(true);
+        });
+        NeoForge.EVENT_BUS.addListener((ExtractLevelRenderStateEvent event) ->
+                event.getRenderState().setRenderData(COMBAT_TEXT,
+                        CombatFeedback.extract(event.getDeltaTracker().getGameTimeDeltaPartialTick(false))));
+        NeoForge.EVENT_BUS.addListener((SubmitCustomGeometryEvent event) -> CombatFeedback.submit(
+                event.getLevelRenderState().getRenderData(COMBAT_TEXT), event.getPoseStack(),
+                event.getSubmitNodeCollector(), event.getLevelRenderState().cameraRenderState));
     }
 }
