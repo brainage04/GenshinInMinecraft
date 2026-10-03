@@ -6,6 +6,7 @@ import io.github.brainage04.genshininminecraft.gametest.TravelerCombatGameTests;
 import io.github.brainage04.genshininminecraft.gametest.HilichurlGameTests;
 import io.github.brainage04.genshininminecraft.gametest.StaminaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.PartyGameTests;
+import io.github.brainage04.genshininminecraft.gametest.KaeyaGameTests;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 
@@ -122,5 +123,37 @@ public class GenshinInMinecraftGameTest {
     @GameTest
     public void vanillaLethalDamageAlsoForcesCharacterSwitch(GameTestHelper context) {
         PartyGameTests.vanillaLethalDamageAlsoForcesCharacterSwitch(context);
+    }
+    @GameTest
+    public void frostgnawDamageAndCryoAura(GameTestHelper context) {
+        KaeyaGameTests.frostgnawDamageAndCryoAura(context);
+    }
+    @GameTest
+    public void frostgnawSuperconductPhysicalShred(GameTestHelper context) {
+        KaeyaGameTests.frostgnawSuperconductPhysicalShred(context);
+    }
+    @GameTest
+    public void lisaTriggersSuperconductOnCryo(GameTestHelper context) {
+        KaeyaGameTests.lisaTriggersSuperconductOnCryo(context);
+    }
+    @GameTest
+    public void frostgnawMeltsPyroAura(GameTestHelper context) {
+        KaeyaGameTests.frostgnawMeltsPyroAura(context);
+    }
+    @GameTest
+    public void travelerSwirlsKaeyasCryo(GameTestHelper context) {
+        KaeyaGameTests.travelerSwirlsKaeyasCryo(context);
+    }
+    @GameTest
+    public void glacialWaltzEnergyContactAndSwitch(GameTestHelper context) {
+        KaeyaGameTests.glacialWaltzEnergyContactAndSwitch(context);
+    }
+    @GameTest
+    public void frozenTargetCannotMove(GameTestHelper context) {
+        KaeyaGameTests.frozenTargetCannotMove(context);
+    }
+    @GameTest
+    public void simultaneousBurstsKeepCharacterIcdSeparate(GameTestHelper context) {
+        KaeyaGameTests.simultaneousBurstsKeepCharacterIcdSeparate(context);
     }
 }

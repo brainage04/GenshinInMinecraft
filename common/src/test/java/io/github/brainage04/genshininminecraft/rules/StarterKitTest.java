@@ -63,7 +63,7 @@ class StarterKitTest {
         assertTrue(kit.canSwitch(107)); // Recorded 31+76 adaptation; not an exact live-game boundary.
     }
     @Test void missingTalentsNeverSpendEnergyOrInstallCooldownAndAmberHoldCannotAimYet() {
-        for (CharacterKit kit : List.<CharacterKit>of(new AmberKit(hit -> {}), new KaeyaKit(hit -> {}), new LisaKit(hit -> {}))) {
+        for (CharacterKit kit : List.<CharacterKit>of(new AmberKit(hit -> {}), new LisaKit(hit -> {}))) {
             kit.grantEnergy(80);
             double before = kit.energy();
             assertFalse(kit.intent(Intent.SKILL_PRESS, 0));

@@ -1,0 +1,7 @@
+{
+  "environment": "minecraft:default",
+  "structure": "fabricmoddingconventions:empty",
+  "max_ticks": 20,
+  "type": "minecraft:function",
+  "function": "genshininminecraft:simultaneous_bursts_keep_character_icd_separate"
+}

@@ -7,10 +7,12 @@ import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import io.github.brainage04.genshininminecraft.rules.*;
 import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit;
+import io.github.brainage04.genshininminecraft.rules.kit.KaeyaKit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Hit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Kind;
 import io.github.brainage04.genshininminecraft.world.ManagedWorld;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +52,10 @@ public final class CombatRuntime {
     public static final double ADAPTED_LISA_CHARGED_RADIUS = 4;
     public static final double ADAPTED_RAY_HITBOX_MARGIN = .15;
     public static final double ADAPTED_LISA_CHARGED_HEIGHT_TOLERANCE = .1;
+    public static final double ADAPTED_FROSTGNAW_RANGE = 8;
+    public static final double ADAPTED_FROSTGNAW_HEIGHT = 2.2;
+    public static final double ADAPTED_ICICLE_ORBIT_RADIUS = 2.5;
+    public static final double ADAPTED_ICICLE_CONTACT_MARGIN = .35;
     private static final DustParticleOptions ANEMO_DUST = new DustParticleOptions(0x80e8c0, 1.2F);
     private static final DustParticleOptions PYRO_DUST = new DustParticleOptions(0xff6622, 1.2F);
     private static final DustParticleOptions CRYO_DUST = new DustParticleOptions(0x99eeff, 1.2F);
@@ -75,6 +81,13 @@ public final class CombatRuntime {
     public CombatTarget target(LivingEntity entity) {
         if (entity instanceof Player) throw new IllegalArgumentException("Players are not kit targets");
         return targets.computeIfAbsent(entity.getUUID(), ignored -> new CombatTarget(entity));
+    }
+    /** Lookup only: vanilla movement must not create combat profiles or advance reaction timelines. */
+    public static boolean isFrozen(LivingEntity entity) {
+        if (!(entity.level() instanceof ServerLevel level) || !ManagedWorld.isManaged(level) || !entity.isAlive()) return false;
+        CombatRuntime runtime = SERVERS.get(level.getServer());
+        CombatTarget target = runtime == null ? null : runtime.targets.get(entity.getUUID());
+        return target != null && target.aura().isFrozen();
     }
     public void forget(UUID uuid) {
         players.remove(uuid);
@@ -179,6 +192,7 @@ public final class CombatRuntime {
         private final ServerPlayer player;
         private final Party party;
         private final Random random;
+        private final UUID[] combatOwners = new UUID[Party.SIZE];
         private CharacterStatePayload lastSync;
         private float mirroredHealth;
         private long skillCast = -1;
@@ -190,6 +204,7 @@ public final class CombatRuntime {
         private long tornadoStart = -1;
         private long lastTornadoStep = -1;
         private ServerLevel actionLevel;
+        private ServerLevel icicleLevel;
         private ServerLevel lastSyncLevel;
         private long lastSyncFrame;
         private long lastMovementFrame = -1;
@@ -203,6 +218,13 @@ public final class CombatRuntime {
             this.player = player;
             random = new Random(player.getUUID().getLeastSignificantBits());
             party = new Party(timeline, this::hit);
+            // ICD belongs to a character+player, not to the shared Minecraft player entity.
+            ByteBuffer identity = ByteBuffer.allocate(2 * Long.BYTES + Integer.BYTES);
+            identity.putLong(player.getUUID().getMostSignificantBits()).putLong(player.getUUID().getLeastSignificantBits());
+            for (int slot = 0; slot < Party.SIZE; slot++) {
+                identity.putInt(2 * Long.BYTES, slot);
+                combatOwners[party.kit(slot).state().character().ordinal()] = UUID.nameUUIDFromBytes(identity.array());
+            }
             mirroredHealth = player.getHealth();
             kit().setHp(kit().maxHp() * player.getHealth() / player.getMaxHealth());
         }
@@ -230,13 +252,14 @@ public final class CombatRuntime {
             boolean accepted = kit().intent(intent, frame);
             if (accepted && (intent == Intent.ATTACK_PRESS || intent == Intent.SKILL_PRESS)) actionLevel = (ServerLevel) player.level();
             if (accepted && intent == Intent.SKILL_PRESS) { skillCast = frame; skillAbsorbed = null; }
-            if (accepted && intent == Intent.BURST_PRESS) {
+            if (accepted && intent == Intent.BURST_PRESS && kit() instanceof TravelerAnemoKit) {
                 tornadoStart = frame;
                 tornadoOrigin = player.position().add(0, .8, 0);
                 tornadoDirection = forward(player);
                 tornadoLevel = (ServerLevel) player.level();
                 burstAbsorbed = null;
             }
+            if (accepted && intent == Intent.BURST_PRESS && kit() instanceof KaeyaKit) icicleLevel = (ServerLevel) player.level();
             sync();
             return accepted;
         }
@@ -365,6 +388,10 @@ public final class CombatRuntime {
         private void hit(CharacterKit kit, Hit hit) {
             if (!valid()) return;
             ServerLevel level = (ServerLevel) player.level();
+            if (hit.kind() == Kind.ICICLES || hit.kind() == Kind.ICICLES_END) {
+                if (level == icicleLevel) icicles((KaeyaKit) kit, hit, level);
+                return;
+            }
             boolean burst = hit.kind() == Kind.TORNADO;
             if (level != (burst ? tornadoLevel : actionLevel)) return;
             Vec3 origin = burst ? tornadoCenter(hit.frame()) : player.position().add(0, .8, 0);
@@ -372,9 +399,14 @@ public final class CombatRuntime {
             boolean sword = basic && kit.weapon() == CharacterKit.Weapon.SWORD;
             boolean ranged = basic && !sword && hit.kind() == Kind.NORMAL;
             boolean catalystCharge = basic && !sword && !ranged;
+            boolean frostgnaw = hit.kind() == Kind.FROSTGNAW;
             double radius = sword ? SWORD_RADIUS : catalystCharge ? ADAPTED_LISA_CHARGED_RADIUS
-                    : burst ? TORNADO_RADIUS : SKILL_RADIUS;
+                    : burst ? TORNADO_RADIUS : frostgnaw ? ADAPTED_FROSTGNAW_RANGE : SKILL_RADIUS;
             List<LivingEntity> enemies = ranged ? rayTargets(level, kit.weapon()) : nearby(level, origin, radius);
+            if (frostgnaw) enemies.removeIf(enemy -> !enemy.getBoundingBox().intersects(
+                    player.getX() - ADAPTED_FROSTGNAW_RANGE, player.getY(), player.getZ() - ADAPTED_FROSTGNAW_RANGE,
+                    player.getX() + ADAPTED_FROSTGNAW_RANGE, player.getY() + ADAPTED_FROSTGNAW_HEIGHT,
+                    player.getZ() + ADAPTED_FROSTGNAW_RANGE));
             if (!burst && !ranged) {
                 Vec3 facing = forward(player);
                 enemies.removeIf(enemy -> {
@@ -383,7 +415,7 @@ public final class CombatRuntime {
                     double distanceSquared = dx * dx + dz * dz;
                     return catalystCharge && enemy.getY() > player.getY() + ADAPTED_LISA_CHARGED_HEIGHT_TOLERANCE
                             || distanceSquared > .01 && (facing.x * dx + facing.z * dz)
-                            < (sword || catalystCharge ? SWORD_ARC_COSINE : 0) * Math.sqrt(distanceSquared);
+                            < (sword || catalystCharge || frostgnaw ? SWORD_ARC_COSINE : 0) * Math.sqrt(distanceSquared);
                 });
             }
             Element absorbed = null;
@@ -396,7 +428,8 @@ public final class CombatRuntime {
                     absorbed = skillAbsorbed;
                 }
             }
-            particles(level, origin.add(burst ? Vec3.ZERO : forward(player).scale(1.5)),
+            if (frostgnaw) frostgnawParticles(level);
+            else particles(level, origin.add(burst ? Vec3.ZERO : forward(player).scale(1.5)),
                     basic && hit.element() == Element.ELECTRO ? Element.ELECTRO : absorbed, sword);
             boolean enemyHit = false;
             for (LivingEntity enemy : enemies) {
@@ -410,6 +443,35 @@ public final class CombatRuntime {
                 }
             }
             if (enemyHit && hit.particles() > 0) party.collect(Energy.Item.PARTICLE, hit.element(), hit.particles());
+        }
+        private void frostgnawParticles(ServerLevel level) {
+            Vec3 facing = forward(player);
+            for (double distance = 1; distance <= ADAPTED_FROSTGNAW_RANGE; distance += 1.5) {
+                Vec3 center = player.position().add(facing.scale(distance)).add(0, .9, 0);
+                level.sendParticles(ParticleTypes.SNOWFLAKE, center.x, center.y, center.z, 8,
+                        distance * .18, .5, distance * .18, .02);
+                level.sendParticles(CRYO_DUST, center.x, center.y, center.z, 4, .3, .4, .3, 0);
+            }
+        }
+        private void icicles(KaeyaKit kaeya, Hit hit, ServerLevel level) {
+            boolean end = hit.kind() == Kind.ICICLES_END;
+            double revolution = 2 * Math.PI * (hit.frame() - hit.castFrame() - KaeyaKit.BURST_FIRST_CONTACT_FRAME)
+                    / KaeyaKit.ADAPTED_REVOLUTION_FRAMES;
+            Vec3 origin = player.position().add(0, .8, 0);
+            for (int icicle = 0; icicle < KaeyaKit.ICICLE_COUNT; icicle++) {
+                double angle = revolution + 2 * Math.PI * icicle / KaeyaKit.ICICLE_COUNT;
+                Vec3 point = origin.add(Math.sin(angle) * ADAPTED_ICICLE_ORBIT_RADIUS, 0,
+                        Math.cos(angle) * ADAPTED_ICICLE_ORBIT_RADIUS);
+                level.sendParticles(ParticleTypes.SNOWFLAKE, point.x, point.y, point.z, end ? 12 : 2, .08, .3, .08, .005);
+                level.sendParticles(CRYO_DUST, point.x, point.y, point.z, end ? 8 : 2, .04, .25, .04, 0);
+                var contacts = level.getEntitiesOfClass(LivingEntity.class,
+                        new AABB(point, point).inflate(ADAPTED_ICICLE_CONTACT_MARGIN),
+                        entity -> !(entity instanceof Player) && entity.isAlive() && !entity.isRemoved());
+                if (contacts.isEmpty() || !end && !kaeya.connectIcicle(icicle, hit.frame())) continue;
+                // One contact AoE spends this icicle's enemy-independent lock, not a per-target timer.
+                for (LivingEntity enemy : contacts)
+                    deal(kaeya, target(enemy), hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame());
+            }
         }
         /** Nearest unobstructed living target on the server eye ray; Amber hits at arrow release. */
         private List<LivingEntity> rayTargets(ServerLevel level, CharacterKit.Weapon weapon) {
@@ -438,8 +500,9 @@ public final class CombatRuntime {
         }
         private boolean deal(CharacterKit kit, CombatTarget target, Element element, double multiplier, double gauge, String tag, long frame) {
             target.aura().advanceTo(frame);
+            UUID owner = combatOwners[kit.state().character().ordinal()];
             List<Reaction> reactions = List.of();
-            if (gauge > 0 && target.application.allowsApplication(player.getUUID(), tag, target.entity().getUUID(), frame)) {
+            if (gauge > 0 && target.application.allowsApplication(owner, tag, target.entity().getUUID(), frame)) {
                 reactions = target.aura().applyHit(element, gauge, frame);
                 if (element == Element.HYDRO || element == Element.ELECTRO) {
                     target.ecOwner = kit.stats();
@@ -464,7 +527,7 @@ public final class CombatRuntime {
                 }
                 Element damageElement = Reaction.damageElement(reaction.type(), reaction.auraElement());
                 double reactionAmount = 0;
-                if (target.reactionDamage.allowsDamage(player.getUUID(), target.entity().getUUID(), reaction.type(), reaction.auraElement(), frame)) {
+                if (target.reactionDamage.allowsDamage(owner, target.entity().getUUID(), reaction.type(), reaction.auraElement(), frame)) {
                     double damage = Damage.transformativeDamage(reaction.type(), kit.stats().level(), kit.stats().elementalMastery(), 0,
                             target.resistance(damageElement));
                     if (target.damage(player, damage)) reactionAmount = damage;

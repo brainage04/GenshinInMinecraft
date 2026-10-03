@@ -12,7 +12,7 @@ abstract class NormalAttackKit implements CharacterKit {
     protected final EventTimeline timeline;
     protected final Stamina stamina;
     protected final CharacterState state;
-    private final Consumer<Hit> hits;
+    protected final Consumer<Hit> hits;
     private final Weapon weapon;
     private long generation;
     private long switchReady;
@@ -32,7 +32,7 @@ abstract class NormalAttackKit implements CharacterKit {
     @Override public final Weapon weapon() { return weapon; }
     @Override public final long frame() { return timeline.frame(); }
     @Override public final void advanceTo(long frame) { timeline.advanceTo(frame); stamina.advanceTo(frame); }
-    @Override public final boolean intent(Intent intent, long frame) {
+    @Override public boolean intent(Intent intent, long frame) {
         advanceTo(frame);
         if (intent == Intent.ATTACK_RELEASE) { held = false; return true; }
         if (intent != Intent.ATTACK_PRESS || !state.alive() || held || frame < state.actionReady) return false;
@@ -50,11 +50,20 @@ abstract class NormalAttackKit implements CharacterKit {
         state.comboReset = state.actionReady + ADAPTED_COMBO_RESET_FRAMES;
     }
     protected final void hit(long frame, Kind kind, double multiplier, Element element, double gauge, String tag, long cast) {
+        hit(frame, kind, multiplier, element, gauge, tag, 0, cast);
+    }
+    protected final void hit(long frame, Kind kind, double multiplier, Element element, double gauge, String tag,
+            int particles, long cast) {
         long expected = generation;
         timeline.schedule(frame, at -> {
             if (state.alive() && expected == generation)
-                hits.accept(new Hit(at, kind, multiplier, element, gauge, tag, false, false, 0, cast));
+                hits.accept(new Hit(at, kind, multiplier, element, gauge, tag, false, false, particles, cast));
         });
+    }
+    protected final void startTalent(long frame, int recovery, int swap) {
+        leaveField(frame); // Cancel held normals/charges, not a character's persistent burst.
+        state.actionReady = frame + recovery;
+        switchReady = frame + swap;
     }
     protected final void charge(long at, double cost, int recovery, int firstSwapFrame, java.util.function.LongConsumer action) {
         long expected = generation;

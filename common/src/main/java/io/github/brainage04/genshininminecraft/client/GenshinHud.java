@@ -90,7 +90,7 @@ public final class GenshinHud {
         graphics.fill(hpX - 4, hpY - 3, hpX + hpWidth + 4, hpY + 20, PANEL);
         bar(graphics, hpX, hpY, hpWidth, 7, active.hp(), active.maxHp(), HP);
         graphics.centeredText(font, hpText, width / 2, hpY + 10, 0xfff5f2e9);
-        boolean available = CombatInput.state().activeSlot() == 0;
+        boolean available = CombatInput.state().activeSlot() == 0 || CombatInput.state().activeSlot() == 2;
         icon(graphics, font, width - 106, height - 63, CombatInput.SKILL.getTranslatedKeyMessage().getString(),
                 available ? skillCooldown : "SOON", available, false, active.element());
         boolean full = HudFormatting.fraction(active.energy(), active.maxEnergy()) == 1;

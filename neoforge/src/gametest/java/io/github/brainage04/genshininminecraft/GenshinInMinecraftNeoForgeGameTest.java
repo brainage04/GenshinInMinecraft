@@ -6,6 +6,7 @@ import io.github.brainage04.genshininminecraft.gametest.TravelerCombatGameTests;
 import io.github.brainage04.genshininminecraft.gametest.HilichurlGameTests;
 import io.github.brainage04.genshininminecraft.gametest.StaminaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.PartyGameTests;
+import io.github.brainage04.genshininminecraft.gametest.KaeyaGameTests;
 import java.util.Map;
 import java.util.function.Consumer;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -44,7 +45,15 @@ public final class GenshinInMinecraftNeoForgeGameTest {
             Map.entry("party_switch_cooldown_and_unavailable_talents", PartyGameTests::partySwitchCooldownAndUnavailableTalents),
             Map.entry("character_death_forces_switch_and_party_wipe_kills_player", PartyGameTests::characterDeathForcesSwitchAndPartyWipeKillsPlayer),
             Map.entry("vanilla_lethal_damage_also_forces_character_switch", PartyGameTests::vanillaLethalDamageAlsoForcesCharacterSwitch),
-            Map.entry("charged_attack_requires_stamina", StaminaGameTests::chargedAttackRequiresStamina)
+            Map.entry("charged_attack_requires_stamina", StaminaGameTests::chargedAttackRequiresStamina),
+            Map.entry("frostgnaw_damage_and_cryo_aura", KaeyaGameTests::frostgnawDamageAndCryoAura),
+            Map.entry("frostgnaw_superconduct_physical_shred", KaeyaGameTests::frostgnawSuperconductPhysicalShred),
+            Map.entry("lisa_triggers_superconduct_on_cryo", KaeyaGameTests::lisaTriggersSuperconductOnCryo),
+            Map.entry("frostgnaw_melts_pyro_aura", KaeyaGameTests::frostgnawMeltsPyroAura),
+            Map.entry("traveler_swirls_kaeyas_cryo", KaeyaGameTests::travelerSwirlsKaeyasCryo),
+            Map.entry("glacial_waltz_energy_contact_and_switch", KaeyaGameTests::glacialWaltzEnergyContactAndSwitch),
+            Map.entry("frozen_target_cannot_move", KaeyaGameTests::frozenTargetCannotMove),
+            Map.entry("simultaneous_bursts_keep_character_icd_separate", KaeyaGameTests::simultaneousBurstsKeepCharacterIcdSeparate)
     );
 
     private GenshinInMinecraftNeoForgeGameTest() {

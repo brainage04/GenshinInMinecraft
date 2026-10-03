@@ -19,6 +19,7 @@ import io.github.brainage04.genshininminecraft.rules.Frames;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
+import net.minecraft.server.level.ParticleStatus;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.animal.cow.Cow;
@@ -59,6 +60,8 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             // and step logs, but capture the actual game's HUD without that diagnostic panel.
             context.runOnClient(client -> HudElementRegistry.removeElement(
                     Identifier.fromNamespaceAndPath("fabricmoddingconventions", "gametest_recording_feedback")));
+            // The client GameTest defaults to MINIMAL; visual evidence must enable real particles.
+            context.runOnClient(client -> client.options.particles().set(ParticleStatus.ALL));
             server.runCommand("execute as @a at @s run genshin arena");
             context.waitFor(client -> CombatInput.managed());
             context.waitFor(client -> client.level.getBlockState(client.player.blockPosition().below()).is(Blocks.SMOOTH_STONE));
@@ -117,8 +120,65 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             });
             screenshot(context, "genshin-party-four");
             context.waitTicks(22);
+            // The previous Amber rejection hint must expire before capturing Kaeya's available talents.
+            context.waitTicks(45);
+            context.getInput().pressKey(GLFW.GLFW_KEY_3);
+            context.waitFor(client -> CombatInput.state().activeSlot() == 2);
+            int cryoMobId = server.computeOnServer(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                var mob = new Hilichurl(GenshinEntities.HILICHURL, player.level());
+                mob.snapTo(player.position().add(0, 0, 4));
+                mob.setNoAi(true);
+                if (!((ServerLevel) player.level()).addFreshEntity(mob)) throw new AssertionError("Could not spawn Kaeya HUD target");
+                return mob.getId();
+            });
+            context.getInput().pressKey(GLFW.GLFW_KEY_E);
+            context.waitFor(client -> CombatInput.state().skillRemainingFrames() > 0 && CombatInput.state().energy() == 9
+                    && CombatFeedback.hasDamageNumber(cryoMobId)
+                    && (CombatFeedback.auraElements(cryoMobId) & (1 << Element.CRYO.ordinal())) != 0);
+            context.runOnClient(client -> {
+                if (!GenshinHud.party().get(2).active() || CombatInput.state().energy() != 9
+                        || client.gui.screen() instanceof InventoryScreen)
+                    throw new AssertionError("Kaeya E must show authoritative cooldown, Cryo damage/aura and9 skill energy, not SOON/inventory");
+            });
+            screenshot(context, "genshin-kaeya-frostgnaw");
+            server.runOnServer(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                player.level().getEntity(cryoMobId).discard();
+            });
+            context.waitTicks(22);
+            server.runOnServer(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                CombatRuntime.get(minecraftServer).session(player).kit().grantEnergy(60);
+            });
+            context.waitFor(client -> CombatInput.state().energy() == 60 && CombatInput.state().burstRemainingFrames() == 0);
+            screenshot(context, "genshin-kaeya-burst-ready");
+            context.runOnClient(client -> client.particleEngine.clearParticles());
+            context.getInput().pressKey(GLFW.GLFW_KEY_Q);
+            context.waitFor(client -> CombatInput.state().energy() == 0 && CombatInput.state().burstRemainingFrames() > 0);
+            server.waitFor(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                return ((io.github.brainage04.genshininminecraft.rules.kit.KaeyaKit)
+                        CombatRuntime.get(minecraftServer).session(player).kit()).burstActive(
+                                Frames.atServerTick(minecraftServer.getTickCount()));
+            });
+            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
+            context.waitTicks(10);
+            context.waitFor(client -> {
+                String particles = client.particleEngine.countParticles();
+                return Integer.parseInt(particles.substring(particles.lastIndexOf(' ') + 1)) > 0;
+            });
+            screenshot(context, "genshin-kaeya-glacial-waltz");
+            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
+            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
             context.getInput().pressKey(GLFW.GLFW_KEY_1);
             context.waitFor(client -> CombatInput.state().activeSlot() == 0);
+            server.waitFor(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                return !((io.github.brainage04.genshininminecraft.rules.kit.KaeyaKit)
+                        CombatRuntime.get(minecraftServer).session(player).party().kit(2)).burstActive(
+                                Frames.atServerTick(minecraftServer.getTickCount()));
+            });
             int mobId = server.computeOnServer(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
                 var mob = new Cow(EntityTypes.COW, player.level());

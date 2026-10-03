@@ -8,7 +8,9 @@
 		"FarmlandBlockMixin",
 		"BucketItemMixin",
 		"IgnitionItemMixin",
-		"ServerPlayerDeathMixin"
+		"ServerPlayerDeathMixin",
+		"FrozenLivingEntityMixin",
+		"FrozenEntityMovementMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
