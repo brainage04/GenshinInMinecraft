@@ -5,6 +5,7 @@ import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Energy;
 import io.github.brainage04.genshininminecraft.rules.EventTimeline;
 import io.github.brainage04.genshininminecraft.rules.Stats;
+import io.github.brainage04.genshininminecraft.rules.Stamina;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -35,6 +36,7 @@ public final class TravelerAnemoKit {
     private final EventTimeline timeline;
     private final Consumer<Hit> hits;
     private final Stats stats = starterStats();
+    private final Stamina stamina = new Stamina();
     private double hp = stats.hp();
     private double energy;
     private long skillReady;
@@ -53,6 +55,7 @@ public final class TravelerAnemoKit {
     public TravelerAnemoKit(EventTimeline timeline, Consumer<Hit> hits) {
         this.timeline = java.util.Objects.requireNonNull(timeline);
         this.hits = java.util.Objects.requireNonNull(hits);
+        stamina.advanceTo(timeline.frame());
     }
     public List<CharacterBaseStats.Character> party() { return STARTER_PARTY; }
     public CharacterBaseStats.Character activeCharacter() { return party().getFirst(); }
@@ -60,6 +63,7 @@ public final class TravelerAnemoKit {
     public double hp() { return hp; }
     public double maxHp() { return stats.hp(); }
     public double energy() { return energy; }
+    public Stamina stamina() { return stamina; }
     private static Stats starterStats() {
         var base = CharacterBaseStats.at(CharacterBaseStats.Character.TRAVELER_ANEMO, STARTER_LEVEL);
         return new Stats(STARTER_LEVEL, base.hp(), base.atk(), base.def(), TRAINING_SWORD_BASE_ATK,
@@ -78,7 +82,10 @@ public final class TravelerAnemoKit {
     public void grantParticles(int count) {
         grantEnergy(count * Energy.received(Energy.Item.PARTICLE, Element.ANEMO, Element.ANEMO, true, 1, 1));
     }
-    public void advanceTo(long frame) { timeline.advanceTo(frame); }
+    public void advanceTo(long frame) {
+        timeline.advanceTo(frame);
+        stamina.advanceTo(frame);
+    }
     public void schedule(long frame, java.util.function.LongConsumer event) { timeline.schedule(frame, event); }
 
     public boolean intent(Intent intent, long frame) {
@@ -112,6 +119,7 @@ public final class TravelerAnemoKit {
                 0, null, false, false, 0, frame, action);
         if (hit < 4) timeline.schedule(frame + CHARGE_TRANSITION_FRAMES[hit], at -> {
             if (!attackHeld || press != attackGeneration || action != actionGeneration || hp <= 0) return;
+            if (!stamina.chargedAttack(at)) return;
             combo = 0;
             actionReady = at + 55;
             emit(at + 10, Kind.CHARGED, 0.559, Element.PHYSICAL, 0, null, false, false, 0, frame, action);

@@ -11,9 +11,13 @@ Goal: a player can join a world (test arena now, the ported map once it exists),
 5. [x] Active character and Traveler (Anemo) kit: server-owned character state (HP, energy, cooldowns), normal/charged attack string, tap/hold elemental skill, burst, keybinds sent as intent, Genshin damage applied to entities; plain-Java JUnit, shared server GameTests on both loaders and Fabric client arena/key-conflict GameTest. State is intentionally memory-only (relog/respawn/managed-off reset resources); see decisions/fidelity for timing, geometry, equipment and direct-energy adaptations.
 6. [x] Managed-world HUD: four-row-capable party list with HP and energy, active numeric HP, skill/burst cooldowns and ready state, tracked floating damage/reaction numbers and synced enemy aura icons; vanilla bars return outside managed worlds. Pure formatting/layout tests and Fabric client arena/input/state GameTest pass; screenshots are in `fabric/build/run/clientGameTest/screenshots/genshin-hud-{aura,skill,burst-ready,vanilla}.png` (see decisions).
 7. [x] Hilichurl enemy: custom entity with placeholder model, Genshin HP/RES, simple aggro/leash/telegraphed melee, camp spawner command; GameTests.
-8. [ ] Stamina: sprint, dash with i-frames, charged-attack cost, stamina wheel on the HUD.
-9. [ ] Party switching with Amber, Kaeya and Lisa kits (one at a time), reactions between them in-world.
-10. [ ] Map port spike: read the archive's world `DataVersion` and scan palettes for non-vanilla blocks without modifying the archive; script extract + `--forceUpgrade` into a git-ignored directory.
+8. [x] Stamina: sourced 100-unit starter pool, sprint/dash costs and drain, delayed regeneration/exhaustion lockout, server-owned movement-direction dash with six-tick i-frames, 20-stamina sword charge, synced gold/red HUD arc. Screenshot: `fabric/build/run/clientGameTest/screenshots/genshin-stamina-wheel.png` (see decisions/fidelity for adapted distance, threshold and tick rounding).
+9. Party switching and the other three starter kits:
+   - [ ] 9a. Party of four with switching (keys 1–4 in managed worlds, sourced switch cooldown, off-field cooldowns/energy), per-character kit split out of `CombatRuntime.Session`; Kaeya, Amber and Lisa present with normal attacks only.
+   - [ ] 9b. Kaeya kit (Frostgale, Glacial Waltz) and Cryo reactions in-world (Superconduct, Melt, Frozen with Hydro if available).
+   - [ ] 9c. Amber kit (aimed shot, Explosive Puppet, Fiery Rain) incl. a minimal aim mode.
+   - [ ] 9d. Lisa kit (Violet Arc stacks/Conductive, Lightning Rose) and Overloaded/Electro-Charged in-world.
+10. [ ] Map port spike: read the archive's world `DataVersion` and scan palettes for non-vanilla blocks without modifying the archive; script extract + `--forceUpgrade` into a git-ignored directory. (Inspection and scripts done in 480182a; the full upgrade run is pending.)
 11. [ ] Camera spike: third-person orbit camera with camera-relative movement (own it vs. ShoulderSurfing), recorded in `docs/decisions.md`.
 
 ## Questions for the owner

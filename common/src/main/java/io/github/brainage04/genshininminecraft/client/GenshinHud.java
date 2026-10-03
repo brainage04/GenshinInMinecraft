@@ -2,6 +2,7 @@ package io.github.brainage04.genshininminecraft.client;
 
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
 import io.github.brainage04.genshininminecraft.rules.Element;
+import io.github.brainage04.genshininminecraft.rules.Stamina;
 import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit;
 import io.github.brainage04.genshininminecraft.ui.HudFormatting;
 import java.util.List;
@@ -18,6 +19,18 @@ public final class GenshinHud {
     private static final int BORDER = 0xffd5c9a5;
     private static final int HP = 0xff8bd76c;
     private static final int EMPTY = 0xff414956;
+    private static final int STAMINA_GOLD = 0xffffd76c;
+    private static final int STAMINA_RED = 0xffff5555;
+    private static final int STAMINA_SEGMENTS = 48;
+    private static final int[] STAMINA_X = new int[STAMINA_SEGMENTS];
+    private static final int[] STAMINA_Y = new int[STAMINA_SEGMENTS];
+    static {
+        for (int index = 0; index < STAMINA_SEGMENTS; index++) {
+            double angle = Math.toRadians(-135 + index * 270.0 / (STAMINA_SEGMENTS - 1));
+            STAMINA_X[index] = (int) Math.round(14 * Math.cos(angle));
+            STAMINA_Y[index] = (int) Math.round(14 * Math.sin(angle));
+        }
+    }
     private static List<PartyMember> party = List.of();
     private static final String[] PARTY_KEYS = {"1", "2", "3", "4"};
     private static String hpText = "";
@@ -74,6 +87,24 @@ public final class GenshinHud {
         icon(graphics, font, width - 57, height - 63, CombatInput.BURST.getTranslatedKeyMessage().getString(),
                 burstCooldown, full, ready, active.element());
         bar(graphics, width - 53, height - 29, 32, 3, active.energy(), active.maxEnergy(), ElementPalette.color(active.element()));
+        staminaWheel(graphics, width / 2 + 35, height / 2);
+    }
+
+    public static boolean staminaVisible() {
+        var state = CombatInput.state();
+        return state.managed() && (state.stamina() < Stamina.NEW_PLAYER_MAX || state.staminaDraining());
+    }
+    private static void staminaWheel(GuiGraphicsExtractor graphics, int x, int y) {
+        if (!staminaVisible()) return;
+        var state = CombatInput.state();
+        int filled = (int) Math.ceil(STAMINA_SEGMENTS * HudFormatting.fraction(state.stamina(), Stamina.NEW_PLAYER_MAX));
+        int color = state.staminaExhausted() ? STAMINA_RED : STAMINA_GOLD;
+        for (int index = 0; index < STAMINA_SEGMENTS; index++) {
+            int px = x + STAMINA_X[index], py = y + STAMINA_Y[index];
+            graphics.fill(px - 1, py - 1, px + 2, py + 2, index < filled ? color : EMPTY);
+        }
+        // A tiny red core keeps a completely depleted wheel visibly exhausted, not just grey.
+        if (state.staminaExhausted()) graphics.fill(x - 2, y - 2, x + 3, y + 3, STAMINA_RED);
     }
 
     private static void bar(GuiGraphicsExtractor graphics, int x, int y, int width, int height,

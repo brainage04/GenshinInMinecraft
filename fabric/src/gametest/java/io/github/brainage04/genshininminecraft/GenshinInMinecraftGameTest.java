@@ -4,6 +4,7 @@ import io.github.brainage04.genshininminecraft.gametest.GenshinInMinecraftGameTe
 import io.github.brainage04.genshininminecraft.gametest.ManagedWorldGameTests;
 import io.github.brainage04.genshininminecraft.gametest.TravelerCombatGameTests;
 import io.github.brainage04.genshininminecraft.gametest.HilichurlGameTests;
+import io.github.brainage04.genshininminecraft.gametest.StaminaGameTests;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 
@@ -92,5 +93,17 @@ public class GenshinInMinecraftGameTest {
     @GameTest
     public void clubMissAndPlayerDeath(GameTestHelper context) {
         HilichurlGameTests.clubMissAndPlayerDeath(context);
+    }
+    @GameTest
+    public void sprintDrainsAndStopsAtZero(GameTestHelper context) {
+        StaminaGameTests.sprintDrainsAndStopsAtZero(context);
+    }
+    @GameTest
+    public void dashCostsStaminaAndDodgesClub(GameTestHelper context) {
+        StaminaGameTests.dashCostsStaminaAndDodgesClub(context);
+    }
+    @GameTest
+    public void chargedAttackRequiresStamina(GameTestHelper context) {
+        StaminaGameTests.chargedAttackRequiresStamina(context);
     }
 }

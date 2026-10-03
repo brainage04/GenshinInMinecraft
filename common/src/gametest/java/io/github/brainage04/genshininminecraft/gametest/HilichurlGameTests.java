@@ -163,7 +163,7 @@ public final class HilichurlGameTests {
         context.succeed();
     }
 
-    private static void tick(GameTestHelper context, Hilichurl member) { context.getLevel().tickNonPassenger(member); }
+    static void tick(GameTestHelper context, Hilichurl member) { context.getLevel().tickNonPassenger(member); }
     private static List<Hilichurl> members(GameTestHelper context, ServerPlayer player) {
         return context.getLevel().getEntitiesOfClass(Hilichurl.class, new AABB(player.position(), player.position()).inflate(4));
     }
@@ -178,7 +178,7 @@ public final class HilichurlGameTests {
     private static void close(GameTestHelper context, double actual, double expected, String message) {
         context.assertTrue(Math.abs(actual - expected) < .0001, message + ": expected " + expected + ", actual " + actual);
     }
-    private static void withManaged(GameTestHelper context, BiConsumer<CombatRuntime, ServerPlayer> test) {
+    static void withManaged(GameTestHelper context, BiConsumer<CombatRuntime, ServerPlayer> test) {
         var level = context.getLevel();
         var server = level.getServer();
         var original = ManagedWorldData.get(server);

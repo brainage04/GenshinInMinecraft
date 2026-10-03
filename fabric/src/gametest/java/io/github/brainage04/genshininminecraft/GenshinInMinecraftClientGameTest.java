@@ -65,6 +65,33 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             server.runCommand("title @a clear");
             server.runCommand("execute as @a at @s run tp @s ~ ~ ~ 0 0");
             context.getInput().lookAt(0, 0);
+            context.runOnClient(client -> {
+                if (CombatInput.state().stamina() != 100 || GenshinHud.staminaVisible())
+                    throw new AssertionError("Full, idle new-player100 stamina must hide the wheel");
+            });
+            context.getInput().holdKey(options -> options.keyUp);
+            context.waitTicks(3);
+            var dashOrigin = context.computeOnClient(client -> client.player.position());
+            context.getInput().holdKey(options -> options.keySprint);
+            context.waitTicks(6);
+            var dashTravel = context.computeOnClient(client -> client.player.position().subtract(dashOrigin));
+            GenshinInMinecraft.LOGGER.info("Dash input probe: {} horizontal blocks over six client ticks from Sprint press (includes network delivery)",
+                    Math.sqrt(dashTravel.horizontalDistanceSqr()));
+            context.waitFor(client -> CombatInput.state().stamina() <= 80 && CombatInput.state().staminaDraining());
+            float sprintStamina = context.computeOnClient(client -> CombatInput.state().stamina());
+            context.waitTicks(10);
+            context.runOnClient(client -> {
+                if (CombatInput.state().stamina() >= sprintStamina || !client.player.isSprinting())
+                    throw new AssertionError("Holding vanilla sprint must drain server-synced stamina in the managed arena");
+                if (!GenshinHud.staminaVisible())
+                    throw new AssertionError("A draining, partially depleted stamina wheel must be visible");
+            });
+            context.runOnClient(client -> client.gui.hud.getChat().clearMessages(true));
+            screenshot(context, "genshin-stamina-wheel");
+            context.getInput().releaseKey(options -> options.keySprint);
+            context.getInput().releaseKey(options -> options.keyUp);
+            context.waitFor(client -> !client.player.isSprinting() && !CombatInput.state().staminaDraining());
+            context.waitFor(client -> CombatInput.state().stamina() == 100 && !GenshinHud.staminaVisible());
             int mobId = server.computeOnServer(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
                 var mob = new Cow(EntityTypes.COW, player.level());
@@ -139,6 +166,8 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.waitForScreen(InventoryScreen.class);
         } finally {
             context.getInput().releaseKey(GLFW.GLFW_KEY_E);
+            context.getInput().releaseKey(options -> options.keySprint);
+            context.getInput().releaseKey(options -> options.keyUp);
         } });
     }
 

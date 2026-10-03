@@ -19,6 +19,7 @@ import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -38,6 +39,8 @@ public final class CombatRuntime {
     public static final double TORNADO_BLOCKS_PER_SECOND = 2;
     public static final double SMALL_ENEMY_MAX_WIDTH = 1.4;
     public static final double SMALL_ENEMY_MAX_HEIGHT = 2.2;
+    public static final double ADAPTED_DASH_BLOCKS_PER_TICK = .6;
+    public static final int CHARACTER_SYNC_INTERVAL_TICKS = 3;
     private static final DustParticleOptions PYRO_DUST = new DustParticleOptions(0xff6622, 1.2F);
     private static final DustParticleOptions CRYO_DUST = new DustParticleOptions(0x99eeff, 1.2F);
     private static final DustParticleOptions HYDRO_DUST = new DustParticleOptions(0x3388ff, 1.2F);
@@ -77,6 +80,8 @@ public final class CombatRuntime {
     public boolean enemyHit(ServerPlayer player, LivingEntity enemy, double attack, double multiplier, int enemyLevel) {
         if (!ManagedWorld.isManaged(player.level()) || player.isCreative() || player.isSpectator() || !player.isAlive()) return false;
         Session state = session(player);
+        long frame = Math.max(state.kit.frame(), Frames.atServerTick(player.level().getServer().getTickCount()));
+        if (state.stamina().dashInvulnerable(frame)) return false;
         state.reconcileHealth();
         double amount = Damage.enemyDamage(attack, multiplier, enemyLevel, state.kit.stats().def(),
                 HilichurlProfile.STARTER_PLAYER_RESISTANCE);
@@ -127,7 +132,7 @@ public final class CombatRuntime {
             }
             Session state = session(player);
             state.reconcileHealth();
-            state.advanceTo(frame);
+            state.tickMovement(frame);
             state.sync();
         }
         players.values().removeIf(state -> state.player.isRemoved());
@@ -157,6 +162,11 @@ public final class CombatRuntime {
         private long lastTornadoStep = -1;
         private ServerLevel actionLevel;
         private ServerLevel lastSyncLevel;
+        private long lastSyncFrame;
+        private long lastMovementFrame = -1;
+        private boolean sprintKeyHeld;
+        private Vec3 dashMotion;
+        private ServerLevel dashLevel;
 
         private Session(ServerPlayer player) {
             this.player = player;
@@ -166,6 +176,7 @@ public final class CombatRuntime {
             kit.setHp(kit.maxHp() * player.getHealth() / player.getMaxHealth());
         }
         public TravelerAnemoKit kit() { return kit; }
+        public Stamina stamina() { return kit.stamina(); }
         public Element skillAbsorbedElement() { return skillAbsorbed; }
         public Element burstAbsorbedElement() { return burstAbsorbed; }
         public boolean intent(Intent intent, long frame) {
@@ -202,6 +213,42 @@ public final class CombatRuntime {
                 particles(tornadoLevel, center, burstAbsorbed, false);
             }
         }
+        /** Vanilla's input packet supplies the sprint-key edge and camera-relative WASD direction. */
+        public void tickMovement(long frame) {
+            advanceTo(frame);
+            if (lastMovementFrame == frame) return;
+            lastMovementFrame = frame;
+            var input = player.getLastClientInput();
+            boolean held = input.sprint();
+            boolean moving = input.forward() != input.backward() || input.left() != input.right();
+            boolean eligible = valid() && !player.isSpectator() && !player.isPassenger()
+                    && !player.getAbilities().flying && !player.isInWater() && !player.isFallFlying()
+                    && !input.shift();
+            if (eligible && moving && held && !sprintKeyHeld && player.onGround() && stamina().dash(frame)) {
+                dashMotion = player.getLastClientMoveIntent().scale(ADAPTED_DASH_BLOCKS_PER_TICK);
+                dashLevel = (ServerLevel) player.level();
+            }
+            sprintKeyHeld = held;
+            if (eligible && moving && held) {
+                if (!stamina().sprinting() && !stamina().exhausted()) stamina().startSprint(frame);
+            } else {
+                stamina().stopSprint(frame);
+            }
+            player.setSprinting(eligible && moving && held && stamina().sprinting() && !stamina().exhausted());
+            if (dashMotion != null) {
+                boolean dashing = eligible && player.level() == dashLevel && stamina().dashing(frame);
+                setHorizontalMotion(dashing ? dashMotion : Vec3.ZERO);
+                if (!dashing) { dashMotion = null; dashLevel = null; }
+            }
+        }
+        private void setHorizontalMotion(Vec3 motion) {
+            player.setDeltaMovement(motion.x, player.getDeltaMovement().y, motion.z);
+            player.hurtMarked = true;
+            // ServerPlayer movement is client-simulated; explicitly send the authoritative impulse
+            // to its owner (entity tracking alone does not send that player's own velocity).
+            if (player.connection != null && player.connection.isAcceptingMessages())
+                player.connection.send(new ClientboundSetEntityMotionPacket(player));
+        }
         private boolean valid() {
             return players.get(player.getUUID()) == this && player.isAlive() && !player.isRemoved() && ManagedWorld.isManaged(player.level());
         }
@@ -217,14 +264,21 @@ public final class CombatRuntime {
                 lastSync = null;
                 lastSyncLevel = (ServerLevel) player.level();
             }
+            if (lastSync != null && kit.frame() - lastSyncFrame < Frames.atServerTick(CHARACTER_SYNC_INTERVAL_TICKS)) return;
             float hp = (float) kit.hp();
             float maxHp = (float) kit.maxHp();
             float energy = (float) kit.energy();
             int skill = (int) kit.skillRemaining();
             int burst = (int) kit.burstRemaining();
+            float stamina = (float) stamina().current();
+            boolean exhausted = stamina().exhausted();
+            boolean draining = stamina().draining();
             if (lastSync == null || lastSync.hp() != hp || lastSync.maxHp() != maxHp || lastSync.energy() != energy
-                    || lastSync.skillRemainingFrames() != skill || lastSync.burstRemainingFrames() != burst) {
-                lastSync = new CharacterStatePayload(true, hp, maxHp, energy, skill, burst);
+                    || lastSync.skillRemainingFrames() != skill || lastSync.burstRemainingFrames() != burst
+                    || lastSync.stamina() != stamina || lastSync.staminaExhausted() != exhausted
+                    || lastSync.staminaDraining() != draining) {
+                lastSync = new CharacterStatePayload(true, hp, maxHp, energy, skill, burst, stamina, exhausted, draining);
+                lastSyncFrame = kit.frame();
                 if (sender != null) sender.accept(player, lastSync);
             }
         }

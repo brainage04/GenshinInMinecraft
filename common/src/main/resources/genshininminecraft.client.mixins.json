@@ -2,7 +2,7 @@
 	"required": true,
 	"package": "io.github.brainage04.genshininminecraft.mixin.client",
 	"compatibilityLevel": "JAVA_25",
-	"client": ["CombatInputMixin"],
+	"client": ["CombatInputMixin", "StaminaMovementMixin"],
 	"injectors": {
 		"defaultRequire": 1
 	},

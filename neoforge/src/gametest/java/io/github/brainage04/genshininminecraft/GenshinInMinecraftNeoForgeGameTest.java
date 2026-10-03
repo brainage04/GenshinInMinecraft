@@ -4,6 +4,7 @@ import io.github.brainage04.genshininminecraft.gametest.GenshinInMinecraftGameTe
 import io.github.brainage04.genshininminecraft.gametest.ManagedWorldGameTests;
 import io.github.brainage04.genshininminecraft.gametest.TravelerCombatGameTests;
 import io.github.brainage04.genshininminecraft.gametest.HilichurlGameTests;
+import io.github.brainage04.genshininminecraft.gametest.StaminaGameTests;
 import java.util.Map;
 import java.util.function.Consumer;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -35,7 +36,10 @@ public final class GenshinInMinecraftNeoForgeGameTest {
             Map.entry("camp_command_and_spec_damage", HilichurlGameTests::campCommandAndSpecDamage),
             Map.entry("aggro_windup_and_character_damage", HilichurlGameTests::aggroWindupAndCharacterDamage),
             Map.entry("leash_heals_clears_aura_and_returns", HilichurlGameTests::leashHealsClearsAuraAndReturns),
-            Map.entry("club_miss_and_player_death", HilichurlGameTests::clubMissAndPlayerDeath)
+            Map.entry("club_miss_and_player_death", HilichurlGameTests::clubMissAndPlayerDeath),
+            Map.entry("sprint_drains_and_stops_at_zero", StaminaGameTests::sprintDrainsAndStopsAtZero),
+            Map.entry("dash_costs_stamina_and_dodges_club", StaminaGameTests::dashCostsStaminaAndDodgesClub),
+            Map.entry("charged_attack_requires_stamina", StaminaGameTests::chargedAttackRequiresStamina)
     );
 
     private GenshinInMinecraftNeoForgeGameTest() {

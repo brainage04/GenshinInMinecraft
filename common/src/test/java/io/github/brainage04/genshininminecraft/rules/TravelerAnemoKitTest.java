@@ -42,7 +42,7 @@ class TravelerAnemoKitTest {
         assertEquals(.445, hits.getLast().multiplier());
     }
 
-    @Test void holdingAttackAddsBothAetherChargedHitsWithoutStaminaSystem() {
+    @Test void holdingAttackPaysTwentyStaminaOnceForBothAetherChargedHits() {
         List<Hit> hits = new ArrayList<>();
         var kit = new TravelerAnemoKit(hits::add);
         kit.intent(Intent.ATTACK_PRESS, 0);
@@ -50,6 +50,19 @@ class TravelerAnemoKitTest {
         assertEquals(List.of(13L, 38L, 49L), hits.stream().map(Hit::frame).toList());
         assertEquals(List.of(.445, .559, .607), hits.stream().map(Hit::multiplier).toList());
         assertEquals(Kind.CHARGED, hits.getLast().kind());
+        assertEquals(80, kit.stamina().current()); // stamina.md: ordinary sword charge20, once not per hit.
+    }
+
+    @Test void insufficientStaminaRejectsTheChargedFollowUpButNotItsPrecedingNormal() {
+        List<Hit> hits = new ArrayList<>();
+        var kit = new TravelerAnemoKit(hits::add);
+        assertTrue(kit.stamina().consume(81, 0));
+        kit.intent(Intent.ATTACK_PRESS, 0);
+        kit.advanceTo(49);
+        assertEquals(List.of(Kind.NORMAL), hits.stream().map(Hit::kind).toList());
+        assertEquals(19, kit.stamina().current());
+        assertTrue(kit.intent(Intent.ATTACK_RELEASE, 49));
+        assertTrue(kit.intent(Intent.ATTACK_PRESS, 49), "Rejected charge must not install charged recovery");
     }
 
     @Test void tapStormCooldownStartsAtSourcedFrame27AndOnlyHitGrantsSixEnergy() {
