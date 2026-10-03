@@ -2,8 +2,10 @@
 # Start this project's omp session isolated from the owner's desktop.
 #
 # - Resources: everything the session starts (Gradle, servers, clients, Xvfb)
-#   shares one cgroup capped at 24 GiB RAM (reclaim from 20 GiB), 2 GiB swap,
-#   and low CPU/IO weight, so interactive use always wins under contention.
+#   shares one cgroup capped at 12 GiB RAM (reclaim from 10 GiB), 2 GiB swap,
+#   3 of 8 CPUs (CPUQuota=300%) and low CPU/IO weight, so two isolated sessions
+#   can run at once with headroom for the OS, and interactive use always wins
+#   under contention.
 # - Display: no DISPLAY/XAUTHORITY, and WAYLAND_DISPLAY points at a socket that
 #   does not exist (unset would fall back to the desktop's wayland-0). The
 #   session D-Bus is pointed at /dev/null, so nothing can open windows, portal
@@ -14,7 +16,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 exec systemd-run --user --scope --quiet --unit="genshin-omp-$$" \
-  -p MemoryHigh=20G -p MemoryMax=24G -p MemorySwapMax=2G \
+  -p MemoryHigh=10G -p MemoryMax=12G -p MemorySwapMax=2G -p CPUQuota=300% \
   -p CPUWeight=20 -p IOWeight=20 -p TasksMax=4096 \
   env -u DISPLAY -u XAUTHORITY \
   WAYLAND_DISPLAY=/nonexistent/wayland \
