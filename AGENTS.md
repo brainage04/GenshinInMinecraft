@@ -29,6 +29,9 @@ The root build places Fabric and NeoForge release jars in `build/libs`; install 
 - `/genshin managed on|off|status` requires operator level 2. The switch covers the entire saved world/all dimensions, persists in overworld saved data and restores previous gamerules when switched off.
 - `/genshin arena` requires operator level 2 and a player source. **Destructive:** rewrites a fixed 50×50×6 volume around that player with a smooth-stone floor, a one-block border and cleared air; enables managed mode, teleports the player to the centre and sets adventure mode. Use generated/disposable development worlds only.
 - Managed survival/adventure players cannot break/place blocks or trample farmland. Creative players bypass those editing protections. Hunger, natural regeneration, natural spawning, environmental fire spread and mob griefing are disabled; weather/day-night remain unchanged. See [the detailed decision](docs/decisions.md#2026-10-04--saved-world-managed-mode-and-bounded-developer-arena).
+- In managed mode, Traveler (Anemo) uses left-click taps for the five-hit sword string, left-click hold for a two-hit charged follow-up, **E** tap/hold for Palm Vortex and **Q** for Gust Surge after earning 60 energy from skill hits. The `Genshin` key category is rebindable. E/Q take precedence over conflicting inventory/drop bindings only in managed gameplay; vanilla melee/block breaking cannot double-fire.
+- Until the HUD item, the action bar shows HP, energy and cooldowns. Character resources/cooldowns are memory-only and reset on relog/respawn/managed-off. Explicit `/summon` mobs can be used in the disposable arena until the hilichurl camp item; natural mob spawning remains off.
+- For ordinary mouse-based creative block editing, first run `/genshin managed off`: the managed client's attack key is kit-owned even in creative. The existing server block policies still allow creative placement and direct creative edits.
 
 ### Private headless clients
 

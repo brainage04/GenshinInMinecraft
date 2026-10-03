@@ -1,4 +1,7 @@
 {
+  "key.category.genshininminecraft.genshin": "Genshin",
+  "key.genshininminecraft.skill": "Elemental Skill",
+  "key.genshininminecraft.burst": "Elemental Burst",
   "text.autoconfig.genshininminecraft.title": "GenshinInMinecraft Settings",
   "text.autoconfig.genshininminecraft.option.logConfigOnStartup": "Log config on startup"
 }
