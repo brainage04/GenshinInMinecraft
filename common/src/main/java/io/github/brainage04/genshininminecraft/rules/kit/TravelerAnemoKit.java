@@ -36,6 +36,7 @@ public final class TravelerAnemoKit implements CharacterKit {
     private long skillStart;
     private long skillGeneration;
     private long actionGeneration;
+    private long burstGeneration;
 
     public TravelerAnemoKit(Consumer<Hit> hits) { this(new EventTimeline(), new Stamina(), hits); }
     public TravelerAnemoKit(EventTimeline timeline, Consumer<Hit> hits) { this(timeline, new Stamina(), hits); }
@@ -66,6 +67,10 @@ public final class TravelerAnemoKit implements CharacterKit {
         state.comboReset = 0;
         state.actionReady = frame;
         switchReady = frame;
+    }
+    @Override public void cancelCasts(long frame) {
+        leaveField(frame);
+        ++burstGeneration;
     }
     @Override public boolean intent(Intent intent, long frame) {
         advanceTo(frame);
@@ -151,8 +156,9 @@ public final class TravelerAnemoKit implements CharacterKit {
         state.combo = 0;
         ++actionGeneration;
         // Burst persists independently of later actions or leaving the field.
+        long generation = ++burstGeneration;
         for (int tick = 0; tick < 9; tick++) timeline.schedule(frame + 96 + tick * 30, at -> {
-            if (state.alive()) hits.accept(new Hit(at, Kind.TORNADO, .808, Element.ANEMO, 1,
+            if (state.alive() && generation == burstGeneration) hits.accept(new Hit(at, Kind.TORNADO, .808, Element.ANEMO, 1,
                     "Elemental Burst", true, true, 0, frame));
         });
         return true;

@@ -9,6 +9,7 @@ import io.github.brainage04.genshininminecraft.gametest.PartyGameTests;
 import io.github.brainage04.genshininminecraft.gametest.KaeyaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.AmberGameTests;
 import io.github.brainage04.genshininminecraft.gametest.LisaGameTests;
+import io.github.brainage04.genshininminecraft.gametest.CombatLifecycleGameTests;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 
@@ -166,6 +167,10 @@ public class GenshinInMinecraftGameTest {
     public void stationarySprintCancelsAimedShot(GameTestHelper context) { AmberGameTests.stationarySprintCancelsAimedShot(context); }
     @GameTest
     public void exhaustedSprintCancelsAimedShot(GameTestHelper context) { AmberGameTests.exhaustedSprintCancelsAimedShot(context); }
+    @GameTest
+    public void dimensionChangePermanentlyCancelsFieldObjects(GameTestHelper context) { CombatLifecycleGameTests.dimensionChangePermanentlyCancelsFieldObjects(context); }
+    @GameTest
+    public void partyWipeDiscardsLandedBunny(GameTestHelper context) { CombatLifecycleGameTests.partyWipeDiscardsLandedBunny(context); }
     @GameTest
     public void baronBunnyTauntsTakesClubAndExpires(GameTestHelper context) { AmberGameTests.baronBunnyTauntsTakesClubAndExpires(context); }
     @GameTest

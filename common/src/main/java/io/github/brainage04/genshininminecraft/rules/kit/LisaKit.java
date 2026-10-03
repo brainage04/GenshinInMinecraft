@@ -116,6 +116,10 @@ public final class LisaKit extends NormalAttackKit {
                 && frame <= roseCast + ADAPTED_ROSE_FORMATION_FRAME + ROSE_DURATION_FRAMES;
     }
     @Override public void leaveField(long frame) { skillHeld = -1; super.leaveField(frame); }
+    @Override public void cancelCasts(long frame) {
+        leaveField(frame);
+        roseCast = -1;
+    }
     @Override protected void normal(long frame, int index) {
         combo(frame, index, 4, RECOVERY_FRAMES[index]);
         hit(frame + HIT_FRAMES[index], Kind.NORMAL, MULTIPLIERS[index], Element.ELECTRO, 1, NORMAL_ICD_TAG, frame);

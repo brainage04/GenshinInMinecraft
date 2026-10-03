@@ -112,7 +112,9 @@ public final class CombatRuntime {
     public Session session(ServerPlayer player) {
         Session previous = players.get(player.getUUID());
         if (previous != null && previous.player != player) { previous.clearFieldObjects(); players.remove(player.getUUID()); }
-        return players.computeIfAbsent(player.getUUID(), ignored -> new Session(player));
+        Session state = players.computeIfAbsent(player.getUUID(), ignored -> new Session(player));
+        state.reconcileDimension();
+        return state;
     }
     public CombatTarget target(LivingEntity entity) {
         if (entity instanceof Player) throw new IllegalArgumentException("Players are not kit targets");
@@ -241,6 +243,7 @@ public final class CombatRuntime {
         long frame = Frames.atServerTick(server.getTickCount());
         boolean managed = ManagedWorld.isManaged(server.overworld());
         // EC must drain before natural decay even when its owner has no ticking session.
+        for (Session state : players.values()) state.reconcileDimension();
         if (managed) timeline.advanceTo(frame);
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (!managed) {
@@ -275,6 +278,8 @@ public final class CombatRuntime {
 
     public final class Session {
         private final ServerPlayer player;
+        private ServerLevel sessionLevel;
+        private long castGeneration;
         private final Party party;
         private final Random random;
         private final Random roseTargets;
@@ -311,6 +316,7 @@ public final class CombatRuntime {
 
         private Session(ServerPlayer player) {
             this.player = player;
+            sessionLevel = player.level();
             random = new Random(player.getUUID().getLeastSignificantBits());
             roseTargets = new Random(player.getUUID().getMostSignificantBits());
             party = new Party(timeline, this::hit);
@@ -373,6 +379,7 @@ public final class CombatRuntime {
             return accepted;
         }
         public void advanceTo(long frame) {
+            reconcileDimension();
             party.advanceTo(frame);
             AmberKit amber = (AmberKit) party.kit(1);
             if (bunny != null && (!bunny.isAlive() || bunny.isRemoved() || bunny.getHealth() < amber.puppetHp() - .001))
@@ -449,10 +456,32 @@ public final class CombatRuntime {
                 player.connection.send(new ClientboundSetEntityMotionPacket(player));
         }
         private boolean valid() {
+            reconcileDimension();
             return players.get(player.getUUID()) == this && player.isAlive() && !player.isRemoved() && ManagedWorld.isManaged(player.level());
         }
+        private void reconcileDimension() {
+            if (sessionLevel == player.level()) return;
+            sessionLevel = player.level();
+            clearFieldObjects();
+        }
         private void clearFieldObjects() {
+            ++castGeneration;
+            for (int slot = 0; slot < Party.SIZE; slot++) party.kit(slot).cancelCasts(timeline.frame());
             if (bunny != null) { bunny.discard(); bunny = null; }
+            actionLevel = null;
+            puppetLevel = null;
+            puppetLanding = null;
+            rainLevel = null;
+            rainOrigin = null;
+            icicleLevel = null;
+            roseLevel = null;
+            roseOrigin = null;
+            tornadoLevel = null;
+            tornadoOrigin = null;
+            tornadoDirection = null;
+            tornadoStart = -1;
+            skillAbsorbed = null;
+            burstAbsorbed = null;
             player.getAttribute(Attributes.MOVEMENT_SPEED).removeModifier(AIM_SPEED_ID);
         }
         private void reconcileHealth() {
@@ -468,6 +497,7 @@ public final class CombatRuntime {
         private boolean forceSwitch(long frame) {
             boolean switched = party.forceSwitch(frame);
             if (switched) switchEffect();
+            else clearFieldObjects();
             return switched;
         }
         private void broadcastCharacter(int slot) {
@@ -525,7 +555,7 @@ public final class CombatRuntime {
             if (!valid()) return;
             ServerLevel level = (ServerLevel) player.level();
             if (hit.kind() == Kind.BUNNY_LAND || hit.kind() == Kind.BUNNY_EXPLODE) {
-                puppet((AmberKit) kit, hit);
+                if (level == puppetLevel) puppet((AmberKit) kit, hit);
                 return;
             }
             if (hit.kind() == Kind.RAIN_INNER || hit.kind() == Kind.RAIN_OUTER) {
@@ -616,6 +646,7 @@ public final class CombatRuntime {
             final LisaKit lisa;
             final Hit hit;
             final ServerLevel level;
+            final long generation;
             final Vec3 direction;
             LivingEntity enemy;
             Vec3 position;
@@ -624,6 +655,7 @@ public final class CombatRuntime {
                 this.lisa = lisa;
                 this.hit = hit;
                 this.level = level;
+                generation = castGeneration;
                 direction = player.getLookAngle();
                 position = player.getEyePosition();
                 enemy = nearestEnemy(level, position, ADAPTED_VIOLET_ACQUISITION_RADIUS);
@@ -636,8 +668,8 @@ public final class CombatRuntime {
         }
         private void sampleVioletOrb(VioletOrb orb, long frame) {
             timeline.schedule(frame, at -> {
-                if (!valid() || !orb.lisa.state().alive() || player.level() != orb.level
-                        || at >= orb.hit.frame() + LisaKit.TAP_LIFETIME_FRAMES) return;
+                if (!valid() || orb.generation != castGeneration || !orb.lisa.state().alive()
+                        || player.level() != orb.level || at >= orb.hit.frame() + LisaKit.TAP_LIFETIME_FRAMES) return;
                 if (orb.enemy == null || !orb.enemy.isAlive() || orb.enemy.isRemoved())
                     orb.enemy = nearestEnemy(orb.level, orb.position, ADAPTED_VIOLET_ACQUISITION_RADIUS);
                 Vec3 destination = orb.enemy == null ? orb.position.add(orb.direction)

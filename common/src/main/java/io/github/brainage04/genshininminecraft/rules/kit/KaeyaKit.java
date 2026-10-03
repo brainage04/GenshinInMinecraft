@@ -64,6 +64,10 @@ public final class KaeyaKit extends NormalAttackKit {
         }
         return true;
     }
+    @Override public void cancelCasts(long frame) {
+        leaveField(frame);
+        burstCast = -1;
+    }
     public boolean burstActive(long frame) {
         return state.alive() && burstCast >= 0 && frame >= burstCast + BURST_FIRST_CONTACT_FRAME
                 && frame < burstCast + BURST_FIRST_CONTACT_FRAME + BURST_DURATION_FRAMES;

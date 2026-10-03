@@ -9,6 +9,7 @@ import io.github.brainage04.genshininminecraft.gametest.PartyGameTests;
 import io.github.brainage04.genshininminecraft.gametest.KaeyaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.AmberGameTests;
 import io.github.brainage04.genshininminecraft.gametest.LisaGameTests;
+import io.github.brainage04.genshininminecraft.gametest.CombatLifecycleGameTests;
 import java.util.Map;
 import java.util.function.Consumer;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -22,6 +23,8 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 @EventBusSubscriber(modid = GenshinInMinecraft.MOD_ID)
 public final class GenshinInMinecraftNeoForgeGameTest {
     private static final Map<String, Consumer<GameTestHelper>> TESTS = Map.ofEntries(
+            Map.entry("dimension_change_permanently_cancels_field_objects", CombatLifecycleGameTests::dimensionChangePermanentlyCancelsFieldObjects),
+            Map.entry("party_wipe_discards_landed_bunny", CombatLifecycleGameTests::partyWipeDiscardsLandedBunny),
             Map.entry("violet_tap_stacks_and_unascended_charge", LisaGameTests::violetTapStacksAndUnascendedCharge),
             Map.entry("violet_hold_consumes_three_stacks", LisaGameTests::violetHoldConsumesThreeStacks),
             Map.entry("violet_tap_multistacks_and_off_field_projectile", LisaGameTests::violetTapMultistacksAndOffFieldProjectile),

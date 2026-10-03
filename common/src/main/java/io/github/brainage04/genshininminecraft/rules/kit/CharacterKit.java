@@ -26,6 +26,8 @@ public interface CharacterKit {
     boolean intent(Intent intent, long frame);
     boolean canSwitch(long frame);
     void leaveField(long frame);
+    /** Cancel every queued action and persistent field without resetting party resources. */
+    default void cancelCasts(long frame) { leaveField(frame); }
     default Stats stats() { return state().stats(); }
     default double hp() { return state().hp(); }
     default double maxHp() { return state().maxHp(); }

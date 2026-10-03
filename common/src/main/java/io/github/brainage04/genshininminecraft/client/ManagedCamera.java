@@ -166,6 +166,9 @@ public final class ManagedCamera {
         player.setXRot(bodyPitch);
     }
     private static void sendYaw() {
+        // Spectator packets are rejected server-side; never cache their yaw as accepted.
+        // Invalidating here also resends an unchanged orbit as soon as play resumes.
+        if (owner.isSpectator()) { sentYaw = Float.NaN; return; }
         float movementYaw = decoupled() ? yaw : owner.getYRot();
         if (sender != null && movementYaw != sentYaw) {
             sender.accept(new CameraYawPayload(movementYaw));

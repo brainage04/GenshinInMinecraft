@@ -5,6 +5,7 @@ import io.github.brainage04.fabricmoddingconventions.ClientGameTestServers;
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
+import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.resources.Identifier;
 import io.github.brainage04.genshininminecraft.client.CombatInput;
@@ -75,6 +76,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             server.runCommand("execute as @a at @s run tp @s ~ ~ ~ 0 0");
             context.getInput().lookAt(0, 0);
             context.waitFor(client -> ManagedCamera.decoupled() && client.gameRenderer.mainCamera().isDetached());
+            spectatorExitResendsCameraYaw(context, server);
             context.runOnClient(client -> {
                 ManagedCamera.setAngles(90, 15);
                 client.player.setYRot(0);
@@ -529,6 +531,48 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.getInput().releaseKey(options -> options.keyLeft);
             context.getInput().releaseKey(options -> options.keyAttack);
         } });
+    }
+
+    private static void spectatorExitResendsCameraYaw(ClientGameTestContext context, TestDedicatedServerContext server) {
+        context.runOnClient(client -> ManagedCamera.setAngles(0, 0));
+        context.waitTicks(3);
+        server.runOnServer(minecraftServer -> {
+            var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+            if (!CombatRuntime.get(minecraftServer).receiveCameraYaw(player, 0))
+                throw new AssertionError("Precondition: playable owner accepts the initial yaw0 basis");
+        });
+        server.runCommand("gamemode spectator @a");
+        context.waitFor(client -> client.player.isSpectator());
+        context.runOnClient(client -> ManagedCamera.setAngles(90, 0));
+        context.waitTicks(3);
+        server.runOnServer(minecraftServer -> {
+            var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+            if (CombatRuntime.get(minecraftServer).receiveCameraYaw(player, 90))
+                throw new AssertionError("Spectator camera yaw must be rejected by the server");
+        });
+        server.runCommand("gamemode adventure @a");
+        context.waitFor(client -> !client.player.isSpectator() && !client.player.getAbilities().flying);
+        context.waitTicks(3);
+        context.runOnClient(client -> {
+            if (Math.abs(CameraMath.wrap(ManagedCamera.yaw() - 90)) > .1)
+                throw new AssertionError("Leaving spectator must preserve the unmoved orbit yaw90");
+        });
+        context.getInput().holdKey(options -> options.keyUp);
+        context.waitTicks(3);
+        context.getInput().holdKey(options -> options.keySprint);
+        server.waitFor(minecraftServer -> {
+            var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+            return CombatRuntime.get(minecraftServer).session(player).stamina().dashing(
+                    Frames.atServerTick(minecraftServer.getTickCount()));
+        });
+        server.runOnServer(minecraftServer -> {
+            var motion = minecraftServer.getPlayerList().getPlayers().getFirst().getDeltaMovement();
+            if (motion.x > -.5 || Math.abs(motion.z) > .01)
+                throw new AssertionError("Spectator exit must resend unchanged yaw90: W dash must go -X, not stale yaw0 +Z: " + motion);
+        });
+        context.getInput().releaseKey(options -> options.keySprint);
+        context.getInput().releaseKey(options -> options.keyUp);
+        context.waitFor(client -> CombatInput.state().stamina() == 100 && !client.player.isSprinting());
     }
 
     private static void screenshot(ClientGameTestContext context, String name) {

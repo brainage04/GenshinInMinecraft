@@ -89,9 +89,9 @@ public final class AmberKit extends NormalAttackKit {
             if (frame < state.skillReady) return false;
             startTalent(frame, SKILL_RECOVERY_FRAME, SKILL_SWITCH_FRAME);
             state.skillReady = frame + SKILL_COOLDOWN_START_FRAME + SKILL_COOLDOWN_FRAMES;
-            long cast = frame;
+            long cast = puppetCast = frame;
             timeline.schedule(frame + ADAPTED_PUPPET_LANDING_FRAME, at -> {
-                puppetCast = cast;
+                if (puppetCast != cast || !state.alive()) return;
                 puppetHp = maxHp() * PUPPET_HP_FRACTION;
                 emit(at, Kind.BUNNY_LAND, 0, 0, null, 0, cast);
                 timeline.schedule(at + PUPPET_LIFETIME_FRAMES, expiry -> {
@@ -135,6 +135,12 @@ public final class AmberKit extends NormalAttackKit {
         aiming = false;
         ++aimGeneration;
         super.leaveField(frame);
+    }
+    @Override public void cancelCasts(long frame) {
+        leaveField(frame);
+        puppetCast = -1;
+        puppetHp = 0;
+        rainCast = -1;
     }
     @Override protected void normal(long frame, int index) {
         combo(frame, index, 5, RECOVERY_FRAMES[index]);
