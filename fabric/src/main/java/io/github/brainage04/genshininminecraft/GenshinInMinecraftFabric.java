@@ -9,6 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import io.github.brainage04.genshininminecraft.world.ManagedWorld;
 import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
 import io.github.brainage04.genshininminecraft.network.CombatIntentPayload;
+import io.github.brainage04.genshininminecraft.network.CameraYawPayload;
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
@@ -36,6 +37,7 @@ public class GenshinInMinecraftFabric implements ModInitializer {
         PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) ->
                 !ManagedWorld.preventsBlockModification(level, player));
         PayloadTypeRegistry.serverboundPlay().register(CombatIntentPayload.TYPE, CombatIntentPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(CameraYawPayload.TYPE, CameraYawPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(CharacterStatePayload.TYPE, CharacterStatePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(DamageNumberPayload.TYPE, DamageNumberPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(TargetAuraPayload.TYPE, TargetAuraPayload.CODEC);
@@ -44,6 +46,8 @@ public class GenshinInMinecraftFabric implements ModInitializer {
                 CombatRuntime.get(player.level().getServer()).startTracking(player, entity));
         ServerPlayNetworking.registerGlobalReceiver(CombatIntentPayload.TYPE, (packet, context) ->
                 CombatRuntime.get(context.server()).receive(context.player(), packet.intent()));
+        ServerPlayNetworking.registerGlobalReceiver(CameraYawPayload.TYPE, (packet, context) ->
+                CombatRuntime.get(context.server()).receiveCameraYaw(context.player(), packet.yaw()));
         CombatRuntime.setSender(ServerPlayNetworking::send);
         ServerTickEvents.END_SERVER_TICK.register(server -> CombatRuntime.get(server).tick(server));
         ServerLifecycleEvents.SERVER_STOPPED.register(CombatRuntime::stop);

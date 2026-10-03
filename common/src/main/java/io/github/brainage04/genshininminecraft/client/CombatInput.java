@@ -41,6 +41,7 @@ public final class CombatInput {
             for (var mapping : PARTY) drain(mapping);
         }
         state = payload;
+        ManagedCamera.tick(Minecraft.getInstance());
         GenshinHud.accept(payload);
         if (!payload.managed()) CombatFeedback.reset();
     }
@@ -60,13 +61,20 @@ public final class CombatInput {
         aimCancelled = false;
         GenshinHud.accept(state);
         CombatFeedback.reset();
+        ManagedCamera.reset();
     }
-    private static void send(Intent intent) { if (sender != null) sender.accept(new CombatIntentPayload(intent)); }
+    private static void send(Intent intent) {
+        if (sender == null) return;
+        if (intent == Intent.ATTACK_PRESS || intent == Intent.SKILL_PRESS || intent == Intent.BURST_PRESS
+                || intent == Intent.ATTACK_RELEASE && aiming()) ManagedCamera.beforeAction();
+        sender.accept(new CombatIntentPayload(intent));
+    }
     public static void tick(Minecraft client) {
         CombatFeedback.tick(client);
         if (attackHeld) aimTicks++;
         else { aimTicks = 0; aimCancelled = false; }
         if (aiming() && (client.options.keySprint.isDown() || client.options.keyJump.isDown())) aimCancelled = true;
+        ManagedCamera.tick(client);
         if (!managed()) {
             drain(SKILL);
             drain(BURST);
@@ -85,6 +93,7 @@ public final class CombatInput {
     /** Runs before vanilla inventory/drop/attack handling, on both loaders. */
     public static void beforeKeybinds(Minecraft client) {
         if (!managed() || client.player == null || client.gui.screen() != null) return;
+        while (client.options.keyTogglePerspective.consumeClick()) ManagedCamera.togglePerspective(client);
         for (int slot = 0; slot < PARTY.length; slot++) {
             if (drain(PARTY[slot])) send(SWITCH_INTENTS[slot]);
             for (var hotbar : client.options.keyHotbarSlots) if (hotbar.same(PARTY[slot])) drain(hotbar);

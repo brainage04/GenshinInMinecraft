@@ -8,6 +8,9 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.resources.Identifier;
 import io.github.brainage04.genshininminecraft.client.CombatInput;
+import io.github.brainage04.genshininminecraft.client.ManagedCamera;
+import io.github.brainage04.genshininminecraft.rules.CameraMath;
+import net.minecraft.client.CameraType;
 import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
 import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
 import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
@@ -64,12 +67,114 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                     Identifier.fromNamespaceAndPath("fabricmoddingconventions", "gametest_recording_feedback")));
             // The client GameTest defaults to MINIMAL; visual evidence must enable real particles.
             context.runOnClient(client -> client.options.particles().set(ParticleStatus.ALL));
+            context.runOnClient(client -> client.options.setCameraType(CameraType.FIRST_PERSON));
             server.runCommand("execute as @a at @s run genshin arena");
             context.waitFor(client -> CombatInput.managed());
             context.waitFor(client -> client.level.getBlockState(client.player.blockPosition().below()).is(Blocks.SMOOTH_STONE));
             server.runCommand("title @a clear");
             server.runCommand("execute as @a at @s run tp @s ~ ~ ~ 0 0");
             context.getInput().lookAt(0, 0);
+            context.waitFor(client -> ManagedCamera.decoupled() && client.gameRenderer.mainCamera().isDetached());
+            context.runOnClient(client -> {
+                ManagedCamera.setAngles(90, 15);
+                client.player.setYRot(0);
+                client.player.setYBodyRot(0);
+            });
+            var orbitOrigin = context.computeOnClient(client -> client.player.position());
+            context.getInput().holdKey(options -> options.keyUp);
+            context.waitTicks(6);
+            context.getInput().releaseKey(options -> options.keyUp);
+            context.runOnClient(client -> {
+                var travel = client.player.position().subtract(orbitOrigin);
+                if (travel.x >= -.5 || Math.abs(travel.z) > .12)
+                    throw new AssertionError("Camera yaw90 W must move -X, independently of initial body yaw0: " + travel);
+                if (Math.abs(CameraMath.wrap(client.player.getYRot() - 90)) > 1
+                        || Math.abs(CameraMath.wrap(client.player.yBodyRot - 90)) > 5)
+                    throw new AssertionError("Character must turn smoothly to camera-relative movement yaw90");
+                if (client.options.getCameraType() != CameraType.THIRD_PERSON_BACK
+                        || !client.gameRenderer.mainCamera().isDetached()
+                        || client.gameRenderer.mainCamera().position().distanceTo(client.player.getEyePosition()) < 3.5)
+                    throw new AssertionError("Managed orbit must render the character from approximately four blocks behind");
+                client.gui.hud.getChat().clearMessages(true);
+            });
+            server.waitFor(minecraftServer -> Math.abs(CameraMath.wrap(
+                    minecraftServer.getPlayerList().getPlayers().getFirst().getYRot() - 90)) < 1);
+            screenshot(context, "genshin-camera-orbit");
+            context.waitTicks(10);
+            // Raw mouse input must change only the orbit; the body remains stationary-facing.
+            float facingBeforeMouse = context.computeOnClient(client -> client.player.getYRot());
+            // Vanilla deliberately discards the first cursor event after mouse grab.
+            context.getInput().moveCursor(0, 0);
+            context.waitTicks(1);
+            context.getInput().moveCursor(40, 0);
+            context.waitTicks(2);
+            context.runOnClient(client -> {
+                if (Math.abs(CameraMath.wrap(ManagedCamera.yaw() - 90)) < .1
+                        || Math.abs(CameraMath.wrap(client.player.getYRot() - facingBeforeMouse)) > .1)
+                    throw new AssertionError("Managed mouse input must orbit without turning an idle character: camera="
+                            + ManagedCamera.yaw() + ", body=" + client.player.getYRot() + ", previousBody=" + facingBeforeMouse
+                            + ", grabbed=" + client.mouseHandler.isMouseGrabbed());
+                ManagedCamera.setAngles(90, 0);
+            });
+            server.runCommand("execute as @a at @s run fill ~2 ~ ~-1 ~2 ~3 ~1 minecraft:stone");
+            context.waitFor(client -> client.gameRenderer.mainCamera().position().distanceTo(client.player.getEyePosition()) < 2.6);
+            screenshot(context, "genshin-camera-collision");
+            server.runCommand("execute as @a at @s run fill ~2 ~ ~-1 ~2 ~3 ~1 minecraft:air");
+            context.waitFor(client -> client.gameRenderer.mainCamera().position().distanceTo(client.player.getEyePosition()) > 3.5);
+            // A strafe dash must use camera WASD, NOT raw A rotated again by the turned body.
+            context.runOnClient(client -> ManagedCamera.setAngles(0, 15));
+            context.getInput().holdKey(options -> options.keyLeft);
+            context.waitTicks(5);
+            context.getInput().holdKey(options -> options.keySprint);
+            server.waitFor(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                return CombatRuntime.get(minecraftServer).session(player).stamina().dashing(
+                        Frames.atServerTick(minecraftServer.getTickCount()));
+            });
+            server.runOnServer(minecraftServer -> {
+                var motion = minecraftServer.getPlayerList().getPlayers().getFirst().getDeltaMovement();
+                if (motion.x < .5 || Math.abs(motion.z) > .01)
+                    throw new AssertionError("Camera yaw0 A dash must go +X despite body yaw-90: " + motion);
+            });
+            context.getInput().releaseKey(options -> options.keySprint);
+            context.getInput().releaseKey(options -> options.keyLeft);
+            context.waitFor(client -> CombatInput.state().stamina() == 100 && !client.player.isSprinting());
+            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
+            context.waitFor(client -> client.options.getCameraType() == CameraType.FIRST_PERSON
+                    && !ManagedCamera.decoupled() && !client.gameRenderer.mainCamera().isDetached());
+            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
+            context.waitFor(client -> ManagedCamera.decoupled());
+            server.runCommand("execute as @a at @s run tp @s ~ ~ ~ 0 0");
+            context.runOnClient(client -> ManagedCamera.setAngles(0, 0));
+            int[] lockTargets = server.computeOnServer(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                int[] ids = new int[2];
+                for (int index = 0; index < 2; index++) {
+                    var mob = new Hilichurl(GenshinEntities.HILICHURL, player.level());
+                    mob.snapTo(player.position().add(index == 0 ? 2 : 0, 0, index == 0 ? 2 : -1));
+                    mob.setNoAi(true);
+                    if (!player.level().addFreshEntity(mob)) throw new AssertionError("Could not spawn soft-lock fixture");
+                    ids[index] = mob.getId();
+                }
+                return ids;
+            });
+            context.waitFor(client -> client.level.getEntity(lockTargets[0]) != null && client.level.getEntity(lockTargets[1]) != null);
+            context.getInput().pressKey(options -> options.keyAttack);
+            context.waitFor(client -> CombatFeedback.hasDamageNumber(lockTargets[0]));
+            server.runOnServer(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                if (Math.abs(CameraMath.wrap(player.getYRot() + 45)) > 1
+                        || player.level().getEntity(lockTargets[1]) instanceof Hilichurl behind && behind.getHealth() != behind.getMaxHealth())
+                    throw new AssertionError("Attack must send snapped front-target body yaw before intent and exclude the closer rear enemy");
+                player.level().getEntity(lockTargets[0]).discard();
+                player.level().getEntity(lockTargets[1]).discard();
+            });
+            context.runOnClient(client -> {
+                if (Math.abs(ManagedCamera.yaw()) > .1) throw new AssertionError("Soft lock must not rotate the orbit camera");
+                ManagedCamera.setAngles(0, 0);
+            });
+            server.runCommand("execute as @a at @s run tp @s ~ ~ ~ 0 0");
+            context.waitTicks(20);
             context.runOnClient(client -> {
                 if (CombatInput.state().stamina() != 100 || GenshinHud.staminaVisible())
                     throw new AssertionError("Full, idle new-player100 stamina must hide the wheel");
@@ -120,9 +225,33 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                 return ((AmberKit) CombatRuntime.get(minecraftServer).session(player).kit()).fullyCharged();
             });
             context.waitFor(client -> CombatInput.fullyChargedAim());
+            context.runOnClient(client -> ManagedCamera.setAngles(90, 0));
+            context.waitTicks(2);
+            context.runOnClient(client -> {
+                var camera = client.gameRenderer.mainCamera();
+                var offset = camera.position().subtract(client.player.getEyePosition());
+                if (!camera.isDetached() || offset.x < 1.7 || offset.x > 2.3 || offset.z > -.4 || offset.z < -.8
+                        || Math.abs(CameraMath.wrap(client.player.getYRot() - 90)) > .1)
+                    throw new AssertionError("Amber aim must use clipped2-block/right-offset shoulder view with body along aim yaw: " + offset);
+            });
+            int aimTarget = server.computeOnServer(minecraftServer -> {
+                var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                var mob = new Hilichurl(GenshinEntities.HILICHURL, player.level());
+                mob.snapTo(player.position().add(-4, 0, 0));
+                mob.setNoAi(true);
+                if (!player.level().addFreshEntity(mob)) throw new AssertionError("Could not spawn camera-aim target");
+                return mob.getId();
+            });
+            context.waitFor(client -> client.level.getEntity(aimTarget) != null);
+            screenshot(context, "genshin-camera-amber-shoulder");
             screenshot(context, "genshin-amber-aim");
             context.getInput().releaseKey(options -> options.keyAttack);
             context.waitFor(client -> !CombatInput.aiming() && client.gameRenderer.mainCamera().getFov() > ordinaryFov * .9F);
+            context.waitFor(client -> CombatFeedback.hasDamageNumber(aimTarget)
+                    && (CombatFeedback.auraElements(aimTarget) & (1 << Element.PYRO.ordinal())) != 0);
+            server.runOnServer(minecraftServer -> minecraftServer.getPlayerList().getPlayers().getFirst().level().getEntity(aimTarget).discard());
+            context.runOnClient(client -> ManagedCamera.setAngles(0, 0));
+            server.runCommand("execute as @a at @s run tp @s ~ ~ ~ 0 0");
             context.waitTicks(5);
             context.getInput().pressKey(GLFW.GLFW_KEY_E);
             server.waitFor(minecraftServer -> {
@@ -141,7 +270,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                         new AABB(player.position(), player.position()).inflate(8)).getFirst().getId();
             });
             context.waitFor(client -> CombatInput.state().skillRemainingFrames() > 0);
-            context.getInput().lookAt(0, 12);
+            context.runOnClient(client -> ManagedCamera.setAngles(0, 12));
             context.runOnClient(client -> client.gui.hud.getChat().clearMessages(true));
             screenshot(context, "genshin-amber-baron-bunny");
             int pyroMobId = server.computeOnServer(minecraftServer -> {
@@ -177,7 +306,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                     throw new AssertionError("Fiery Rain must leave the source-scaled Bunny HP full");
                 player.level().getEntity(pyroMobId).discard();
             });
-            context.getInput().lookAt(0, 0);
+            context.runOnClient(client -> ManagedCamera.setAngles(0, 0));
             context.waitTicks(40);
             server.runOnServer(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
@@ -233,15 +362,17 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                         CombatRuntime.get(minecraftServer).session(player).kit()).burstActive(
                                 Frames.atServerTick(minecraftServer.getTickCount()));
             });
-            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
-            context.waitTicks(10);
             context.waitFor(client -> {
                 String particles = client.particleEngine.countParticles();
                 return Integer.parseInt(particles.substring(particles.lastIndexOf(' ') + 1)) > 0;
             });
             screenshot(context, "genshin-kaeya-glacial-waltz");
-            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
-            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
+            // Orbit no longer needs three F5 presses; retain the actual action's swap boundary.
+            server.waitFor(minecraftServer -> {
+                var party = CombatRuntime.get(minecraftServer).session(minecraftServer.getPlayerList().getPlayers().getFirst()).party();
+                long frame = Frames.atServerTick(minecraftServer.getTickCount());
+                return frame >= party.switchReadyFrame() && party.activeKit().canSwitch(frame);
+            });
             context.getInput().pressKey(GLFW.GLFW_KEY_1);
             context.waitFor(client -> CombatInput.state().activeSlot() == 0);
             server.waitFor(minecraftServer -> {
@@ -285,9 +416,8 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                 return Frames.atServerTick(minecraftServer.getTickCount()) >= cast + 119
                         && target.aura().gauge(Element.HYDRO) > 0 && target.aura().gauge(Element.ELECTRO) > 0;
             });
-            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
             server.runCommand("execute as @a at @s run tp @s ~-2 ~ ~ 0 0");
-            context.getInput().lookAt(-15, 15);
+            context.runOnClient(client -> ManagedCamera.setAngles(-15, 15));
             context.waitFor(client -> (CombatFeedback.auraElements(electroMobId) & (1 << Element.HYDRO.ordinal())) != 0
                     && (CombatFeedback.auraElements(electroMobId) & (1 << Element.ELECTRO.ordinal())) != 0
                     && CombatFeedback.hasDamageNumber(electroMobId) && CombatFeedback.conductiveStacks(electroMobId) == 1);
@@ -297,9 +427,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             });
             context.runOnClient(client -> client.gui.hud.getChat().clearMessages(true));
             screenshot(context, "genshin-lisa-rose-electro-charged");
-            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
-            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
-            context.getInput().lookAt(0, 0);
+            context.runOnClient(client -> ManagedCamera.setAngles(0, 0));
             server.runOnServer(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
                 player.level().getEntity(electroMobId).discard();
@@ -345,7 +473,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             // Move close enough to inspect the original masks, but remain out of aggro in creative.
             server.runCommand("gamemode creative @a");
             server.runCommand("execute as @a at @s run tp @s ~ ~ ~10 0 0");
-            context.getInput().lookAt(0, 0);
+            context.runOnClient(client -> ManagedCamera.setAngles(0, 0));
             context.waitFor(client -> {
                 int count = 0;
                 for (var entity : client.level.entitiesForRendering()) if (entity.getType() == GenshinEntities.HILICHURL) count++;
@@ -369,6 +497,20 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.waitFor(client -> !client.player.isCreative());
             server.runCommand("genshin managed off");
             context.waitFor(client -> !CombatInput.managed());
+            context.waitFor(client -> client.options.getCameraType() == CameraType.FIRST_PERSON
+                    && !ManagedCamera.decoupled() && !client.gameRenderer.mainCamera().isDetached());
+            context.getInput().lookAt(37, 12);
+            context.waitTicks(2);
+            context.runOnClient(client -> {
+                if (Math.abs(CameraMath.wrap(client.gameRenderer.mainCamera().yRot() - client.player.getYRot())) > .1)
+                    throw new AssertionError("Unmanaged first-person camera must follow vanilla entity yaw");
+            });
+            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
+            context.waitFor(client -> client.options.getCameraType() == CameraType.THIRD_PERSON_BACK && client.gameRenderer.mainCamera().isDetached());
+            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
+            context.waitFor(client -> client.options.getCameraType() == CameraType.THIRD_PERSON_FRONT);
+            context.getInput().pressKey(GLFW.GLFW_KEY_F5);
+            context.waitFor(client -> client.options.getCameraType() == CameraType.FIRST_PERSON);
             context.runOnClient(client -> {
                 if (!GenshinHud.party().isEmpty() || CombatFeedback.hasDamageNumber(mobId)) {
                     throw new AssertionError("Managed-off must clear HUD resources and world feedback");
@@ -384,6 +526,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.getInput().releaseKey(GLFW.GLFW_KEY_E);
             context.getInput().releaseKey(options -> options.keySprint);
             context.getInput().releaseKey(options -> options.keyUp);
+            context.getInput().releaseKey(options -> options.keyLeft);
             context.getInput().releaseKey(options -> options.keyAttack);
         } });
     }

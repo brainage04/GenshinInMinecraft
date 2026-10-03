@@ -80,6 +80,18 @@ public final class StaminaGameTests {
             close(context, session.kit().hp(), 2342.39 - clubDamage,
                     "A subsequent real swing outside the six-tick window deals spec DEF-mitigated damage");
             member.discard();
+            // Camera-decoupled strafing regression: a body that has turned left must not rotate A twice.
+            player.setLastClientInput(Input.EMPTY);
+            session.tickMovement(start + 129);
+            player.setYRot(-90);
+            context.assertTrue(runtime.receiveCameraYaw(player, 0), "Managed camera basis is accepted");
+            context.assertFalse(runtime.receiveCameraYaw(player, Float.NaN), "NaN camera yaw is rejected");
+            context.assertFalse(runtime.receiveCameraYaw(player, Float.POSITIVE_INFINITY), "Infinite camera yaw is rejected");
+            player.setLastClientInput(new Input(false, false, true, false, false, false, true));
+            session.tickMovement(start + 132);
+            close(context, player.getDeltaMovement().x, .6, "A at camera yaw0 still dashes+X with body yaw-90");
+            close(context, player.getDeltaMovement().z, 0, "Invalid camera input cannot replace the last finite basis");
+            close(context, player.getYRot(), -90, "Camera movement intent never changes server combat-facing yaw");
         });
         context.succeed();
     }

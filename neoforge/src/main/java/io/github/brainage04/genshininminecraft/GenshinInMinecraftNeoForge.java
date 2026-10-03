@@ -14,6 +14,7 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
 import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
 import io.github.brainage04.genshininminecraft.network.CombatIntentPayload;
+import io.github.brainage04.genshininminecraft.network.CameraYawPayload;
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
 import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
 import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
@@ -47,6 +48,10 @@ public final class GenshinInMinecraftNeoForge {
                 if (context.player() instanceof ServerPlayer player) {
                     CombatRuntime.get(player.level().getServer()).receive(player, packet.intent());
                 }
+            });
+            registrar.playToServer(CameraYawPayload.TYPE, CameraYawPayload.CODEC, (packet, context) -> {
+                if (context.player() instanceof ServerPlayer player)
+                    CombatRuntime.get(player.level().getServer()).receiveCameraYaw(player, packet.yaw());
             });
             registrar.playToClient(CharacterStatePayload.TYPE, CharacterStatePayload.CODEC);
             registrar.playToClient(DamageNumberPayload.TYPE, DamageNumberPayload.CODEC);

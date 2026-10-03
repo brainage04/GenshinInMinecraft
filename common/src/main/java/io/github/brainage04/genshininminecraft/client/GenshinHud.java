@@ -100,6 +100,19 @@ public final class GenshinHud {
         staminaWheel(graphics, width / 2 + 35, height / 2);
         if (CombatInput.aiming()) {
             int x = width / 2, y = height / 2;
+            if (ManagedCamera.decoupled()) {
+                var camera = client.gameRenderer.mainCamera();
+                var point = ManagedCamera.aimPoint(delta.getGameTimeDeltaPartialTick(false)).subtract(camera.position());
+                var forward = camera.forwardVector();
+                double depth = point.x * forward.x() + point.y * forward.y() + point.z * forward.z();
+                if (depth > .05) {
+                    double focal = height / (2 * Math.tan(Math.toRadians(camera.getFov()) / 2));
+                    var left = camera.leftVector();
+                    var up = camera.upVector();
+                    x -= (int) Math.round((point.x * left.x() + point.y * left.y() + point.z * left.z()) * focal / depth);
+                    y -= (int) Math.round((point.x * up.x() + point.y * up.y() + point.z * up.z()) * focal / depth);
+                }
+            }
             int color = CombatInput.fullyChargedAim() ? ElementPalette.color(Element.PYRO) : BORDER;
             graphics.outline(x - 9, y - 9, 19, 19, color);
             graphics.fill(x - 1, y - 15, x + 1, y - 11, color);

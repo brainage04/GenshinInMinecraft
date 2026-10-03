@@ -14,6 +14,7 @@ import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
 import io.github.brainage04.genshininminecraft.client.CombatInput;
+import io.github.brainage04.genshininminecraft.client.ManagedCamera;
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
 import io.github.brainage04.genshininminecraft.client.CombatFeedback;
 import io.github.brainage04.genshininminecraft.client.GenshinHud;
@@ -50,6 +51,7 @@ public final class GenshinInMinecraftNeoForgeClient {
         modBus.addListener((EntityRenderersEvent.RegisterRenderers event) ->
                 event.registerEntityRenderer(GenshinEntities.HILICHURL, HilichurlRenderer::new));
         CombatInput.initialize(ClientPacketDistributor::sendToServer);
+        ManagedCamera.initialize(ClientPacketDistributor::sendToServer);
         modBus.addListener((RegisterKeyMappingsEvent event) -> {
             event.register(CombatInput.SKILL);
             event.register(CombatInput.BURST);

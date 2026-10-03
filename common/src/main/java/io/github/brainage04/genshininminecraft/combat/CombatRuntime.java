@@ -231,6 +231,12 @@ public final class CombatRuntime {
         state.reconcileHealth();
         return state.intent(intent, Frames.atServerTick(player.level().getServer().getTickCount()));
     }
+    /** Finite movement basis only; camera yaw never overwrites entity rotation or combat geometry. */
+    public boolean receiveCameraYaw(ServerPlayer player, float yaw) {
+        if (!Float.isFinite(yaw) || !ManagedWorld.isManaged(player.level()) || !player.isAlive() || player.isSpectator()) return false;
+        session(player).cameraYaw = CameraMath.wrap(yaw);
+        return true;
+    }
     public void tick(MinecraftServer server) {
         long frame = Frames.atServerTick(server.getTickCount());
         boolean managed = ManagedWorld.isManaged(server.overworld());
@@ -297,6 +303,7 @@ public final class CombatRuntime {
         private long lastSyncFrame;
         private long lastMovementFrame = -1;
         private boolean sprintKeyHeld;
+        private float cameraYaw = Float.NaN;
         private Vec3 dashMotion;
         private ServerLevel dashLevel;
         private int displayedSlot = -1;
@@ -394,7 +401,7 @@ public final class CombatRuntime {
                 roseParticles();
             }
         }
-        /** Vanilla's input packet supplies the sprint-key edge and camera-relative WASD direction. */
+        /** Vanilla input supplies the Sprint edge; managed camera intent supplies its movement basis. */
         public void tickMovement(long frame) {
             advanceTo(frame);
             if (lastMovementFrame == frame) return;
@@ -411,7 +418,13 @@ public final class CombatRuntime {
                     && !player.getAbilities().flying && !player.isInWater() && !player.isFallFlying()
                     && !input.shift();
             if (eligible && moving && held && !sprintKeyHeld && player.onGround() && stamina().dash(frame)) {
-                dashMotion = player.getLastClientMoveIntent().scale(ADAPTED_DASH_BLOCKS_PER_TICK);
+                if (Float.isNaN(cameraYaw)) dashMotion = player.getLastClientMoveIntent().scale(ADAPTED_DASH_BLOCKS_PER_TICK);
+                else {
+                    int left = (input.left() ? 1 : 0) - (input.right() ? 1 : 0);
+                    int forward = (input.forward() ? 1 : 0) - (input.backward() ? 1 : 0);
+                    dashMotion = new Vec3(CameraMath.movementX(cameraYaw, left, forward) * ADAPTED_DASH_BLOCKS_PER_TICK,
+                            0, CameraMath.movementZ(cameraYaw, left, forward) * ADAPTED_DASH_BLOCKS_PER_TICK);
+                }
                 dashLevel = (ServerLevel) player.level();
             }
             sprintKeyHeld = held;

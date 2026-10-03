@@ -8,6 +8,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import io.github.brainage04.genshininminecraft.client.CombatInput;
+import io.github.brainage04.genshininminecraft.client.ManagedCamera;
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
 import io.github.brainage04.genshininminecraft.client.CombatFeedback;
 import io.github.brainage04.genshininminecraft.client.GenshinHud;
@@ -37,6 +38,7 @@ public class GenshinInMinecraftFabricClient implements ClientModInitializer {
         KeyMappingHelper.registerKeyMapping(CombatInput.BURST);
         for (var mapping : CombatInput.PARTY) KeyMappingHelper.registerKeyMapping(mapping);
         CombatInput.initialize(ClientPlayNetworking::send);
+        ManagedCamera.initialize(ClientPlayNetworking::send);
         ClientPlayNetworking.registerGlobalReceiver(CharacterStatePayload.TYPE,
                 (packet, context) -> CombatInput.accept(packet));
         ClientPlayNetworking.registerGlobalReceiver(DamageNumberPayload.TYPE,
