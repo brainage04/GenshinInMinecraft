@@ -8,4 +8,20 @@ repositories {
 dependencies {
 	// Cloth Config: common code compiles against its loader-neutral API (AutoConfig); each loader module ships its own build.
 	implementation "me.shedaniel.cloth:cloth-config:${rootProject.cloth_config_version}"
+
+	// Fabric's convention uses fabric-loader-junit, whose BOM is JUnit 5.10.0.
+	// Common rules use the same Jupiter platform without bootstrapping a loader.
+	testImplementation platform("org.junit:junit-bom:5.10.0")
+	testImplementation "org.junit.jupiter:junit-jupiter"
+	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+tasks.withType(Test).configureEach {
+	useJUnitPlatform()
+}
+
+// The root convention aggregates loader builds; include common's rules check explicitly.
+def rulesTest = tasks.named("test")
+rootProject.tasks.named("build") {
+	dependsOn rulesTest
 }
