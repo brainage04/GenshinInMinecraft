@@ -23,6 +23,22 @@ Goal: a player can join a world (test arena now, the ported map once it exists),
 13. [x] Advisor findings (2026-10-04 morning): (a) hilichurl strikes drain earlier shared EventTimeline hitmarks before mutating/rechecking live combatants, so the earlier-frame hit wins a same-tick lethal trade; (b) Baron Bunny uses a non-saving shared rabbit entity type and cannot survive entity save/reload after its cast. Both findings reproduced with failing-before/passing-after shared GameTests; the full `./gradlew --no-daemon build runAllGameTests` gate passes (59 server tests on each loader/run). See `docs/decisions.md` for evidence and the NBT persistence fallback.
 14. [x] Traversal: managed-wall climbing/climb-jump/mantle, camera-relative gliding, authoritative stamina/exhaustion and active-character fall HP loss/forced switch/water mitigation. Named calibration adaptations and provisional1-block=1m scale are recorded in decisions/fidelity. Full gate passes on both loaders (66 server tests per development/production run); screenshots: `fabric/build/run/clientGameTest/screenshots/genshin-traversal-{climbing,gliding}.png`.
 
+## Playtest round 1 (owner feedback 2026-10-04 evening, `~/overnight/feedback-2026-10-04/GenshinInMinecraft.md`)
+
+15. [x] Advisor: a hilichurl frozen by an earlier same-tick Cryo/Hydro hit still landed its club. Both post-drain damage paths now recheck Frozen; failing-before/passing-after Kaeya and Baron Bunny regressions run on both loaders, including no strike replay on thaw. Full `./gradlew --no-daemon build runAllGameTests` gate passes (68 server tests per development/production run); see `docs/decisions.md`.
+16. [ ] Kill speed: hilichurls take far too long to die. Trace the damage pipeline end to end (talent multipliers, level-20 character + weapon ATK, enemy level/HP/DEF/RES, level difference) against `spec/mechanics/` and public calculators; fix the actual mistake, no fudge factor.
+17. [ ] Readable cooldowns and stamina: research what Genshin shows (party-slot switch cooldown overlay, greyed slots, skill/burst icon states, normal-attack feedback) and match it; recheck dash start cost against sources.
+18. [ ] Climbing: climb around inside and outside corners; climb drain × 0.67 unless sources say otherwise.
+19. [ ] Visible projectiles for every ranged hit (Amber arrows/aimed shots, Lisa orbs/charged, Baron Bunny throw, Rose bolts) plus sound effects for attacks, skills, bursts, hits, reactions, dash, glide and landing.
+20. [ ] Real character models and animation (GeckoLib, 26.2 on both loaders):
+   - [ ] 20a. GeckoLib dependency and an animated player-model renderer that swaps by active character; original blocky models for Traveler (Aether), Amber, Kaeya, Lisa; locomotion animations (idle, walk, run, dash, jump, fall, land, climb, glide start/loop/stop).
+   - [ ] 20b. Attack, charged, skill and burst animations for all four characters, timed to the kit frames.
+   - [ ] 20c. Hilichurl and Baron Bunny models with idle/walk/telegraph/strike/hurt/death animations.
+21. [ ] Damage numbers like the game: element colours, pop-and-float animation, crit styling, reaction labels.
+22. [ ] Keep character state across logout (HP, energy, cooldowns, stamina, active slot).
+23. [ ] Put the game on the map: locate Mondstadt, Starfell Valley and Windrise on the 26.2 copy from the owner's coordinates, then add a versioned overlay with Statues of The Seven, Waypoints and hilichurl camps there.
+24. [ ] Two-player co-op on a dedicated server (two real clients), following Genshin's co-op rules.
+
 ## Questions for the owner
 
 1. ~~**Controls in managed worlds.**~~ Answered 2026-10-04: keep the takeover (E/Q/1–4/left click belong to the game in managed worlds).

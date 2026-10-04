@@ -1,0 +1,7 @@
+{
+  "environment": "minecraft:default",
+  "structure": "fabricmoddingconventions:empty",
+  "max_ticks": 60,
+  "type": "minecraft:function",
+  "function": "genshininminecraft:same_tick_earlier_freeze_prevents_puppet_club"
+}

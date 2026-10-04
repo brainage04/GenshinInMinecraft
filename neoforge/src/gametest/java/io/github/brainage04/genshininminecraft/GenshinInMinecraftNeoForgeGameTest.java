@@ -35,6 +35,8 @@ public final class GenshinInMinecraftNeoForgeGameTest {
             Map.entry("party_wipe_discards_landed_bunny", CombatLifecycleGameTests::partyWipeDiscardsLandedBunny),
             Map.entry("same_tick_lethal_trade_earlier_traveler_wins", HilichurlGameTests::sameTickLethalTradeEarlierTravelerWins),
             Map.entry("same_tick_earlier_traveler_hit_prevents_club", HilichurlGameTests::sameTickEarlierTravelerHitPreventsClub),
+            Map.entry("same_tick_earlier_freeze_prevents_club", HilichurlGameTests::sameTickEarlierFreezePreventsClub),
+            Map.entry("same_tick_earlier_freeze_prevents_puppet_club", HilichurlGameTests::sameTickEarlierFreezePreventsPuppetClub),
             Map.entry("bunny_save_reload_cannot_outlive_cast", CombatLifecycleGameTests::bunnySaveReloadCannotOutliveCast),
             Map.entry("violet_tap_stacks_and_unascended_charge", LisaGameTests::violetTapStacksAndUnascendedCharge),
             Map.entry("violet_hold_consumes_three_stacks", LisaGameTests::violetHoldConsumesThreeStacks),

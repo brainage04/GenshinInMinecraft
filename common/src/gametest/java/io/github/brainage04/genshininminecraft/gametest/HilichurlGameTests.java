@@ -7,6 +7,8 @@ import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
 import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Frames;
+import io.github.brainage04.genshininminecraft.rules.kit.AmberKit;
+import io.github.brainage04.genshininminecraft.rules.kit.KaeyaKit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import io.github.brainage04.genshininminecraft.world.ManagedWorldData;
 import java.util.ArrayList;
@@ -25,6 +27,7 @@ import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.animal.rabbit.Rabbit;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -210,6 +213,75 @@ public final class HilichurlGameTests {
             context.assertTrue(player.isAlive(), "Later-frame club from the dead hilichurl cannot win the lethal trade");
             close(context, session.kit().hp(), hp, "Later-frame club cannot damage the earlier-frame winner");
             context.assertValueEqual(member.getKillCredit(), player, "Earlier-frame Traveler retains kill attribution");
+        });
+    }
+
+    public static void sameTickEarlierFreezePreventsClub(GameTestHelper context) {
+        context.runAfterDelay(12, () -> {
+            sameTickEarlierFreeze(context, false);
+            context.succeed();
+        });
+    }
+
+    public static void sameTickEarlierFreezePreventsPuppetClub(GameTestHelper context) {
+        context.runAfterDelay(36, () -> {
+            sameTickEarlierFreeze(context, true);
+            context.succeed();
+        });
+    }
+
+    private static void sameTickEarlierFreeze(GameTestHelper context, boolean hitPuppet) {
+        withManaged(context, (runtime, player) -> {
+            var session = runtime.session(player);
+            var amber = (AmberKit) session.party().kit(1);
+            long clubFrame = Frames.atServerTick(context.getLevel().getServer().getTickCount());
+            long castFrame = clubFrame - KaeyaKit.SKILL_HIT_FRAME - 2;
+            context.assertTrue(castFrame >= (hitPuppet ? 60 : 0), "Server clock permits the preceding casts");
+            Rabbit bunny = null;
+            if (hitPuppet) {
+                context.assertTrue(session.intent(Intent.SWITCH_2, castFrame - 60), "Select Amber before strike tick");
+                context.assertTrue(session.intent(Intent.SKILL_PRESS, castFrame - 60), "Cast the real puppet");
+                session.advanceTo(castFrame - 60 + AmberKit.ADAPTED_PUPPET_LANDING_FRAME);
+                bunny = context.getLevel().getEntitiesOfClass(Rabbit.class, player.getBoundingBox().inflate(10),
+                        entity -> entity.getType() == GenshinEntities.BARON_BUNNY && !entity.isRemoved()).getFirst();
+            }
+            var member = new Hilichurl(GenshinEntities.HILICHURL, context.getLevel());
+            member.snapTo(player.position().add(0, 0, hitPuppet ? 4.5 : 1.5));
+            member.setCamp(member.position(), member.position());
+            context.assertTrue(context.getLevel().addFreshEntity(member), "Freeze opponent spawned");
+            var target = runtime.target(member);
+            target.aura().applyHit(Element.HYDRO, 2, castFrame);
+            context.assertTrue(session.intent(Intent.SWITCH_3, castFrame), "Select Kaeya before strike tick");
+            context.assertTrue(session.intent(Intent.SKILL_PRESS, castFrame), "Frostgnaw queued for clubFrame-2");
+            session.advanceTo(clubFrame - 3); // Previous END_SERVER_TICK, before the Cryo hitmark.
+            double hp = hitPuppet ? amber.puppetHp() : session.kit().hp();
+            double playerHp = session.kit().hp();
+            tick(context, member);
+            context.assertTrue(member.getTarget() == (hitPuppet ? bunny : player), "Real AI selects the intended club victim");
+            context.assertTrue(member.isWindingUp(), "Real AI starts a club wind-up before Freeze");
+            for (int tick = 1; tick < Hilichurl.WINDUP_TICKS; tick++) tick(context, member);
+            context.assertFalse(CombatRuntime.isFrozen(member), "Cryo remains queued when strike tick enters aiStep");
+            close(context, target.hp(), target.maxHp(), "Frostgnaw has not landed before the timeline drain");
+            tick(context, member); // AI drains the earlier Cryo hit before accepting its later club.
+            runtime.tick(context.getLevel().getServer());
+            context.assertTrue(member.isAlive() && CombatRuntime.isFrozen(member), "Earlier-frame Frostgnaw freezes the living hilichurl");
+            close(context, hitPuppet ? amber.puppetHp() : session.kit().hp(), hp,
+                    hitPuppet ? "Later-frame frozen club cannot damage Baron Bunny" : "Later-frame frozen club cannot damage Kaeya");
+            close(context, session.kit().hp(), playerHp, "Puppet-targeted club cannot damage its out-of-range owner");
+            if (hitPuppet) close(context, bunny.getHealth(), hp, "Suppressed club leaves the puppet's vanilla mirror unchanged");
+            context.assertFalse(member.isWindingUp(), "The due strike is consumed, not queued for thaw");
+            for (int tick = 0; tick < Hilichurl.RECOVERY_TICKS; tick++) tick(context, member);
+            close(context, hitPuppet ? amber.puppetHp() : session.kit().hp(), hp, "No club damage while Frozen");
+            session.advanceTo(clubFrame + 400);
+            target.aura().advanceTo(clubFrame + 400);
+            context.assertFalse(CombatRuntime.isFrozen(member), "Seeded Freeze naturally expires before puppet lifetime");
+            tick(context, member);
+            close(context, hitPuppet ? amber.puppetHp() : session.kit().hp(), hp, "Thaw cannot replay the consumed club");
+            context.assertTrue(member.isWindingUp(), "Thawed AI must start a fresh telegraph");
+            for (int tick = 1; tick < Hilichurl.WINDUP_TICKS; tick++) tick(context, member);
+            close(context, hitPuppet ? amber.puppetHp() : session.kit().hp(), hp, "Fresh telegraph does not hit early");
+            tick(context, member);
+            context.assertTrue((hitPuppet ? amber.puppetHp() : session.kit().hp()) < hp, "A fresh post-thaw strike still deals damage");
         });
     }
 

@@ -159,7 +159,7 @@ public final class CombatRuntime {
         if (!ManagedWorld.isManaged(puppet.level())) return false;
         long frame = Math.max(timeline.frame(), Frames.atServerTick(puppet.level().getServer().getTickCount()));
         advanceTimeline(frame);
-        if (!enemy.isAlive() || enemy.isRemoved() || !puppet.isAlive() || puppet.isRemoved()
+        if (!enemy.isAlive() || enemy.isRemoved() || isFrozen(enemy) || !puppet.isAlive() || puppet.isRemoved()
                 || enemy.level() != puppet.level()) return false;
         for (Session session : players.values()) {
             if (session.bunny != puppet || !puppet.isAlive()) continue;
@@ -181,7 +181,7 @@ public final class CombatRuntime {
         if (!ManagedWorld.isManaged(player.level())) return false;
         long frame = Math.max(timeline.frame(), Frames.atServerTick(player.level().getServer().getTickCount()));
         advanceTimeline(frame);
-        if (!enemy.isAlive() || enemy.isRemoved() || enemy.level() != player.level()
+        if (!enemy.isAlive() || enemy.isRemoved() || isFrozen(enemy) || enemy.level() != player.level()
                 || player.isCreative() || player.isSpectator() || !player.isAlive() || player.isRemoved()) return false;
         Session state = session(player);
         if (state.stamina().dashInvulnerable(frame)) return false;
