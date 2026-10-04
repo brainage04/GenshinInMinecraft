@@ -172,6 +172,12 @@ public class GenshinInMinecraftGameTest {
     @GameTest
     public void partyWipeDiscardsLandedBunny(GameTestHelper context) { CombatLifecycleGameTests.partyWipeDiscardsLandedBunny(context); }
     @GameTest
+    public void sameTickLethalTradeEarlierTravelerWins(GameTestHelper context) { HilichurlGameTests.sameTickLethalTradeEarlierTravelerWins(context); }
+    @GameTest
+    public void sameTickEarlierTravelerHitPreventsClub(GameTestHelper context) { HilichurlGameTests.sameTickEarlierTravelerHitPreventsClub(context); }
+    @GameTest
+    public void bunnySaveReloadCannotOutliveCast(GameTestHelper context) { CombatLifecycleGameTests.bunnySaveReloadCannotOutliveCast(context); }
+    @GameTest
     public void baronBunnyTauntsTakesClubAndExpires(GameTestHelper context) { AmberGameTests.baronBunnyTauntsTakesClubAndExpires(context); }
     @GameTest
     public void destroyedBunnyExplodesOnceAndMissGrantsNoEnergy(GameTestHelper context) { AmberGameTests.destroyedBunnyExplodesOnceAndMissGrantsNoEnergy(context); }

@@ -25,6 +25,9 @@ public final class GenshinInMinecraftNeoForgeGameTest {
     private static final Map<String, Consumer<GameTestHelper>> TESTS = Map.ofEntries(
             Map.entry("dimension_change_permanently_cancels_field_objects", CombatLifecycleGameTests::dimensionChangePermanentlyCancelsFieldObjects),
             Map.entry("party_wipe_discards_landed_bunny", CombatLifecycleGameTests::partyWipeDiscardsLandedBunny),
+            Map.entry("same_tick_lethal_trade_earlier_traveler_wins", HilichurlGameTests::sameTickLethalTradeEarlierTravelerWins),
+            Map.entry("same_tick_earlier_traveler_hit_prevents_club", HilichurlGameTests::sameTickEarlierTravelerHitPreventsClub),
+            Map.entry("bunny_save_reload_cannot_outlive_cast", CombatLifecycleGameTests::bunnySaveReloadCannotOutliveCast),
             Map.entry("violet_tap_stacks_and_unascended_charge", LisaGameTests::violetTapStacksAndUnascendedCharge),
             Map.entry("violet_hold_consumes_three_stacks", LisaGameTests::violetHoldConsumesThreeStacks),
             Map.entry("violet_tap_multistacks_and_off_field_projectile", LisaGameTests::violetTapMultistacksAndOffFieldProjectile),

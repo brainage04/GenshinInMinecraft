@@ -3,6 +3,7 @@ package io.github.brainage04.genshininminecraft;
 import io.github.brainage04.genshininminecraft.command.core.ModCommands;
 import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
 import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
+import net.minecraft.world.entity.animal.rabbit.Rabbit;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
@@ -31,10 +32,14 @@ import net.neoforged.neoforge.network.PacketDistributor;
 @Mod(GenshinInMinecraft.MOD_ID)
 public final class GenshinInMinecraftNeoForge {
     public GenshinInMinecraftNeoForge(ModContainer container, IEventBus modBus) {
-        modBus.addListener((RegisterEvent event) -> event.register(BuiltInRegistries.ENTITY_TYPE.key(),
-                GenshinEntities.HILICHURL_ID, () -> GenshinEntities.HILICHURL));
-        modBus.addListener((EntityAttributeCreationEvent event) ->
-                event.put(GenshinEntities.HILICHURL, Hilichurl.attributes().build()));
+        modBus.addListener((RegisterEvent event) -> {
+            event.register(BuiltInRegistries.ENTITY_TYPE.key(), GenshinEntities.HILICHURL_ID, () -> GenshinEntities.HILICHURL);
+            event.register(BuiltInRegistries.ENTITY_TYPE.key(), GenshinEntities.BARON_BUNNY_ID, () -> GenshinEntities.BARON_BUNNY);
+        });
+        modBus.addListener((EntityAttributeCreationEvent event) -> {
+            event.put(GenshinEntities.HILICHURL, Hilichurl.attributes().build());
+            event.put(GenshinEntities.BARON_BUNNY, Rabbit.createAttributes().build());
+        });
         NeoForge.EVENT_BUS.addListener((RegisterCommandsEvent event) -> ModCommands.register(event.getDispatcher()));
         NeoForge.EVENT_BUS.addListener((BreakBlockEvent event) -> {
             if (ManagedWorld.preventsBlockModification(event.getPlayer().level(), event.getPlayer())) {

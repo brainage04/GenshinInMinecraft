@@ -165,6 +165,54 @@ public final class HilichurlGameTests {
         context.succeed();
     }
 
+    public static void sameTickLethalTradeEarlierTravelerWins(GameTestHelper context) {
+        context.runAfterDelay(6, () -> {
+            sameTickEarlierTravelerHit(context, true);
+            context.succeed();
+        });
+    }
+
+    public static void sameTickEarlierTravelerHitPreventsClub(GameTestHelper context) {
+        context.runAfterDelay(6, () -> {
+            sameTickEarlierTravelerHit(context, false);
+            context.succeed();
+        });
+    }
+
+    private static void sameTickEarlierTravelerHit(GameTestHelper context, boolean lethalClub) {
+        withManaged(context, (runtime, player) -> {
+            var member = new Hilichurl(GenshinEntities.HILICHURL, context.getLevel());
+            member.snapTo(player.position().add(0, 0, 1.5));
+            member.setCamp(member.position(), member.position());
+            member.setHealth(.1F); // Less HP than even a non-critical Traveler N1.
+            context.assertTrue(context.getLevel().addFreshEntity(member), "Trade opponent spawned");
+            var session = runtime.session(player);
+            if (lethalClub) {
+                session.kit().setHp(1);
+                for (int slot = 1; slot < 4; slot++) session.party().kit(slot).setHp(0);
+            }
+            double hp = session.kit().hp();
+            long clubFrame = Frames.atServerTick(context.getLevel().getServer().getTickCount());
+            // The previous END_SERVER_TICK ended at clubFrame-3. Traveler N1 lands
+            // at clubFrame-2; the club lands at clubFrame, in the same tick's drain.
+            context.assertTrue(clubFrame >= 15, "Server clock permits the preceding attack wind-up");
+            context.assertTrue(session.intent(Intent.ATTACK_PRESS, clubFrame - 15), "Traveler N1 queued");
+            session.advanceTo(clubFrame - 3);
+            tick(context, member);
+            context.assertTrue(member.isWindingUp(), "Real entity AI starts its club wind-up");
+            for (int tick = 1; tick < Hilichurl.WINDUP_TICKS; tick++) tick(context, member);
+            context.assertTrue(member.isAlive() && player.isAlive(), "Both combatants alive before the strike tick");
+            close(context, session.kit().hp(), hp, "No club damage before its hitmark");
+            tick(context, member); // Entity tick, before the loader's END_SERVER_TICK hook.
+            runtime.tick(context.getLevel().getServer());
+            context.assertFalse(member.isAlive(),
+                    "Earlier-frame Traveler hit must kill the hilichurl before the same-tick club can cancel it");
+            context.assertTrue(player.isAlive(), "Later-frame club from the dead hilichurl cannot win the lethal trade");
+            close(context, session.kit().hp(), hp, "Later-frame club cannot damage the earlier-frame winner");
+            context.assertValueEqual(member.getKillCredit(), player, "Earlier-frame Traveler retains kill attribution");
+        });
+    }
+
     static void tick(GameTestHelper context, Hilichurl member) { context.getLevel().tickNonPassenger(member); }
     private static List<Hilichurl> members(GameTestHelper context, ServerPlayer player) {
         return context.getLevel().getEntitiesOfClass(Hilichurl.class, new AABB(player.position(), player.position()).inflate(4));

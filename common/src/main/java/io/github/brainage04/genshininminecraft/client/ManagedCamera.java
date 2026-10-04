@@ -1,5 +1,6 @@
 package io.github.brainage04.genshininminecraft.client;
 
+import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
 import io.github.brainage04.genshininminecraft.network.CameraYawPayload;
 import io.github.brainage04.genshininminecraft.rules.CameraMath;
 import java.util.function.Consumer;
@@ -9,7 +10,6 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.animal.rabbit.Rabbit;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.Vec3;
@@ -137,9 +137,7 @@ public final class ManagedCamera {
                 player.onGround(), player.horizontalCollision));
     }
     private static boolean isPuppet(LivingEntity entity) {
-        // Baron Bunny's existing synced type/name identifies its client-side visual placeholder.
-        return entity instanceof Rabbit && entity.getCustomName() != null
-                && entity.getCustomName().getString().equals("Baron Bunny");
+        return entity.getType() == GenshinEntities.BARON_BUNNY;
     }
     /** Project the same blocked eye ray as the server, not a parallel ray from the shoulder. */
     public static Vec3 aimPoint(float partialTick) {

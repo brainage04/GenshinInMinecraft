@@ -4,6 +4,7 @@ import io.github.brainage04.genshininminecraft.command.core.ClientModCommands;
 import io.github.brainage04.genshininminecraft.client.HilichurlRenderer;
 import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.minecraft.client.renderer.entity.RabbitRenderer;
 import io.github.brainage04.genshininminecraft.config.ModConfig;
 import me.shedaniel.autoconfig.AutoConfigClient;
 import net.minecraft.commands.CommandSourceStack;
@@ -48,8 +49,10 @@ public final class GenshinInMinecraftNeoForgeClient {
         NeoForge.EVENT_BUS.addListener((RegisterClientCommandsEvent event) ->
                 ClientModCommands.register(event.getDispatcher(), CommandSourceStack::sendSystemMessage));
         GenshinInMinecraftClient.initialize();
-        modBus.addListener((EntityRenderersEvent.RegisterRenderers event) ->
-                event.registerEntityRenderer(GenshinEntities.HILICHURL, HilichurlRenderer::new));
+        modBus.addListener((EntityRenderersEvent.RegisterRenderers event) -> {
+            event.registerEntityRenderer(GenshinEntities.HILICHURL, HilichurlRenderer::new);
+            event.registerEntityRenderer(GenshinEntities.BARON_BUNNY, RabbitRenderer::new);
+        });
         CombatInput.initialize(ClientPacketDistributor::sendToServer);
         ManagedCamera.initialize(ClientPacketDistributor::sendToServer);
         modBus.addListener((RegisterKeyMappingsEvent event) -> {

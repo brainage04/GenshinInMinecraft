@@ -12,8 +12,15 @@ import java.util.Set;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.animal.rabbit.Rabbit;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -111,6 +118,60 @@ public final class CombatLifecycleGameTests {
                     "Dead-owner expiry must not leave a landed Rabbit entity behind");
             close(context, target.hp(), target.maxHp(), "Party-wipe cleanup cannot deal explosion damage");
             context.assertFalse(((AmberKit) session.party().kit(1)).puppetAlive(), "Dead party has no live puppet rules state");
+        });
+        context.succeed();
+    }
+
+    public static void bunnySaveReloadCannotOutliveCast(GameTestHelper context) {
+        HilichurlGameTests.withManaged(context, (runtime, player) -> {
+            var level = context.getLevel();
+            Vec3 origin = player.position();
+            // GameTest tickets and this player keep the fixture chunk loaded. Exercise
+            // the same entity save/load boundary directly rather than fake chunk unload.
+            var ordinary = new Rabbit(EntityTypes.RABBIT, level);
+            ordinary.snapTo(origin);
+            ordinary.setCustomName(net.minecraft.network.chat.Component.literal("Ordinary rabbit"));
+            context.assertTrue(level.addFreshEntity(ordinary), "Control rabbit spawned");
+            var controlOutput = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, level.registryAccess());
+            context.assertTrue(ordinary.save(controlOutput), "Ordinary named rabbits remain persistent");
+            ordinary.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);
+            Entity controlReload = EntityType.loadEntityRecursive(
+                    TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), controlOutput.buildResult()),
+                    level, EntitySpawnReason.LOAD, entity -> entity);
+            context.assertTrue(controlReload instanceof Rabbit && level.addFreshEntity(controlReload),
+                    "Control NBT round trip recreates a real rabbit");
+            context.assertTrue(controlReload.getCustomName() != null
+                    && controlReload.getCustomName().getString().equals("Ordinary rabbit"), "Control name survives NBT");
+            controlReload.discard();
+
+            var session = runtime.session(player);
+            long start = Frames.atServerTick(level.getServer().getTickCount());
+            context.assertTrue(session.intent(Intent.SWITCH_2, start), "Select Amber");
+            context.assertTrue(session.intent(Intent.SKILL_PRESS, start), "Cast Bunny before save");
+            session.advanceTo(start + AmberKit.ADAPTED_PUPPET_LANDING_FRAME);
+            Rabbit bunny = bunnies(context, origin).getFirst();
+            context.assertTrue(bunny.getCustomName() != null
+                    && bunny.getCustomName().getString().equals("Baron Bunny"), "A real named Bunny has landed");
+            var output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, level.registryAccess());
+            boolean saved = bunny.save(output);
+            bunny.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);
+            Entity reloaded = null;
+            if (saved) {
+                reloaded = EntityType.loadEntityRecursive(
+                        TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), output.buildResult()),
+                        level, EntitySpawnReason.LOAD, entity -> entity);
+                context.assertTrue(reloaded instanceof Rabbit && level.addFreshEntity(reloaded),
+                        "A saved Bunny reloads outside the session's cached entity reference");
+            }
+            try {
+                session.advanceTo(start + AmberKit.ADAPTED_PUPPET_LANDING_FRAME + AmberKit.PUPPET_LIFETIME_FRAMES + 1);
+                context.assertFalse(((AmberKit) session.kit()).puppetAlive(), "Cast advances past its original expiry");
+                context.assertTrue(bunnies(context, origin).isEmpty(),
+                        "No Baron Bunny rabbit may survive save/reload after its cast expires");
+                context.assertFalse(saved, "Transient Bunny must be excluded from entity persistence");
+            } finally {
+                if (reloaded != null) reloaded.discard();
+            }
         });
         context.succeed();
     }

@@ -4,6 +4,7 @@ import io.github.brainage04.genshininminecraft.command.core.ClientModCommands;
 import io.github.brainage04.genshininminecraft.client.HilichurlRenderer;
 import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.minecraft.client.renderer.entity.RabbitRenderer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -34,6 +35,7 @@ public class GenshinInMinecraftFabricClient implements ClientModInitializer {
                 ClientModCommands.register(dispatcher, FabricClientCommandSource::sendFeedback));
         GenshinInMinecraftClient.initialize();
         EntityRendererRegistry.register(GenshinEntities.HILICHURL, HilichurlRenderer::new);
+        EntityRendererRegistry.register(GenshinEntities.BARON_BUNNY, RabbitRenderer::new);
         KeyMappingHelper.registerKeyMapping(CombatInput.SKILL);
         KeyMappingHelper.registerKeyMapping(CombatInput.BURST);
         for (var mapping : CombatInput.PARTY) KeyMappingHelper.registerKeyMapping(mapping);

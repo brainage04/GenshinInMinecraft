@@ -11,7 +11,7 @@ import io.github.brainage04.genshininminecraft.rules.kit.KaeyaKit;
 import io.github.brainage04.genshininminecraft.rules.kit.AmberKit;
 import io.github.brainage04.genshininminecraft.rules.kit.LisaKit;
 import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
-import net.minecraft.world.entity.EntityTypes;
+import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
 import net.minecraft.world.entity.animal.rabbit.Rabbit;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -154,10 +154,14 @@ public final class CombatRuntime {
         return nearest;
     }
     public boolean puppetHit(LivingEntity puppet, LivingEntity enemy) {
+        if (!ManagedWorld.isManaged(puppet.level())) return false;
+        long frame = Math.max(timeline.frame(), Frames.atServerTick(puppet.level().getServer().getTickCount()));
+        advanceTimeline(frame);
+        if (!enemy.isAlive() || enemy.isRemoved() || !puppet.isAlive() || puppet.isRemoved()
+                || enemy.level() != puppet.level()) return false;
         for (Session session : players.values()) {
             if (session.bunny != puppet || !puppet.isAlive()) continue;
             AmberKit amber = (AmberKit) session.party.kit(1);
-            long frame = Math.max(timeline.frame(), Frames.atServerTick(puppet.level().getServer().getTickCount()));
             // DEF snapshot chooses Amber's DEF and neutral RES; inheritance is an explicit adaptation.
             double damage = Damage.enemyDamage(HilichurlProfile.ADAPTED_ATK, HilichurlProfile.CLUB_MULTIPLIER,
                     HilichurlProfile.LEVEL, amber.stats().def(), HilichurlProfile.STARTER_PLAYER_RESISTANCE);
@@ -172,9 +176,12 @@ public final class CombatRuntime {
         return false;
     }
     public boolean enemyHit(ServerPlayer player, LivingEntity enemy, double attack, double multiplier, int enemyLevel) {
-        if (!ManagedWorld.isManaged(player.level()) || player.isCreative() || player.isSpectator() || !player.isAlive()) return false;
+        if (!ManagedWorld.isManaged(player.level())) return false;
+        long frame = Math.max(timeline.frame(), Frames.atServerTick(player.level().getServer().getTickCount()));
+        advanceTimeline(frame);
+        if (!enemy.isAlive() || enemy.isRemoved() || enemy.level() != player.level()
+                || player.isCreative() || player.isSpectator() || !player.isAlive() || player.isRemoved()) return false;
         Session state = session(player);
-        long frame = Math.max(state.party.frame(), Frames.atServerTick(player.level().getServer().getTickCount()));
         if (state.stamina().dashInvulnerable(frame)) return false;
         state.reconcileHealth();
         CharacterKit kit = state.kit();
@@ -239,12 +246,17 @@ public final class CombatRuntime {
         session(player).cameraYaw = CameraMath.wrap(yaw);
         return true;
     }
+    /** Entity AI runs before END_SERVER_TICK; earlier hitmarks must win before an enemy mutation. */
+    private void advanceTimeline(long frame) {
+        for (Session state : players.values()) state.reconcileDimension();
+        timeline.advanceTo(frame);
+    }
     public void tick(MinecraftServer server) {
         long frame = Frames.atServerTick(server.getTickCount());
         boolean managed = ManagedWorld.isManaged(server.overworld());
         // EC must drain before natural decay even when its owner has no ticking session.
-        for (Session state : players.values()) state.reconcileDimension();
-        if (managed) timeline.advanceTo(frame);
+        if (managed) advanceTimeline(frame);
+        else for (Session state : players.values()) state.reconcileDimension();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (!managed) {
                 Session old = players.remove(player.getUUID());
@@ -763,9 +775,8 @@ public final class CombatRuntime {
         private void puppet(AmberKit amber, Hit hit) {
             if (hit.kind() == Kind.BUNNY_LAND) {
                 if (player.level() != puppetLevel) return;
-                bunny = new Rabbit(EntityTypes.RABBIT, puppetLevel);
+                bunny = new Rabbit(GenshinEntities.BARON_BUNNY, puppetLevel);
                 bunny.setNoAi(true);
-                bunny.setPersistenceRequired();
                 bunny.setCustomName(Component.literal("Baron Bunny"));
                 bunny.setCustomNameVisible(true);
                 bunny.getAttribute(Attributes.SCALE).setBaseValue(ADAPTED_BUNNY_MODEL_SCALE);

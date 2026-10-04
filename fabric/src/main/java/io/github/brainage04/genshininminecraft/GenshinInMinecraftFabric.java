@@ -3,6 +3,7 @@ package io.github.brainage04.genshininminecraft;
 import io.github.brainage04.genshininminecraft.command.core.ModCommands;
 import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
 import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
+import net.minecraft.world.entity.animal.rabbit.Rabbit;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -32,6 +33,8 @@ public class GenshinInMinecraftFabric implements ModInitializer {
 	public void onInitialize() {
         Registry.register(BuiltInRegistries.ENTITY_TYPE, GenshinEntities.HILICHURL_ID, GenshinEntities.HILICHURL);
         FabricDefaultAttributeRegistry.register(GenshinEntities.HILICHURL, Hilichurl.attributes());
+        Registry.register(BuiltInRegistries.ENTITY_TYPE, GenshinEntities.BARON_BUNNY_ID, GenshinEntities.BARON_BUNNY);
+        FabricDefaultAttributeRegistry.register(GenshinEntities.BARON_BUNNY, Rabbit.createAttributes());
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 ModCommands.register(dispatcher));
         PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) ->
