@@ -15,7 +15,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class StaminaMovementMixin {
     @Inject(method = "isSprintingPossible", at = @At("HEAD"), cancellable = true)
     private void genshin$staminaGate(boolean flying, CallbackInfoReturnable<Boolean> cir) {
-        if (CombatInput.managed() && (CombatInput.aiming() || CombatInput.state().staminaExhausted()
+        if (CombatInput.managed() && (CombatInput.state().climbing() || CombatInput.state().gliding()
+                || CombatInput.aiming() || CombatInput.state().staminaExhausted()
                 || !Minecraft.getInstance().options.keySprint.isDown())) cir.setReturnValue(false);
     }
 
@@ -24,7 +25,8 @@ public abstract class StaminaMovementMixin {
         if (!CombatInput.managed()) return;
         LocalPlayer player = (LocalPlayer) (Object) this;
         Minecraft client = Minecraft.getInstance();
-        boolean allowed = !CombatInput.aiming() && client.gui.screen() == null && player.isAlive() && !player.isSpectator()
+        boolean allowed = !CombatInput.state().climbing() && !CombatInput.state().gliding()
+                && !CombatInput.aiming() && client.gui.screen() == null && player.isAlive() && !player.isSpectator()
                 && !player.isPassenger() && !player.getAbilities().flying && !player.isInWater()
                 && !player.isFallFlying() && !player.input.keyPresses.shift()
                 && player.input.getMoveVector().lengthSquared() > .001F

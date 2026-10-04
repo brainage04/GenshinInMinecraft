@@ -91,7 +91,10 @@ public final class ManagedCamera {
         if (!controls(player) || player.isPassenger()) return;
         float left = player.xxa;
         float forward = player.zza;
-        if (CombatInput.aiming()) face(player, yaw, pitch);
+        if (CombatInput.state().climbing()) {
+            var wall = io.github.brainage04.genshininminecraft.combat.TraversalGeometry.wall(CombatInput.state().wallOrdinal());
+            face(player, CameraMath.facingYaw(wall.getStepX(), wall.getStepZ()), 0);
+        } else if (CombatInput.aiming()) face(player, yaw, pitch);
         else if (left * left + forward * forward > .0001F && player.tickCount > facingHoldThroughTick) {
             face(player, CameraMath.smoothYaw(player.getYRot(), CameraMath.movementYaw(yaw, left, forward),
                     CameraMath.TURN_DEGREES_PER_TICK), 0);

@@ -204,6 +204,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.getInput().releaseKey(options -> options.keyUp);
             context.waitFor(client -> !client.player.isSprinting() && !CombatInput.state().staminaDraining());
             context.waitFor(client -> CombatInput.state().stamina() == 100 && !GenshinHud.staminaVisible());
+            traversalControls(context, server);
             int originalHotbar = context.computeOnClient(client -> client.player.getInventory().getSelectedSlot());
             context.getInput().pressKey(GLFW.GLFW_KEY_2);
             server.waitFor(minecraftServer -> {
@@ -531,6 +532,67 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.getInput().releaseKey(options -> options.keyLeft);
             context.getInput().releaseKey(options -> options.keyAttack);
         } });
+    }
+
+    private static void traversalControls(ClientGameTestContext context, TestDedicatedServerContext server) {
+        server.runCommand("execute as @a at @s run genshin arena");
+        context.waitTicks(5);
+        var base = context.computeOnClient(client -> client.player.blockPosition());
+        String wall = (base.getX() - 2) + " " + base.getY() + " " + (base.getZ() + 3) + " "
+                + (base.getX() + 2) + " " + (base.getY() + 10) + " " + (base.getZ() + 3);
+        server.runCommand("fill " + wall + " minecraft:stone");
+        server.runCommand("tp @a " + (base.getX() + .5) + " " + base.getY() + " " + (base.getZ() + .5) + " 0 0");
+        context.runOnClient(client -> ManagedCamera.setAngles(0, 12));
+        context.waitTicks(5);
+        double groundY = context.computeOnClient(client -> client.player.getY());
+        context.getInput().holdKey(options -> options.keyUp);
+        context.waitFor(client -> CombatInput.state().climbing());
+        context.waitFor(client -> client.player.getY() > groundY + 2);
+        context.getInput().releaseKey(options -> options.keyUp);
+        context.runOnClient(client -> {
+            if (!CombatInput.state().climbing() || !GenshinHud.staminaVisible() || CombatInput.state().stamina() >= 100)
+                throw new AssertionError("Real W wall entry must rise, consume authoritative stamina and display wheel");
+            client.gui.hud.getChat().clearMessages(true);
+        });
+        screenshot(context, "genshin-traversal-climbing");
+        context.getInput().holdKey(options -> options.keyShift);
+        context.waitFor(client -> !CombatInput.state().climbing());
+        context.getInput().releaseKey(options -> options.keyShift);
+        server.runCommand("fill " + wall + " minecraft:air");
+        String tower = (base.getX() + 6) + " " + base.getY() + " " + base.getZ() + " "
+                + (base.getX() + 8) + " " + (base.getY() + 11) + " " + (base.getZ() + 2);
+        server.runCommand("fill " + tower + " minecraft:stone");
+        server.runCommand("tp @a " + (base.getX() + 7.5) + " " + (base.getY() + 12) + " " + (base.getZ() + 1.5) + " 0 0");
+        context.waitFor(client -> client.player.onGround() && client.player.getY() > groundY + 11);
+        context.runOnClient(client -> ManagedCamera.setAngles(0, 15));
+        context.getInput().holdKey(options -> options.keyUp);
+        context.getInput().holdKey(options -> options.keyJump);
+        context.waitFor(client -> client.player.getZ() > base.getZ() + 3.5 && !client.player.onGround());
+        context.getInput().releaseKey(options -> options.keyJump);
+        context.waitTicks(2);
+        context.getInput().pressKey(options -> options.keyJump);
+        context.waitFor(client -> CombatInput.state().gliding());
+        context.getInput().releaseKey(options -> options.keyUp);
+        double glideY = context.computeOnClient(client -> client.player.getY());
+        int glideTick = context.computeOnClient(client -> client.player.tickCount);
+        context.waitTicks(6);
+        context.runOnClient(client -> {
+            double descent = glideY - client.player.getY();
+            double expected = (client.player.tickCount - glideTick) * .11755;
+            if (!CombatInput.state().gliding() || Math.abs(descent - expected) > .01
+                    || Math.abs(client.player.getDeltaMovement().y + .11755) > .00001)
+                throw new AssertionError("Glider must descend at historical adapted2.351m/s: actual=" + descent + ", expected=" + expected);
+            if (!GenshinHud.staminaVisible() || !CombatInput.state().staminaDraining())
+                throw new AssertionError("Glider must show shared stamina wheel/drain");
+            client.gui.hud.getChat().clearMessages(true);
+        });
+        screenshot(context, "genshin-traversal-gliding");
+        context.getInput().pressKey(options -> options.keyJump);
+        context.waitFor(client -> !CombatInput.state().gliding());
+        server.runCommand("tp @a " + (base.getX() + .5) + " " + base.getY() + " " + (base.getZ() + .5) + " 0 0");
+        server.runCommand("fill " + tower + " minecraft:air");
+        context.waitFor(client -> client.player.onGround() && CombatInput.state().stamina() == 100);
+        context.runOnClient(client -> ManagedCamera.setAngles(0, 0));
     }
 
     private static void spectatorExitResendsCameraYaw(ClientGameTestContext context, TestDedicatedServerContext server) {

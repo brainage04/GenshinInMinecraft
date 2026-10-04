@@ -9,6 +9,7 @@
 		"BucketItemMixin",
 		"IgnitionItemMixin",
 		"ServerPlayerDeathMixin",
+		"PlayerFallDamageMixin",
 		"FrozenLivingEntityMixin",
 		"FrozenEntityMovementMixin"
 	],

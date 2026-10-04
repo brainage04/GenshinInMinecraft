@@ -5,6 +5,7 @@ import io.github.brainage04.genshininminecraft.gametest.ManagedWorldGameTests;
 import io.github.brainage04.genshininminecraft.gametest.TravelerCombatGameTests;
 import io.github.brainage04.genshininminecraft.gametest.HilichurlGameTests;
 import io.github.brainage04.genshininminecraft.gametest.StaminaGameTests;
+import io.github.brainage04.genshininminecraft.gametest.TraversalGameTests;
 import io.github.brainage04.genshininminecraft.gametest.PartyGameTests;
 import io.github.brainage04.genshininminecraft.gametest.KaeyaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.AmberGameTests;
@@ -14,6 +15,14 @@ import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 
 public class GenshinInMinecraftGameTest {
+    @GameTest public void safeFallDoesNotDamage(GameTestHelper context) { TraversalGameTests.safeFallDoesNotDamage(context); }
+    @GameTest public void damagingFallLosesHalfMaxHp(GameTestHelper context) { TraversalGameTests.damagingFallLosesHalfMaxHp(context); }
+    @GameTest public void lethalFallForcesCharacterSwitch(GameTestHelper context) { TraversalGameTests.lethalFallForcesCharacterSwitch(context); }
+    @GameTest public void waterLandingNegatesFall(GameTestHelper context) { TraversalGameTests.waterLandingNegatesFall(context); }
+    @GameTest public void climbDrainsAndExhaustionFalls(GameTestHelper context) { TraversalGameTests.climbDrainsAndExhaustionFalls(context); }
+    @GameTest public void glideDrainsAndDescends(GameTestHelper context) { TraversalGameTests.glideDrainsAndDescends(context); }
+    @GameTest public void climbMantlesStepsAndRejectsOverhang(GameTestHelper context) { TraversalGameTests.climbMantlesStepsAndRejectsOverhang(context); }
+
     @GameTest
     public void genshinCommandIsRegistered(GameTestHelper context) {
         GenshinInMinecraftGameTests.genshinCommandIsRegistered(context);

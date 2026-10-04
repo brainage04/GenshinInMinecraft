@@ -5,6 +5,7 @@ import io.github.brainage04.genshininminecraft.gametest.ManagedWorldGameTests;
 import io.github.brainage04.genshininminecraft.gametest.TravelerCombatGameTests;
 import io.github.brainage04.genshininminecraft.gametest.HilichurlGameTests;
 import io.github.brainage04.genshininminecraft.gametest.StaminaGameTests;
+import io.github.brainage04.genshininminecraft.gametest.TraversalGameTests;
 import io.github.brainage04.genshininminecraft.gametest.PartyGameTests;
 import io.github.brainage04.genshininminecraft.gametest.KaeyaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.AmberGameTests;
@@ -23,6 +24,13 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 @EventBusSubscriber(modid = GenshinInMinecraft.MOD_ID)
 public final class GenshinInMinecraftNeoForgeGameTest {
     private static final Map<String, Consumer<GameTestHelper>> TESTS = Map.ofEntries(
+            Map.entry("safe_fall_does_not_damage", TraversalGameTests::safeFallDoesNotDamage),
+            Map.entry("damaging_fall_loses_half_max_hp", TraversalGameTests::damagingFallLosesHalfMaxHp),
+            Map.entry("lethal_fall_forces_character_switch", TraversalGameTests::lethalFallForcesCharacterSwitch),
+            Map.entry("water_landing_negates_fall", TraversalGameTests::waterLandingNegatesFall),
+            Map.entry("climb_drains_and_exhaustion_falls", TraversalGameTests::climbDrainsAndExhaustionFalls),
+            Map.entry("glide_drains_and_descends", TraversalGameTests::glideDrainsAndDescends),
+            Map.entry("climb_mantles_steps_and_rejects_overhang", TraversalGameTests::climbMantlesStepsAndRejectsOverhang),
             Map.entry("dimension_change_permanently_cancels_field_objects", CombatLifecycleGameTests::dimensionChangePermanentlyCancelsFieldObjects),
             Map.entry("party_wipe_discards_landed_bunny", CombatLifecycleGameTests::partyWipeDiscardsLandedBunny),
             Map.entry("same_tick_lethal_trade_earlier_traveler_wins", HilichurlGameTests::sameTickLethalTradeEarlierTravelerWins),

@@ -28,6 +28,8 @@ public final class Stamina {
     private long dashEnd;
     private boolean sprinting;
     private boolean exhausted;
+    private double traversalDrainPerFrame;
+    private boolean traversalAttached;
 
     public Stamina() { this(NEW_PLAYER_MAX); }
     public Stamina(double maximum) {
@@ -41,7 +43,7 @@ public final class Stamina {
     public long frame() { return frame; }
     public boolean exhausted() { return exhausted; }
     public boolean sprinting() { return sprinting; }
-    public boolean draining() { return sprinting || frame < dashEnd; }
+    public boolean draining() { return sprinting || frame < dashEnd || traversalDrainPerFrame > 0; }
     public boolean dashing(long at) { return dashStart >= 0 && at >= dashStart && at < dashEnd; }
     public boolean dashInvulnerable(long at) {
         return dashStart >= 0 && at >= dashStart + DASH_IFRAME_STARTUP_FRAMES
@@ -51,6 +53,13 @@ public final class Stamina {
     public void advanceTo(long at) {
         if (at < frame) throw new IllegalArgumentException("Stamina time cannot move backwards");
         long from = frame;
+        if (traversalAttached) {
+            current = Math.max(0, current - (at - from) * traversalDrainPerFrame);
+            regenReady = at + REGEN_DELAY_FRAMES;
+            if (current == 0) exhausted = true;
+            frame = at;
+            return;
+        }
         if (sprinting) {
             long start = Math.max(from, dashEnd);
             long drainingFrames = Math.max(0, at - start);
@@ -98,6 +107,17 @@ public final class Stamina {
         return true;
     }
     public boolean chargedAttack(long at) { return consume(SWORD_CHARGED_COST, at); }
+
+    /** Wall attachment blocks recovery even while stationary; gliding always descends and drains. */
+    public void traversal(double drainPerSecond, boolean attached, long at) {
+        advanceTo(at);
+        if (!Double.isFinite(drainPerSecond) || drainPerSecond < 0)
+            throw new IllegalArgumentException("Invalid traversal drain");
+        if (traversalAttached && !attached) regenReady = at + REGEN_DELAY_FRAMES;
+        traversalAttached = attached;
+        traversalDrainPerFrame = attached ? drainPerSecond / 60 : 0;
+        if (attached) sprinting = false;
+    }
 
     /** Discrete costs are all-or-nothing, and exhaustion locks every stamina-consuming action. */
     public boolean consume(double cost, long at) {

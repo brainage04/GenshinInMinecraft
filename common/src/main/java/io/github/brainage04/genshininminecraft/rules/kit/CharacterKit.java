@@ -8,6 +8,7 @@ import io.github.brainage04.genshininminecraft.rules.Stats;
 public interface CharacterKit {
     enum Intent {
         ATTACK_PRESS, ATTACK_RELEASE, SKILL_PRESS, SKILL_RELEASE, BURST_PRESS,
+        TRAVERSAL_JUMP,
         SWITCH_1, SWITCH_2, SWITCH_3, SWITCH_4;
         public int switchSlot() { return ordinal() >= SWITCH_1.ordinal() ? ordinal() - SWITCH_1.ordinal() : -1; }
     }

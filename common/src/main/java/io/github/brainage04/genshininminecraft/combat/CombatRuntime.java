@@ -28,6 +28,8 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.Direction;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -190,15 +192,34 @@ public final class CombatRuntime {
         ServerLevel level = (ServerLevel) player.level();
         var source = level.damageSources().mobAttack(enemy);
         if (player.isInvulnerableTo(level, source)) return false;
+        applyCharacterLoss(state, amount, source, frame);
+        return true;
+    }
+    /** Environmental max-HP loss bypasses DEF/RES/shields and dash protection. */
+    public boolean fallDamage(ServerPlayer player, double height, DamageSource source) {
+        if (!ManagedWorld.isManaged(player.level())) return false;
+        if (!player.isAlive() || player.isCreative() || player.isSpectator()) return true;
+        Session state = session(player);
+        long frame = Math.max(state.party.frame(), Frames.atServerTick(player.level().getServer().getTickCount()));
+        advanceTimeline(frame);
+        state.reconcileHealth();
+        double horizontalSpeed = Math.sqrt(player.getKnownMovement().horizontalDistanceSqr()) * 20;
+        double fraction = state.traversal.active() ? 0 : Traversal.fallHpFraction(height, horizontalSpeed,
+                TraversalGeometry.safeWater(player));
+        if (fraction > 0) applyCharacterLoss(state, state.kit().maxHp() * fraction, source, frame);
+        return true;
+    }
+    private void applyCharacterLoss(Session state, double amount, DamageSource source, long frame) {
+        ServerPlayer player = state.player;
+        CharacterKit kit = state.kit();
         kit.setHp(Math.max(0, kit.hp() - amount));
-        player.setLastHurtByMob(enemy);
+        if (source.getEntity() instanceof LivingEntity enemy) player.setLastHurtByMob(enemy);
         player.getCombatTracker().recordDamage(source, (float) (amount * player.getMaxHealth() / kit.maxHp()));
         if (kit.hp() == 0) state.forceSwitch(frame);
         state.mirrorHealth();
-        level.broadcastDamageEvent(player, source);
+        player.level().broadcastDamageEvent(player, source);
         if (state.kit().hp() == 0) player.die(source);
         state.sync();
-        return true;
     }
     /** Shared die hook also catches lethal vanilla/environmental damage before vanilla marks death. */
     public boolean handleDeath(ServerPlayer player) {
@@ -325,6 +346,10 @@ public final class CombatRuntime {
         private ServerLevel dashLevel;
         private int displayedSlot = -1;
         private ServerLevel displayedLevel;
+        private final Traversal traversal;
+        private Direction climbWall;
+        private boolean jumpKeyHeld;
+        private boolean traversalJumpQueued;
 
         private Session(ServerPlayer player) {
             this.player = player;
@@ -332,6 +357,7 @@ public final class CombatRuntime {
             random = new Random(player.getUUID().getLeastSignificantBits());
             roseTargets = new Random(player.getUUID().getMostSignificantBits());
             party = new Party(timeline, this::hit);
+            traversal = new Traversal(party.stamina());
             // ICD belongs to a character+player, not to the shared Minecraft player entity.
             ByteBuffer identity = ByteBuffer.allocate(2 * Long.BYTES + Integer.BYTES);
             identity.putLong(player.getUUID().getMostSignificantBits()).putLong(player.getUUID().getLeastSignificantBits());
@@ -345,12 +371,15 @@ public final class CombatRuntime {
         public CharacterKit kit() { return party.activeKit(); }
         public Party party() { return party; }
         public Stamina stamina() { return party.stamina(); }
+        public Traversal traversal() { return traversal; }
         public Element skillAbsorbedElement() { return skillAbsorbed; }
         public Element burstAbsorbedElement() { return burstAbsorbed; }
         public boolean intent(Intent intent, long frame) {
             if (!ManagedWorld.isManaged(player.level()) || !player.isAlive() || player.isSpectator()) return false;
             // Drain prior hits before installing a new cast's absorption/origin.
             advanceTo(frame);
+            if (intent == Intent.TRAVERSAL_JUMP) { traversalJumpQueued = true; return true; }
+            if (traversal.active()) return false; // Attached ordinary combat/party switching is unavailable.
             int slot = intent.switchSlot();
             if (slot >= 0) {
                 boolean switched = party.switchTo(slot, frame);
@@ -433,6 +462,20 @@ public final class CombatRuntime {
             }
             boolean held = input.sprint();
             boolean moving = input.forward() != input.backward() || input.left() != input.right();
+            // A quick real key click may press/release between server ticks. Preserve its explicit
+            // intent; raw input edges remain available for offline server simulation fixtures.
+            boolean jumped = traversalJumpQueued || (player.connection == null || !player.connection.isAcceptingMessages())
+                    && input.jump() && !jumpKeyHeld;
+            traversalJumpQueued = false;
+            jumpKeyHeld = input.jump();
+            if (tickTraversal(frame, input, moving, jumped)) {
+                stamina().stopSprint(frame);
+                player.setSprinting(false);
+                sprintKeyHeld = held;
+                dashMotion = null;
+                dashLevel = null;
+                return;
+            }
             boolean eligible = valid() && !player.isSpectator() && !player.isPassenger()
                     && !player.getAbilities().flying && !player.isInWater() && !player.isFallFlying()
                     && !input.shift();
@@ -459,6 +502,86 @@ public final class CombatRuntime {
                 if (!dashing) { dashMotion = null; dashLevel = null; }
             }
         }
+        private boolean tickTraversal(long frame, net.minecraft.world.entity.player.Input input, boolean moving, boolean jumped) {
+            int before = traversalFlags(frame);
+            boolean eligible = valid() && !player.isSpectator() && !player.isPassenger()
+                    && !player.getAbilities().flying && !player.isInWater() && !player.isFallFlying();
+            float yaw = Float.isNaN(cameraYaw) ? player.getYRot() : cameraYaw;
+            Traversal.Mode oldMode = traversal.mode();
+            boolean adjacent = climbWall != null && TraversalGeometry.adjacent(player, climbWall);
+            traversal.tick(moving, eligible && (oldMode != Traversal.Mode.CLIMB || adjacent), frame);
+            if (traversal.mode() == Traversal.Mode.CLIMB) {
+                if (input.shift() || input.backward() && player.onGround()) endTraversal(frame);
+                else if (jumped) {
+                    if (input.backward() && !input.left() && !input.right()) {
+                        Vec3 away = new Vec3(-climbWall.getStepX() * Traversal.ADAPTED_JUMP_AWAY_BLOCKS_PER_TICK,
+                                Traversal.ADAPTED_JUMP_AWAY_BLOCKS_PER_TICK,
+                                -climbWall.getStepZ() * Traversal.ADAPTED_JUMP_AWAY_BLOCKS_PER_TICK);
+                        endTraversal(frame);
+                        setTraversalMotion(away, true);
+                    } else traversal.climbJump((input.left() ? 1 : 0) - (input.right() ? 1 : 0), frame);
+                }
+                if (traversal.mode() == Traversal.Mode.CLIMB && (input.forward() || traversal.jumping(frame))) {
+                    Vec3 mantle = TraversalGeometry.mantle(player, climbWall);
+                    if (mantle != null) {
+                        endTraversal(frame);
+                        player.teleportTo(mantle.x, mantle.y, mantle.z);
+                        player.setOnGround(true);
+                        player.resetFallDistance();
+                    } else if (!player.level().noCollision(player, player.getBoundingBox()
+                            .deflate(Traversal.ADAPTED_COLLISION_EPSILON).move(0,
+                                    Traversal.ADAPTED_CLIMB_BLOCKS_PER_TICK, 0))) endTraversal(frame);
+                }
+            } else if (traversal.mode() == Traversal.Mode.GLIDE && (jumped || input.shift() || player.onGround())) {
+                endTraversal(frame);
+            } else if (oldMode == Traversal.Mode.FREE && eligible && !input.shift()) {
+                if (jumped && !player.onGround()) traversal.openGlider(TraversalGeometry.clearance(player), frame);
+                if (!traversal.active() && moving) {
+                    Direction wall = TraversalGeometry.findWall(player, yaw, input);
+                    if (wall != null && traversal.attach(frame)) climbWall = wall;
+                }
+            }
+            traversal.tick(moving, eligible, frame);
+            if (oldMode != Traversal.Mode.FREE && !traversal.active()) {
+                player.setNoGravity(false);
+                if (!jumped) setTraversalMotion(Vec3.ZERO, true);
+            }
+            if (traversal.active()) {
+                player.setNoGravity(true);
+                player.resetFallDistance();
+                setTraversalMotion(TraversalGeometry.motion(traversal.mode(), climbWall, yaw, input,
+                        traversal.jumping(frame), traversal.jumpSide()), false);
+                if (traversal.mode() == Traversal.Mode.GLIDE) gliderParticles(yaw);
+            }
+            if (before != traversalFlags(frame)) { lastSync = null; sync(); }
+            return traversal.active() || oldMode != Traversal.Mode.FREE;
+        }
+        private int traversalFlags(long frame) {
+            if (traversal.mode() == Traversal.Mode.GLIDE) return 2;
+            if (traversal.mode() != Traversal.Mode.CLIMB) return 0;
+            return 1 | (climbWall.ordinal() << 2) | (traversal.jumping(frame) ? (traversal.jumpSide() + 2) << 5 : 0);
+        }
+        private void endTraversal(long frame) {
+            traversal.detach(frame);
+            player.setNoGravity(false);
+        }
+        private void setTraversalMotion(Vec3 motion, boolean send) {
+            player.setDeltaMovement(motion);
+            if (send && player.connection != null && player.connection.isAcceptingMessages())
+                player.connection.send(new ClientboundSetEntityMotionPacket(player));
+        }
+        private void gliderParticles(float yaw) {
+            double angle = Math.toRadians(yaw);
+            double sideX = Math.cos(angle), sideZ = Math.sin(angle);
+            double backX = Math.sin(angle) * Traversal.ADAPTED_WING_BACK_OFFSET;
+            double backZ = -Math.cos(angle) * Traversal.ADAPTED_WING_BACK_OFFSET;
+            for (int sample = -Traversal.ADAPTED_WING_PARTICLE_SAMPLES; sample <= Traversal.ADAPTED_WING_PARTICLE_SAMPLES; sample++) {
+                double side = sample * Traversal.ADAPTED_WING_HALF_SPAN / Traversal.ADAPTED_WING_PARTICLE_SAMPLES;
+                player.level().sendParticles(ANEMO_DUST, player.getX() + backX + sideX * side,
+                        player.getY() + Traversal.ADAPTED_WING_HEIGHT - Math.abs(side) * Traversal.ADAPTED_WING_DROOP,
+                        player.getZ() + backZ + sideZ * side, 1, 0, 0, 0, 0);
+            }
+        }
         private void setHorizontalMotion(Vec3 motion) {
             player.setDeltaMovement(motion.x, player.getDeltaMovement().y, motion.z);
             player.hurtMarked = true;
@@ -477,6 +600,7 @@ public final class CombatRuntime {
             clearFieldObjects();
         }
         private void clearFieldObjects() {
+            endTraversal(Math.max(stamina().frame(), timeline.frame()));
             ++castGeneration;
             for (int slot = 0; slot < Party.SIZE; slot++) party.kit(slot).cancelCasts(timeline.frame());
             if (bunny != null) { bunny.discard(); bunny = null; }
@@ -507,6 +631,7 @@ public final class CombatRuntime {
             player.setHealth(mirroredHealth);
         }
         private boolean forceSwitch(long frame) {
+            endTraversal(frame);
             boolean switched = party.forceSwitch(frame);
             if (switched) switchEffect();
             else clearFieldObjects();
@@ -534,13 +659,15 @@ public final class CombatRuntime {
                 lastSync = null;
                 lastSyncLevel = (ServerLevel) player.level();
             }
-            if (lastSync != null && party.frame() - lastSyncFrame < Frames.atServerTick(CHARACTER_SYNC_INTERVAL_TICKS)) return;
+            int traversalFlags = traversalFlags(party.frame());
+            if (lastSync != null && lastSync.traversalFlags() == traversalFlags
+                    && party.frame() - lastSyncFrame < Frames.atServerTick(CHARACTER_SYNC_INTERVAL_TICKS)) return;
             float stamina = (float) stamina().current();
             boolean exhausted = stamina().exhausted();
             boolean draining = stamina().draining();
             boolean changed = lastSync == null || lastSync.activeSlot() != party.activeSlot()
                     || lastSync.stamina() != stamina || lastSync.staminaExhausted() != exhausted
-                    || lastSync.staminaDraining() != draining;
+                    || lastSync.staminaDraining() != draining || lastSync.traversalFlags() != traversalFlags;
             for (int index = 0; !changed && index < Party.SIZE; index++) {
                 var member = party.kit(index);
                 var previous = lastSync.members().get(index);
@@ -556,7 +683,7 @@ public final class CombatRuntime {
                 members.add(new CharacterStatePayload.Member((float) (member.hp() / member.maxHp()),
                         (float) member.energy(), (int) member.skillRemaining(), (int) member.burstRemaining()));
             }
-            lastSync = new CharacterStatePayload(true, party.activeSlot(), members, stamina, exhausted, draining);
+            lastSync = new CharacterStatePayload(true, party.activeSlot(), members, stamina, exhausted, draining, traversalFlags);
             lastSyncFrame = party.frame();
             if (sender != null) sender.accept(player, lastSync);
         }

@@ -37,6 +37,7 @@ public final class GenshinHud {
     private static String hpText = "";
     private static String skillCooldown = "";
     private static String burstCooldown = "";
+    private static String traversalHint = "";
 
     public record PartyMember(String name, Element element, float hp, float maxHp, float energy,
             float maxEnergy, boolean active) {}
@@ -58,6 +59,14 @@ public final class GenshinHud {
         hpText = Math.round(state.hp()) + " / " + Math.round(state.maxHp());
         skillCooldown = HudFormatting.cooldown(state.skillRemainingFrames());
         burstCooldown = HudFormatting.cooldown(state.burstRemainingFrames());
+        traversalHint = "";
+        if (state.climbing() || state.gliding()) {
+            var options = Minecraft.getInstance().options;
+            String jump = options.keyJump.getTranslatedKeyMessage().getString();
+            String drop = options.keyShift.getTranslatedKeyMessage().getString();
+            traversalHint = state.climbing() ? "CLIMB  WASD | " + jump + " jump | S+" + jump + " away | " + drop + " drop"
+                    : "GLIDE  WASD steer | " + jump + " close";
+        }
     }
 
     public static void render(GuiGraphicsExtractor graphics, DeltaTracker delta) {
@@ -98,6 +107,7 @@ public final class GenshinHud {
                 burstCooldown, full, ready, active.element());
         bar(graphics, width - 53, height - 29, 32, 3, active.energy(), active.maxEnergy(), ElementPalette.color(active.element()));
         staminaWheel(graphics, width / 2 + 35, height / 2);
+        if (!traversalHint.isEmpty()) graphics.centeredText(font, traversalHint, width / 2, height - 87, BORDER);
         if (CombatInput.aiming()) {
             int x = width / 2, y = height / 2;
             if (ManagedCamera.decoupled()) {
@@ -122,7 +132,8 @@ public final class GenshinHud {
 
     public static boolean staminaVisible() {
         var state = CombatInput.state();
-        return state.managed() && (state.stamina() < Stamina.NEW_PLAYER_MAX || state.staminaDraining());
+        return state.managed() && (state.stamina() < Stamina.NEW_PLAYER_MAX || state.staminaDraining()
+                || state.climbing() || state.gliding());
     }
     private static void staminaWheel(GuiGraphicsExtractor graphics, int x, int y) {
         if (!staminaVisible()) return;

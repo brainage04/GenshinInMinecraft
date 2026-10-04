@@ -26,6 +26,7 @@ public final class CombatInput {
     private static CharacterStatePayload state = CharacterStatePayload.UNMANAGED;
     private static boolean attackHeld;
     private static boolean skillHeld;
+    private static boolean jumpHeld;
     public static final float ADAPTED_AIM_FOV_MULTIPLIER = .7F;
     private static int aimTicks;
     private static boolean aimCancelled;
@@ -36,6 +37,7 @@ public final class CombatInput {
         if (payload.managed() != state.managed()) {
             attackHeld = false;
             skillHeld = false;
+            jumpHeld = false;
             drain(SKILL);
             drain(BURST);
             for (var mapping : PARTY) drain(mapping);
@@ -57,6 +59,7 @@ public final class CombatInput {
         state = CharacterStatePayload.UNMANAGED;
         attackHeld = false;
         skillHeld = false;
+        jumpHeld = false;
         aimTicks = 0;
         aimCancelled = false;
         GenshinHud.accept(state);
@@ -93,6 +96,11 @@ public final class CombatInput {
     /** Runs before vanilla inventory/drop/attack handling, on both loaders. */
     public static void beforeKeybinds(Minecraft client) {
         if (!managed() || client.player == null || client.gui.screen() != null) return;
+        boolean jumpDown = client.options.keyJump.isDown();
+        boolean jumpClick = drain(client.options.keyJump);
+        if (!jumpHeld && (jumpDown || jumpClick)
+                && (!client.player.onGround() || state.climbing() || state.gliding())) send(Intent.TRAVERSAL_JUMP);
+        jumpHeld = jumpDown;
         while (client.options.keyTogglePerspective.consumeClick()) ManagedCamera.togglePerspective(client);
         for (int slot = 0; slot < PARTY.length; slot++) {
             if (drain(PARTY[slot])) send(SWITCH_INTENTS[slot]);

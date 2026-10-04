@@ -8,7 +8,7 @@ This is a private-use project for the owner and friends, not a template or a rel
 
 1. `./gradlew --no-daemon :fabric:runClient` (or `:neoforge:runClient`), create a **new, disposable** creative world with cheats on.
 2. `/genshin arena camp` — builds a flat 50×50 arena around you (destructive inside that box), turns on managed mode, puts you in adventure mode and places three hilichurls at the far side.
-3. You are a party of Traveler (Anemo), Amber, Kaeya and Lisa at level 20. **1–4** switch; **left click** normal attack (hold for charged / Amber's aimed shot); **E** skill (tap/hold); **Q** burst; **Sprint** (left Ctrl) dashes and sprints using stamina; **mouse** orbits the camera, WASD moves relative to it; **F5** toggles first person.
+3. You are a party of Traveler (Anemo), Amber, Kaeya and Lisa at level 20. **1–4** switch; **left click** normal attack (hold for charged / Amber's aimed shot); **E** skill (tap/hold); **Q** burst; **Sprint** (left Ctrl) dashes and sprints using stamina; **mouse** orbits the camera, WASD moves relative to it; **F5** toggles first person. Walk into solid walls to **climb** (W/S up/down, A/D sideways, Jump climb-jump, S+Jump away, Sneak drop); airborne **Jump** opens/closes the **glider**, with WASD steering.
 4. `/genshin camp hilichurl [count]` spawns more; `/genshin aura hydro 2` puts a Hydro aura on the enemy you look at, for Electro-Charged/Frozen/Vaporize. `/genshin managed off` returns the world to vanilla rules and controls.
 
 Full controls, numbers and adaptations: [AGENTS.md](AGENTS.md#in-game-development-commands), [docs/decisions.md](docs/decisions.md), [spec/fidelity.md](spec/fidelity.md).
