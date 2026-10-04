@@ -86,8 +86,22 @@ def dimension_for(relative):
     if parts[0] == "DIM1":
         return "minecraft:the_end"
     if parts[0] == "dimensions" and len(parts) >= 4:
-        return parts[1] + ":" + "/".join(parts[2:-2] if parts[-2] in ("region", "entities", "poi", "data") else parts[2:-1])
+        # Saved data is namespaced as data/<namespace>/... in 26.2; the
+        # directory after the dimension ID is not part of that ID.
+        suffix = parts[2:]
+        boundary = next((index for index, part in enumerate(suffix)
+                         if part in ("region", "entities", "poi", "data")), len(suffix) - 1)
+        return parts[1] + ":" + "/".join(suffix[:boundary])
     return "minecraft:overworld"
+
+
+def comparison_path(relative):
+    """26.2 moved vanilla dimensions; retain stable pre-upgrade scan identities."""
+    match = re.fullmatch(r"dimensions/minecraft/(overworld|the_nether|the_end)/((?:region|entities|poi)/.+)", relative)
+    if not match:
+        return relative
+    prefix = {"overworld": "", "the_nether": "DIM-1/", "the_end": "DIM1/"}[match[1]]
+    return prefix + match[2]
 
 
 class WorldSource:
@@ -110,21 +124,32 @@ class WorldSource:
             self.prefix = ""
             self.entries = {item.relative_to(self.path).as_posix(): item.stat().st_size
                             for item in self.path.rglob("*") if item.is_file()}
+        self.paths = {}
+        sizes = {}
+        for actual, size in self.entries.items():
+            relative = comparison_path(actual)
+            if relative in sizes:
+                raise ValueError(f"ambiguous old/new dimension paths for {relative}")
+            sizes[relative] = size
+            self.paths[relative] = actual
+        self.entries = sizes
 
     def close(self):
         if self.archive:
             self.archive.close()
 
     def read(self, relative):
+        actual = self.paths[relative]
         if self.archive:
-            return self.archive.read(self.prefix + relative)
-        return (self.path / relative).read_bytes()
+            return self.archive.read(self.prefix + actual)
+        return (self.path / actual).read_bytes()
 
     def header(self, relative):
+        actual = self.paths[relative]
         if self.archive:
-            with self.archive.open(self.prefix + relative, "r") as entry:
+            with self.archive.open(self.prefix + actual, "r") as entry:
                 return entry.read(4096)
-        with (self.path / relative).open("rb") as entry:
+        with (self.path / actual).open("rb") as entry:
             return entry.read(4096)
 
     def level(self):
@@ -137,14 +162,18 @@ class WorldSource:
             if "pos" in saved:
                 spawn.update(zip(("x", "y", "z"), struct.unpack(">iii", saved["pos"])))
         border = {key: value for key, value in data.items() if key.startswith("Border")}
-        if "data/world_border.dat" in self.entries:
-            border = read_nbt(gzip.decompress(self.read("data/world_border.dat")))["data"]
+        for path in ("data/world_border.dat", "dimensions/minecraft/overworld/data/minecraft/world_border.dat"):
+            if path in self.entries:
+                border = read_nbt(gzip.decompress(self.read(path)))["data"]
+        rules = data.get("GameRules", data.get("game_rules"))
+        if "data/minecraft/game_rules.dat" in self.entries:
+            rules = read_nbt(gzip.decompress(self.read("data/minecraft/game_rules.dat")))["data"]
         return {
             "DataVersion": data.get("DataVersion"), "LevelName": data.get("LevelName"),
             "Version": data.get("Version"), "spawn": spawn,
             "SpawnAngle": data.get("SpawnAngle"),
             "world_border": border,
-            "GameRules": data.get("GameRules", data.get("game_rules")),
+            "GameRules": rules,
             "DataPacks": data.get("DataPacks"),
             "enabled_features": data.get("enabled_features"),
             "removed_features": data.get("removed_features"),
@@ -240,9 +269,20 @@ def count_entities(entities, counter):
         count_entities(entity.get("Passengers", []), counter)
 
 
+def empty_region():
+    return {"chunks": 0, "sections": 0, "blocks": Counter(),
+            "block_entities": Counter(), "entities": Counter(), "data_versions": Counter()}
+
+
+def baseline_empty(result):
+    # Zero entities alone is insufficient: a chunk can contain an empty list.
+    # Only a complete baseline scan proving zero chunk records permits removal.
+    return (result.get("chunks") == 0 and result.get("sections") == 0 and
+            all(result.get(key) == {} for key in ("blocks", "block_entities", "entities", "data_versions")))
+
+
 def scan_region(source, relative):
-    result = {"chunks": 0, "sections": 0, "blocks": Counter(),
-              "block_entities": Counter(), "entities": Counter(), "data_versions": Counter()}
+    result = empty_region()
     for _, root in iter_chunks(source, relative, source.read(relative)):
         result["chunks"] += 1
         result["data_versions"][str(root.get("DataVersion", "absent"))] += 1
@@ -267,11 +307,7 @@ def selected_regions(source, stride, radius, manifest=None, only=None):
     block_regions = sorted(name for name in source.entries if REGION.fullmatch(name) and REGION.fullmatch(name)[2] == "region")
     entity_regions = sorted(name for name in source.entries if REGION.fullmatch(name) and REGION.fullmatch(name)[2] == "entities")
     if manifest:
-        names = json.loads(Path(manifest).read_text())["selected_regions"]
-        missing = [name for name in names if name not in source.entries]
-        if missing:
-            raise ValueError(f"comparison regions missing: {missing}")
-        return names
+        return json.loads(Path(manifest).read_text())["selected_regions"]
     if only:
         if only not in block_regions + entity_regions:
             raise ValueError(f"not a region in this world: {only}")
@@ -298,11 +334,19 @@ def selected_regions(source, stride, radius, manifest=None, only=None):
 def scan(source, stride=1, radius=2048, manifest=None, only=None):
     started = time.monotonic()
     names = selected_regions(source, stride, radius, manifest, only)
+    removed_empty = []
+    if manifest:
+        baseline = json.loads(Path(manifest).read_text())
+        missing = [name for name in names if name not in source.entries]
+        unsafe = [name for name in missing if not baseline_empty(baseline.get("regions", {}).get(name, {}))]
+        if unsafe:
+            raise ValueError(f"nonempty or unproven comparison regions missing: {unsafe}")
+        removed_empty = missing
     totals = {"blocks": Counter(), "block_entities": Counter(), "entities": Counter(), "data_versions": Counter()}
     regions, populated = {}, defaultdict(list)
     chunks, sections = 0, 0
     for index, name in enumerate(names):
-        result = scan_region(source, name)
+        result = empty_region() if name in removed_empty else scan_region(source, name)
         for key in totals:
             totals[key].update(result[key])
         chunks += result["chunks"]
@@ -319,6 +363,9 @@ def scan(source, stride=1, radius=2048, manifest=None, only=None):
                           "manifest": str(manifest) if manifest else None, "only": only,
                           "ordering": "lexicographic relative paths, zero-based index divisible by stride; include overworld regions intersecting spawn +/- radius square; all entity regions"},
             "selected_regions": names, "regions": regions, "totals": totals,
+            "relocated_regions": {name: source.paths[name] for name in names
+                                  if name in source.paths and source.paths[name] != name},
+            "removed_empty_regions": removed_empty,
             "non_vanilla": {key: {name: count for name, count in totals[key].items() if not name.startswith("minecraft:")}
                             for key in ("blocks", "block_entities", "entities")},
             "chunks_scanned": chunks, "sections_with_palettes": sections,
@@ -330,6 +377,10 @@ def scan(source, stride=1, radius=2048, manifest=None, only=None):
 def compare(before, after):
     if before["selected_regions"] != after["selected_regions"]:
         raise ValueError("reports cover different regions; use --manifest BEFORE.json for the after scan")
+    removed_empty = after.get("removed_empty_regions", [])
+    for name in removed_empty:
+        if name not in before["regions"] or not baseline_empty(before["regions"][name]) or not baseline_empty(after["regions"].get(name, {})):
+            raise ValueError(f"removed region was not proven empty in both reports: {name}")
     changes = {}
     for kind in ("blocks", "block_entities", "entities"):
         old, new = before["totals"][kind], after["totals"][kind]
@@ -342,10 +393,14 @@ def compare(before, after):
     region_changes = {}
     for name in before["selected_regions"]:
         old, new = before["regions"][name], after["regions"][name]
+        if new["chunks"] < old["chunks"]:
+            raise ValueError(f"chunk records lost in comparison region {name}: {old['chunks']} -> {new['chunks']}")
         if any(old[key] != new[key] for key in ("chunks", "sections", "blocks", "block_entities", "entities")):
             region_changes[name] = {"before": old, "after": new}
     return {"before_DataVersion": before["inventory"]["level"]["DataVersion"],
             "after_DataVersion": after["inventory"]["level"]["DataVersion"],
+            "relocated_regions": after.get("relocated_regions", {}),
+            "removed_empty_regions": removed_empty,
             "changes": changes, "changed_regions": region_changes,
             "interpretation": "Missing/added IDs are rename candidates, not proof of a rename. Palette entry count changes do not prove lost placed blocks; inspect changed regions and screenshots."}
 

@@ -1,6 +1,6 @@
 # Blocky Teyvat 5.1.0 → Minecraft 26.2 map-port spike
 
-Investigated 2026-10-04. This is the spike for [todo item 10](../todo.md) and [hard problem 1](GENSHIN_MINECRAFT_BRIEF.md#1-porting-the-map-to-262), not a completed server upgrade or landmark fidelity sign-off. **The purchased ZIP was only read; no full-world extraction, Minecraft server, upgrade, Gradle task, commit, or network download was run.** A single terrain region was extracted to ignored storage and compared byte-for-byte with the ZIP member.
+Investigated and upgraded 2026-10-04 for [todo item 10](../todo.md) and [hard problem 1](GENSHIN_MINECRAFT_BRIEF.md#1-porting-the-map-to-262). The purchased ZIP remained read-only. The full disposable copy was extracted and upgraded with the official 26.2 server; the after-scan and private Fabric client checks below use that completed upgrade, **not a second force-upgrade**. Deterministic terrain sampling and nearby screenshots are not full-world voxel equivalence or landmark fidelity sign-off.
 
 ## Source, versions and size
 
@@ -11,7 +11,7 @@ Investigated 2026-10-04. This is the spike for [todo item 10](../todo.md) and [h
 - `level.dat` is gzip-compressed Java NBT. `Data.DataVersion = 4556`; `Data.Version = {Name: "1.21.10", Id: 4556, Series: "main", Snapshot: 0}`; `LevelName = 方块提瓦特`.
 - The already cached official 26.2 client jar's `version.json` reports **`world_version = 4903`**, Java **25**, data pack version **107.1**, resource pack version **88.0**. Source: `$HOME/.gradle/caches/fabric-loom/26.2/minecraft-client.jar:version.json`. The source map therefore needs a **4556 → 4903** data-fixer upgrade; no target jar download was needed.
 - Cached Mojang metadata (`$HOME/.gradle/caches/fabric-loom/26.2/mojang_minecraft_info.json`, `downloads.server`) identifies the official bundled server as **60,894,273 bytes**, SHA-1 **`823e2250d24b3ddac457a60c92a6a941943fcd6a`**, [Mojang server object](https://piston-data.mojang.com/v1/objects/823e2250d24b3ddac457a60c92a6a941943fcd6a/server.jar). The port driver pins this checksum and validates the bundled version metadata before use. The cached bundle's `META-INF/versions.list` identifies `26.2/server-26.2.jar` as its inner jar.
-- `df -h .` reported **116 GiB available** on the repository filesystem (0.06 s). Space was sufficient, but the assignment deliberately limited extraction to one region. The driver requires the exact world bytes plus extraction/upgrade reserve; budget more than the bare 6.12 GB for logs, libraries and region rewriting.
+- Initial `df -h .` reported **116 GiB available** on the repository filesystem (0.06 s). Space was sufficient for the full extraction, upgrade and independent playtest copy. The driver requires the exact world bytes plus extraction/upgrade reserve; budget more than the bare 6.12 GB for logs, libraries and region rewriting.
 
 Dimension inventory counts **regular files**; overworld also includes shared world metadata, backups and Voxy files. “Terrain” means exact `region/r.X.Z.mca` names, not entities/POI/backups.
 
@@ -54,7 +54,7 @@ The world is not a default-height overworld, even if its blocks are vanilla:
 
 **Do not use vanilla `--safeMode` or remove the WorldPainter pack.** [INFERENCE] Loading/upgrading with the default 384-block dimension could drop or ignore out-of-range sections and destroy map geometry. The cached 26.2 server's actual default overworld JSON uses `attributes`, `default_clock`, and `timelines` instead of the old `effects`/`bed_works`/`respawn_anchor_works` representation. Reusing the old pack blindly is not a safe cutover.
 
-The driver ports **only the disposable copy**: starts from that official 26.2 overworld definition, retains every original field still present in the target schema (including all three height values), emits pack metadata for **107.1**, and removes only the four unavailable editor-provided enabled pack entries. It preserves original `level.dat` and the WorldPainter ZIP outside `world/` within the work directory, records preparation in JSON, and rejects unexpected enabled packs, pack contents or custom height instead of silently dropping them. Modern vanilla ambience/timelines come from the target jar; their visual fidelity has not yet been checked in-game.
+The driver ports **only the disposable copy**: starts from that official 26.2 overworld definition, retains every original field still present in the target schema (including all three height values), emits pack metadata for **107.1**, and removes only the four unavailable editor-provided enabled pack entries. It preserves original `level.dat` and the WorldPainter ZIP outside `world/` within the work directory, records preparation in JSON, and rejects unexpected enabled packs, pack contents or custom height instead of silently dropping them. Modern vanilla ambience/timelines come from the target jar.
 
 ## Saved game rules
 
@@ -76,7 +76,27 @@ The gzip NBT metadata scan records all **63** string-valued `Data.GameRules` in 
 | `axiomPlayerInvulnerability` | `false` |
 | `axiomDoBlockGravity`, `axiomDoTrampleFarmland`, `axiomDoBlockDrops` | `true` |
 
-The spike does not change gamerules. The future official data fixer owns their format migration. Axiom rules are leftover editor keys; runtime managed-world rules remain the mod's responsibility. Even though fire tick is already disabled, TNT/projectile editing and vanilla player damage are still enabled in this saved source.
+### 26.2 migration and saved-data repair
+
+The original **63** entries comprise **59 vanilla legacy rules and four Axiom editor rules**. Inspection of the cached 26.2 `GameRuleRegistryFix` bytecode (`minecraft-common.jar`, via `javap -c -p`; registered by `DataFixers` at schema **4658**) confirms that Mojang's fixer renames vanilla keys, converts string booleans/integers to typed NBT, inverts `disableRaids`/movement-check flags, and combines `doFireTick` plus `allowFireTicksAwayFromPlayer` into integer `minecraft:fire_spread_radius_around_player` (**0 disables fire spread; 128 is player-local; −1 is global**). No pre-renaming is needed. The upgraded rules now live in **`world/data/minecraft/game_rules.dat`**, not `level.dat`.
+
+The first upgrade retained the four unknown camelCase Axiom keys. Its saved-data codec logged `Failed to parse saved data for 'SavedDataType[minecraft:game_rules]'` because those are invalid resource locations. **Direct vanilla-server queries on the independent playtest copy disproved the suspected reset to defaults:** the valid partial vanilla rules were still applied. Before repair, the saved file contained **58 correctly migrated vanilla entries plus four invalid Axiom strings**, DataVersion **4772**.
+
+| 26.2 rule | Queried before repair | Repaired value |
+| --- | --- | --- |
+| `minecraft:random_tick_speed` | `0` | `0` |
+| `minecraft:fire_spread_radius_around_player` | `0` | `0` |
+| `minecraft:spawn_mobs`, `minecraft:mob_griefing` | `false` | `false` |
+| `minecraft:advance_time`, `minecraft:advance_weather` | `false` | `false` |
+| `minecraft:block_drops` | `false` | `false` |
+| `minecraft:keep_inventory`, `minecraft:immediate_respawn` | `true` | `true` |
+| `minecraft:respawn_radius` | `0` | `0` |
+
+`port-map.py repair-gamerules --work-dir run/map-port/blocky-teyvat-26.2` restores **all original vanilla values** from the preserved `original-level.dat`, writes **58 typed modern entries / DataVersion 4903**, removes the four Axiom keys, and keeps an exact backup at **`run/map-port/blocky-teyvat-26.2/pre-repair-game_rules.dat`**. The full before/after rule inventory is in **`gamerule-repair.json`**; the pre-repair runtime answers/error are in **`run/map-port/query-server/logs/`**. It refuses live-world session locks and symlinks; repeat repair is idempotent and does not overwrite the backup.
+
+The repaired file also loaded cleanly in the private Fabric integrated server: **no gamerule parse error** recurred, managed status was **off**, and all ten protection-rule queries reproduced the repaired values above. Those answers are retained in **`run/map-port/playtest-client-launch.log`**.
+
+For future upgrades, `prepare_vanilla` filters unknown mod rule keys from **only the copied `Data.GameRules`**, preserves vanilla strings unchanged, and lets the official fixer own their migration. The preserved original metadata is not sanitized. TNT/projectile editing and vanilla player damage remain enabled as in the source; **managed mode was not used** for these checks.
 
 ## Palette/entity scan: measured deterministic sample
 
@@ -133,7 +153,7 @@ Largest sampled block-entity counts: `minecraft:brushable_block` **8,901**, `bar
 
 **Chunk versions are mixed despite level.dat being 4556:** sampled terrain chunks are **78,119 × 4556** and **20,765 × 3465**; entity chunks are **338 × 4556** and **48 × 0**. DataVersion **0** is the observed saved tag, not an absent-field default. The force-upgrade step must process older chunks too; do not judge completeness from `level.dat` alone.
 
-## Extraction exercised; upgrade deliberately deferred
+## Extraction and full official upgrade
 
 The exact smoke extraction command was:
 
@@ -144,7 +164,7 @@ nice -n 19 ionice -c3 python3 scripts/map-port/port-map.py extract \
 
 It extracted **one file, 5,976,064 bytes**, in **0.036 s** of measured extraction time (**0.19 s** command wall time). The extracted bytes were **identical** to the ZIP member; SHA-256 **`bd27b4b28986e8aa5c2f385815367d860f15a9f5b24ad0d374cf7d2238b986ba`**. No `level.dat` or full world was extracted into that smoke directory.
 
-The installed `/run/current-system/sw/bin/java -version` reports **OpenJDK 25.0.4.1**; this was a runtime-version query, not a Minecraft launch. Wait until the lead's builds/GameTests stop, read the [Minecraft EULA](https://aka.ms/MinecraftEULA), and, if accepted, run this **full-world upgrade with sampled before/after comparison** from the repository root:
+The installed `/run/current-system/sw/bin/java -version` reports **OpenJDK 25.0.4.1**. With builds stopped and the [Minecraft EULA](https://aka.ms/MinecraftEULA) explicitly accepted, the completed full-world upgrade used:
 
 ```sh
 nice -n 19 ionice -c3 python3 scripts/map-port/port-map.py upgrade \
@@ -157,13 +177,65 @@ nice -n 19 ionice -c3 python3 scripts/map-port/port-map.py upgrade \
 
 The command extracts/reuses an untouched full copy, prepares the custom-height vanilla-compatible datapack, runs `-Xmx4G -XX:ActiveProcessorCount=1 -XX:+UseSerialGC ... --forceUpgrade --nogui` in the work directory, binds only to loopback, sends `stop` after server readiness, and compares the exact baseline region manifest. Outputs include `upgrade-server.log`, `preparation.json`, `before.json`, `after.json`, `diff.json`, and timings in `.map-port-extraction.json`. Both scripts and detailed options are documented in [scripts/map-port/README.md](../scripts/map-port/README.md).
 
-**Upgrade time, post-upgrade IDs, target chunk versions and landmark screenshots are not measured in this spike.** No claim of successful 26.2 loading or preserved geometry is made. The launch/preparation/diff path is implemented but was not exercised; the later server log, ID diff and screenshots are necessary evidence.
+Full extraction took **99 s wall time** (the driver's extraction-only marker records **88.204 s** for **3,176 files / 6,122,749,281 bytes**). The server reported **6942 s** for force-upgrade/optimization (**1 h 55 min 42 s**), processing **852,528 chunk records**. It reached `Done (0.262s)!`, received `stop`, and saved all dimensions cleanly. Logs: **`run/map-port/upgrade-driver.log`** and **`run/map-port/blocky-teyvat-26.2/upgrade-server.log`**.
+
+The original driver then failed its manifest lookup because **26.2 moved**, rather than deleted, the overworld region directories: `region/`, `entities/` and `poi/` now live under **`dimensions/minecraft/overworld/`**. The cached `DataFixers` registers `DimensionStorageFileFix` at **4772**. **All 971 baseline paths exist at their new locations**, including **all 856 entity regions**. Of those entity files, **803 had zero chunk records** in the source (266 zero-byte files and 537 nonzero files with empty location tables); the other **53** held all **386 entity chunks / 15,251 instances**. No missing entity region was explained by deletion of an empty file: none was deleted.
+
+The scanner now uses stable pre-upgrade logical region paths and records their actual relocated paths. A genuinely absent region is permitted **only if the complete baseline scan proves zero chunk records, zero sections and empty counters**; it is explicitly listed in `removed_empty_regions` in both scan and diff reports. A missing populated or unproven region still fails before producing a complete after-report, and the diff rejects decreased chunk-record counts even when a region file is still present. Ambiguous simultaneous old/new paths also fail. The port driver now persists successful server timing/state before scanning, so comparison errors do not hide completion of a future upgrade.
+
+## Completed after-scan and comparison
+
+The README's **scan-only** `palette_scan.py scan ... --manifest before.json` and `palette_scan.py diff before.json after.json` commands completed on the existing upgraded copy. The after-scan took **1009.394 s** (**16 min 49.394 s**; **1009.72 s command wall time**), peak RSS **620,960 KiB / 606.41 MiB**. Reports are **`run/map-port/blocky-teyvat-26.2/{before,after,diff}.json`**; the extraction marker now records the recovered comparison and completed state.
+
+| Coverage/count | Before | After |
+| --- | ---: | ---: |
+| Logical selected region files | 971 (115 terrain + 856 entities) | 971, all relocated; 0 removed |
+| Terrain chunk records | 98,884 | 98,884 |
+| Entity chunk records | 386 | 386 |
+| Section palettes | 25,116,536 | 25,116,536 |
+| Block palette entries (all IDs) | 26,214,603 | 26,214,603 |
+| Distinct block IDs | 422 | 421 |
+| Sampled block-entity instances / IDs | 11,099 / 20 | 11,099 / 20 |
+| Full entity instances / IDs | 15,251 / 14 | 15,251 / 14 |
+
+**Every inspected chunk is now DataVersion 4903:** **98,884 terrain + 386 entity = 99,270 records**. `level.dat` is also **4903**. No non-`minecraft:` IDs were found in any inspected block palette, block entity or entity. There were **no block-entity/entity missing or added IDs and no count changes**, including all **10,907 item displays** and **3,777 falling-block entities**.
+
+The **only block ID/count changes** were:
+
+| Block ID | Before palette entries | After | Delta |
+| --- | ---: | ---: | ---: |
+| `minecraft:grass` | 63 | 0 | −63 |
+| `minecraft:short_grass` | 54,125 | 54,188 | +63 |
+
+`short_grass` already existed in the source, so the diff has **one missing ID and no added IDs**, not an added `short_grass` ID. This is the official **`grass` → `short_grass` rename**: the cached 26.2 `DataFixers` bytecode explicitly registers that `BlockRenameFix` at schema **3692**, needed by the source's older 3465 chunks. The changes are confined to **`region/r.27.-13.mca` (60 entries)** and **`region/r.9.3.mca` (3 entries)**. All other per-region block/entity counters, chunk counts and section counts match. This demonstrates ID/count preservation in the stated coverage; it is **not** a voxel/property/geometry equivalence proof.
+
+
+## Private Fabric visual check
+
+The upgraded evidence copy was **not loaded by the client**. `cp -a --reflink=auto` made the separate **`run/map-port/playtest-world`** (54.82 s); the repaired gamerule file was applied to that copy after the pre-repair rule queries. Fabric's dev client then quick-played the absolute copy path using the ignored **`run/map-port/client.init.gradle`**, on a **private `xvfb-run -a` display**, with **`ALSOFT_DRIVERS=null LIBGL_ALWAYS_SOFTWARE=1 LP_NUM_THREADS=2`**. The actual client process used **`-Xmx2G -XX:ActiveProcessorCount=2 -XX:+UseSerialGC`**, Java 25; renderer **llvmpipe / OpenGL 4.6 / Mesa 26.1.8**. No owner display/audio/input session was used. The experimental custom-world confirmation was accepted only on this disposable playtest copy.
+
+Only non-destructive spectator/teleport, status and read-only gamerule/block queries were used. **Managed mode remained off; `/genshin arena` was never run.** The client read air successfully at **Y −2032 and 2031** in the loaded spawn column. The inspected spawn chunk retained all **254 sections, section Y −127…126**, agreeing with **min Y −2032 / exclusive max Y 2032**. The lower screenshots actually render terrain far below vanilla's −64 floor.
+
+Four Minecraft F2 captures were inspected and copied under **`run/map-port/screenshots/`**:
+
+| Screenshot | Camera (XYZ; yaw/pitch) | Observed content |
+| --- | --- | --- |
+| `01-saved-spawn-aerial.png` | `(3458, 63, −4002; 0°/70°)` | Saved-spawn aerial view: layered grass plateaus, trees, sheer stone cliffs, paths and a small water feature; lower/distant terrain fades into fog. |
+| `02-spawn-valley-below-default-height.png` | `(3458, −180, −4002; 0°/12°)` | Below the spawn, inside the custom-height range: textured cliffs, grass/trees, shoreline, sand beach, water and a waterfall. The near valley floor is present, not void. |
+| `03-nearby-shoreline.png` | `(3500, −215, −3880; 150°/5°)` | Nearby low shoreline: cliff faces, continuous water, sandy cove, grass and trees, all below the vanilla minimum height. |
+| `04-nearby-elevated-overview.png` | `(3500, 20, −3800; 180°/55°)` | Flew upward from the shoreline: terraced grass ridge, surrounding plateaus, trees, winding path and water channel. |
+
+**No obvious missing textures, missing foreground blocks or void holes were seen in those loaded areas.** The saved spawn is well above its local sandy section (the spawn chunk's non-air palette is at section Y **−15**, block Y **−240…−225**), so looking horizontally from Y 63 initially showed mostly sky/fog; lowering the camera reveals intact shore/valley terrain. This is not evidence of lost chunks. Distant sky/fog in the aerial captures is finite vanilla view distance, not a full-map completeness claim. These are nearby-area screenshots, **not identified Mondstadt landmarks**; there was no source-side in-game screenshot comparison.
+
+Client launch/render/command evidence: **`run/map-port/playtest-client-launch.log`** and **`run/map-port/playtest-client/logs/`**. The playtest world was saved and left before closing the client. The launcher pack's Voxy cache, shaders and editor mods were not used for rendering.
+
+Returning to the menu logged X11 `Standard cursor shape unavailable`. After the integrated server had logged **all chunks/all dimensions saved**, the client JVM was deliberately stopped with SIGTERM; Gradle therefore reports `:fabric:runClient FAILED` / exit **143**. This was a successful launch/render/inspection, **not a passing Gradle build or GameTest gate**.
 
 ## Open questions and later sign-off
 
 - Where is **Mondstadt** in Minecraft coordinates? Spawn is a useful starting point, not an identified Mondstadt landmark. Establish at least two known landmarks, local scale and orientation on the upgraded copy before placing content.
-- Does the copied 107.1 WorldPainter height pack load cleanly under official 26.2 and preserve its Y extent? Review registry/datapack errors and compare screenshots; avoid any fallback that disables it.
+- The copied 107.1 WorldPainter height pack loaded under the official server and Fabric dev client without a datapack/registry fallback. The runtime boundary reads and nearby screenshots above cover its custom Y extent; full-world visual fidelity remains a separate sign-off.
 - Are there non-vanilla block/block-entity IDs outside the deterministic terrain sample? Sampling cannot rule these out globally. Full entity-region coverage is separate from terrain coverage.
-- Do the official data fixer and startup ticks change IDs, properties, block entities or geometry? Palette-entry equality is weaker than voxel/state equality; missing/added IDs are only rename candidates. Inspect per-region diffs and visual landmarks.
-- How long does the 4 GiB, one-active-processor official upgrade take, and do **all scanned chunk DataVersions** advance to 4903? A new `level.dat` alone is insufficient evidence of a successful complete chunk upgrade.
+- Block IDs/counts changed only for the confirmed grass rename in the sampled comparison; states/properties and placed voxels were not compared. Identify actual landmarks before asserting visual fidelity to Genshin.
 - Can unused editor metadata and the 1.30 GB Voxy cache be omitted from the eventual dev-world copy? This spike preserves them rather than silently deleting purchased-world data. The core game must work without the launcher instance's LOD/shader/mod profile.
+- `02-spawn-valley-below-default-height.png` shows a large **dark vertical shadow** down the left cliff and onto the water that the blocks don't explain. Likely stale or recomputed sky light in the 4064-block-tall world after the upgrade (lead's reading, not verified). Next step: compare the same view after relighting the area (e.g. reloading chunks), and against the 1.21.10 instance on the owner's machine.

@@ -2,6 +2,7 @@
 """Extract a disposable map copy and upgrade it with the pinned official 26.2 jar."""
 
 import argparse
+import fcntl
 import gzip
 import hashlib
 import io
@@ -17,7 +18,7 @@ import sys
 import time
 import zipfile
 
-from palette_scan import NbtReader, WorldSource, compare, save_json, scan
+from palette_scan import NbtReader, WorldSource, compare, read_nbt, save_json, scan
 
 REPO = Path(__file__).resolve().parents[2]
 WORK_BASE = REPO / "run/map-port"
@@ -28,6 +29,106 @@ DATA_VERSION = 4903
 # Cached Mojang version metadata, downloads.server.sha1; not a remapped Loom jar.
 SERVER_SHA1 = "823e2250d24b3ddac457a60c92a6a941943fcd6a"
 MARKER = ".map-port-extraction.json"
+
+# Pinned to 26.2's GameRuleRegistryFix (including its inversions and combined fire
+# rule). Preparation leaves vanilla legacy strings for Mojang's fixer; only the
+# post-hoc repair uses this mapping to recover the original values.
+RULE_RENAMES = {
+    "allowEnteringNetherUsingPortals": "allow_entering_nether_using_portals",
+    "announceAdvancements": "show_advancement_messages",
+    "blockExplosionDropDecay": "block_explosion_drop_decay",
+    "commandBlockOutput": "command_block_output",
+    "commandBlocksEnabled": "command_blocks_work",
+    "commandModificationBlockLimit": "max_block_modifications",
+    "disableElytraMovementCheck": "elytra_movement_check",
+    "disablePlayerMovementCheck": "player_movement_check",
+    "disableRaids": "raids",
+    "doDaylightCycle": "advance_time",
+    "doEntityDrops": "entity_drops",
+    "doImmediateRespawn": "immediate_respawn",
+    "doInsomnia": "spawn_phantoms",
+    "doLimitedCrafting": "limited_crafting",
+    "doMobLoot": "mob_drops",
+    "doMobSpawning": "spawn_mobs",
+    "doPatrolSpawning": "spawn_patrols",
+    "doTileDrops": "block_drops",
+    "doTraderSpawning": "spawn_wandering_traders",
+    "doVinesSpread": "spread_vines",
+    "doWardenSpawning": "spawn_wardens",
+    "doWeatherCycle": "advance_weather",
+    "drowningDamage": "drowning_damage",
+    "enderPearlsVanishOnDeath": "ender_pearls_vanish_on_death",
+    "fallDamage": "fall_damage",
+    "fireDamage": "fire_damage",
+    "forgiveDeadPlayers": "forgive_dead_players",
+    "freezeDamage": "freeze_damage",
+    "globalSoundEvents": "global_sound_events",
+    "keepInventory": "keep_inventory",
+    "lavaSourceConversion": "lava_source_conversion",
+    "locatorBar": "locator_bar",
+    "logAdminCommands": "log_admin_commands",
+    "maxCommandChainLength": "max_command_sequence_length",
+    "maxCommandForkCount": "max_command_forks",
+    "maxEntityCramming": "max_entity_cramming",
+    "minecartMaxSpeed": "max_minecart_speed",
+    "mobExplosionDropDecay": "mob_explosion_drop_decay",
+    "mobGriefing": "mob_griefing",
+    "naturalRegeneration": "natural_health_regeneration",
+    "playersNetherPortalCreativeDelay": "players_nether_portal_creative_delay",
+    "playersNetherPortalDefaultDelay": "players_nether_portal_default_delay",
+    "playersSleepingPercentage": "players_sleeping_percentage",
+    "projectilesCanBreakBlocks": "projectiles_can_break_blocks",
+    "pvp": "pvp",
+    "randomTickSpeed": "random_tick_speed",
+    "reducedDebugInfo": "reduced_debug_info",
+    "sendCommandFeedback": "send_command_feedback",
+    "showDeathMessages": "show_death_messages",
+    "snowAccumulationHeight": "max_snow_accumulation_height",
+    "spawnMonsters": "spawn_monsters",
+    "spawnRadius": "respawn_radius",
+    "spawnerBlocksEnabled": "spawner_blocks_work",
+    "spectatorsGenerateChunks": "spectators_generate_chunks",
+    "tntExplodes": "tnt_explodes",
+    "tntExplosionDropDecay": "tnt_explosion_drop_decay",
+    "universalAnger": "universal_anger",
+    "waterSourceConversion": "water_source_conversion",
+}
+INTEGER_RULES = {
+    "commandModificationBlockLimit", "maxCommandChainLength", "maxCommandForkCount",
+    "maxEntityCramming", "minecartMaxSpeed", "playersNetherPortalCreativeDelay",
+    "playersNetherPortalDefaultDelay", "playersSleepingPercentage", "randomTickSpeed",
+    "snowAccumulationHeight", "spawnRadius",
+}
+INVERTED_RULES = {"disableElytraMovementCheck", "disablePlayerMovementCheck", "disableRaids"}
+LEGACY_VANILLA_RULES = set(RULE_RENAMES) | {"doFireTick", "allowFireTicksAwayFromPlayer"}
+
+
+def migrated_rules(original):
+    def boolean(name, default=None):
+        value = original.get(name, default)
+        if value not in ("true", "false"):
+            raise ValueError(f"invalid original vanilla game rule {name}: {value!r}")
+        return value == "true"
+
+    result = {}
+    for name, target in RULE_RENAMES.items():
+        if name not in original:
+            continue
+        if name in INTEGER_RULES:
+            value = int(original[name])
+            minimum = 1 if name == "commandModificationBlockLimit" else 0
+            maximum = 8 if name == "snowAccumulationHeight" else 2147483647
+            value = max(minimum, min(maximum, value))
+        else:
+            value = boolean(name)
+            if name in INVERTED_RULES:
+                value = not value
+        result["minecraft:" + target] = value
+    if "doFireTick" in original or "allowFireTicksAwayFromPlayer" in original:
+        result["minecraft:fire_spread_radius_around_player"] = (
+            0 if not boolean("doFireTick", "true") else
+            -1 if boolean("allowFireTicksAwayFromPlayer", "false") else 128)
+    return result
 
 
 def work_path(path):
@@ -107,8 +208,8 @@ def checked_server(path):
     return version, overworld
 
 
-def replace_string_list(data, path, values):
-    """Patch just one TAG_List payload, leaving every other original NBT byte intact."""
+def replace_payload(data, path, expected_tag, encoded):
+    """Patch one typed NBT payload, leaving all unrelated bytes intact."""
     reader = NbtReader(data)
     if reader.number(">B") != 10:
         raise ValueError("level.dat is not compound NBT")
@@ -127,26 +228,89 @@ def replace_string_list(data, path, values):
                 if tag != 10:
                     raise ValueError(f"NBT parent {name} is not a compound")
                 return find(parts[1:])
-            if tag != 9:
-                raise ValueError("datapack Enabled field is not TAG_List")
+            if tag != expected_tag:
+                raise ValueError(f"NBT field {'/'.join(path)} has tag {tag}, expected {expected_tag}")
             start = reader.pos
-            old = reader.payload(tag)
-            if not all(isinstance(value, str) for value in old):
-                raise ValueError("datapack Enabled list is not strings")
-            encoded = bytearray(struct.pack(">Bi", 8, len(values)))
-            for value in values:
-                raw = value.encode("utf-8")
-                encoded.extend(struct.pack(">H", len(raw)))
-                encoded.extend(raw)
+            reader.payload(tag)
             return data[:start] + encoded + data[reader.pos:]
 
     return find(path)
 
 
+def nbt_string(value):
+    # Java DataInput uses modified UTF-8, including surrogate pairs.
+    units = value.encode("utf-16-be", errors="surrogatepass")
+    raw = b"".join(chr(struct.unpack_from(">H", units, offset)[0]).encode("utf-8", errors="surrogatepass")
+                   for offset in range(0, len(units), 2)).replace(b"\x00", b"\xc0\x80")
+    return struct.pack(">H", len(raw)) + raw
+
+
+def rule_payload(rules):
+    encoded = bytearray()
+    for name, value in sorted(rules.items()):
+        if isinstance(value, bool):
+            tag, payload = 1, struct.pack(">b", value)
+        elif isinstance(value, int):
+            tag, payload = 3, struct.pack(">i", value)
+        elif isinstance(value, str):
+            tag, payload = 8, nbt_string(value)
+        else:
+            raise ValueError(f"unsupported game rule value for {name}: {value!r}")
+        encoded.extend(bytes([tag]) + nbt_string(name) + payload)
+    encoded.append(0)
+    return encoded
+
+
+def replace_string_list(data, path, values):
+    encoded = struct.pack(">Bi", 8, len(values)) + b"".join(nbt_string(value) for value in values)
+    return replace_payload(data, path, 9, encoded)
+
+
+def repair_gamerules(root):
+    marker = json.loads((root / MARKER).read_text())
+    if marker.get("work_dir") != str(root) or marker.get("selection") != "full":
+        raise ValueError("repair requires this script's marked full extraction")
+    world = root / "world"
+    if world.is_symlink() or any(item.is_symlink() for item in world.rglob("*")):
+        raise ValueError("refusing to repair a copy containing symlinks")
+    if read_nbt(gzip.decompress((world / "level.dat").read_bytes()))["Data"]["DataVersion"] != DATA_VERSION:
+        raise ValueError("repair requires an already-upgraded 26.2 world")
+    original = read_nbt(gzip.decompress((root / "original-level.dat").read_bytes()))["Data"]
+    if original["DataVersion"] != 4556:
+        raise ValueError("repair requires the preserved 1.21.10 original-level.dat")
+    original_rules = original["GameRules"]
+    after = migrated_rules(original_rules)
+    path = world / "data/minecraft/game_rules.dat"
+    backup = root / "pre-repair-game_rules.dat"
+    # Minecraft's session lock is a POSIX record lock on Linux. Never edit a
+    # live world's saved data; the repair is for cleanly stopped copies only.
+    with (world / "session.lock").open("rb+") as lock:
+        fcntl.lockf(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        raw = gzip.decompress(path.read_bytes())
+        before = read_nbt(raw)["data"]
+        if before == after:
+            return {"status": "already_repaired", "game_rules": after, "backup": str(backup)}
+        patched = replace_payload(raw, ["data"], 10, rule_payload(after))
+        patched = replace_payload(patched, ["DataVersion"], 3, struct.pack(">i", DATA_VERSION))
+        with backup.open("xb") as output:
+            output.write(path.read_bytes())
+        temporary = path.with_name(path.name + ".map-port-new")
+        with temporary.open("xb") as output:
+            output.write(gzip.compress(patched, mtime=0))
+        os.replace(temporary, path)
+    report = {"status": "repaired", "file": str(path), "backup": str(backup),
+              "before": before, "after": after,
+              "removed_unknown_source_rules": sorted(set(original_rules) - LEGACY_VANILLA_RULES)}
+    save_json(root / "gamerule-repair.json", report)
+    return report
+
+
 def prepare_vanilla(world, root, version, default_dimension):
     source = WorldSource(world)
     try:
-        enabled = source.level()["DataPacks"]["Enabled"]
+        level = source.level()
+        enabled = level["DataPacks"]["Enabled"]
+        original_rules = level["GameRules"]
     finally:
         source.close()
     # Only these unavailable, editor-provided packs are removed. Unknown enabled
@@ -178,8 +342,14 @@ def prepare_vanilla(world, root, version, default_dimension):
         pack.writestr("data/minecraft/dimension_type/overworld.json", json.dumps(dimension))
     original_level = gzip.decompress((world / "level.dat").read_bytes())
     patched = replace_string_list(original_level, ["Data", "DataPacks", "Enabled"], retained)
+    vanilla_rules = {name: value for name, value in original_rules.items() if name in LEGACY_VANILLA_RULES}
+    # Do not pre-rename: GameRuleRegistryFix correctly renames, types, inverts
+    # and combines vanilla rules. Unknown leftovers invalidate the entire codec.
+    patched = replace_payload(patched, ["Data", "GameRules"], 10, rule_payload(vanilla_rules))
     (world / "level.dat").write_bytes(gzip.compress(patched, mtime=0))
     return {"removed_unavailable_datapacks": [name for name in enabled if name in unavailable],
+            "removed_unknown_gamerules": sorted(set(original_rules) - LEGACY_VANILLA_RULES),
+            "retained_vanilla_gamerules": vanilla_rules,
             "retained_datapacks": retained, "dimension": dimension, "pack_metadata": pack_meta}
 
 
@@ -258,6 +428,8 @@ def upgrade(args, source, root):
     preparation = prepare_vanilla(root / "world", root, version, overworld)
     save_json(root / "preparation.json", preparation)
     server_timing = run_server(args.java, server_jar, root)
+    marker.update(state="upgraded-unverified", **server_timing)
+    save_json(root / MARKER, marker)
     upgraded = WorldSource(root / "world")
     try:
         if upgraded.level()["DataVersion"] != DATA_VERSION:
@@ -291,6 +463,8 @@ def main():
             sub.add_argument("--before-report", type=Path, help="reuse a completed pristine archive scan")
             sub.add_argument("--stride", type=int, default=32, help="1 for full scan; default matches the spike sample")
             sub.add_argument("--spawn-radius", type=int, default=2048)
+    repair = commands.add_parser("repair-gamerules", help="restore original vanilla rules in a stopped upgraded copy")
+    repair.add_argument("--work-dir", type=Path, default=DEFAULT_WORK)
     args = parser.parse_args()
     if args.command == "upgrade" and (args.stride < 1 or args.spawn_radius < 0):
         parser.error("stride must be >= 1 and spawn radius >= 0")
@@ -299,6 +473,9 @@ def main():
     os.nice(19)
     subprocess.run(["ionice", "-c3", "-p", str(os.getpid())], check=True)
     root = work_path(args.work_dir)
+    if args.command == "repair-gamerules":
+        print(json.dumps(repair_gamerules(root), ensure_ascii=False, indent=2))
+        return
     source = WorldSource(args.archive)
     try:
         if not source.archive:
