@@ -1,6 +1,7 @@
 package io.github.brainage04.genshininminecraft.combat;
 
 import io.github.brainage04.genshininminecraft.rules.CameraMath;
+import io.github.brainage04.genshininminecraft.rules.ClimbPath;
 import io.github.brainage04.genshininminecraft.rules.Traversal;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -38,6 +39,34 @@ public final class TraversalGeometry {
         return fullFace(player, wallBlock(player, wall, player.getY() + Traversal.ADAPTED_WALL_LOWER_SAMPLE), wall)
                 || fullFace(player, wallBlock(player, wall, player.getY() + Traversal.ADAPTED_WALL_UPPER_SAMPLE), wall);
     }
+    private static final ClimbPath.Faces<Player> CLIMB_FACES = TraversalGeometry::climbFace;
+    private static boolean climbFace(Player player, int x, int z, ClimbPath.Wall wall) {
+        Direction direction = direction(wall);
+        return fullFace(player, BlockPos.containing(x, player.getY() + Traversal.ADAPTED_WALL_LOWER_SAMPLE, z), direction)
+                || fullFace(player, BlockPos.containing(x, player.getY() + Traversal.ADAPTED_WALL_UPPER_SAMPLE, z), direction);
+    }
+    private static ClimbPath.Wall normal(Direction wall) { return switch (wall) {
+        case NORTH -> ClimbPath.Wall.NORTH; case SOUTH -> ClimbPath.Wall.SOUTH;
+        case WEST -> ClimbPath.Wall.WEST; case EAST -> ClimbPath.Wall.EAST;
+        default -> throw new IllegalArgumentException("Climbing needs a vertical wall");
+    }; }
+    private static Direction direction(ClimbPath.Wall wall) { return switch (wall) {
+        case NORTH -> Direction.NORTH; case SOUTH -> Direction.SOUTH;
+        case WEST -> Direction.WEST; case EAST -> Direction.EAST;
+    }; }
+    private static int side(Input input, boolean jumping, int jumpSide) {
+        return jumping ? jumpSide : (input.left() ? 1 : 0) - (input.right() ? 1 : 0);
+    }
+    private static ClimbPath.Step climbStep(Player player, Direction wall, int side, double distance) {
+        return ClimbPath.resolve(player, CLIMB_FACES, player.getX(), player.getZ(), normal(wall), side, distance,
+                player.getBbWidth() / 2 + Traversal.ADAPTED_COLLISION_EPSILON, Traversal.ADAPTED_WALL_REACH);
+    }
+    /** Validates the actual position, including a corner crossed ahead of the last synchronized normal. */
+    public static Direction attachedWall(Player player, Direction previous, Input input, boolean jumping, int jumpSide) {
+        if (previous == null) return null;
+        ClimbPath.Step step = climbStep(player, previous, side(input, jumping, jumpSide), 0);
+        return step == null ? null : direction(step.wall());
+    }
     public static Vec3 mantle(Player player, Direction wall) {
         for (int offset = 0; offset >= -1; offset--) {
             BlockPos block = wallBlock(player, wall, Math.floor(player.getY()) + offset);
@@ -64,7 +93,7 @@ public final class TraversalGeometry {
         return fluid.is(FluidTags.WATER) && waist.getY() + fluid.getHeight(player.level(), waist)
                 > player.getY() + Traversal.ADAPTED_SAFE_WATER_DEPTH;
     }
-    public static Vec3 motion(Traversal.Mode mode, Direction wall, float yaw, Input input, boolean jumping, int jumpSide) {
+    public static Vec3 motion(Player player, Traversal.Mode mode, Direction wall, float yaw, Input input, boolean jumping, int jumpSide) {
         int left = (input.left() ? 1 : 0) - (input.right() ? 1 : 0);
         int forward = (input.forward() ? 1 : 0) - (input.backward() ? 1 : 0);
         if (mode == Traversal.Mode.GLIDE) {
@@ -78,8 +107,11 @@ public final class TraversalGeometry {
         double speed = jumping ? Traversal.ADAPTED_CLIMB_JUMP_BLOCKS_PER_TICK : Traversal.ADAPTED_CLIMB_BLOCKS_PER_TICK;
         if (jumping) { left = jumpSide; forward = left == 0 ? 1 : 0; }
         double norm = Math.max(1, Math.hypot(left, forward));
-        return new Vec3(wall.getStepZ() * left * speed / norm + wall.getStepX() * Traversal.ADAPTED_WALL_PRESS_BLOCKS_PER_TICK,
-                forward * speed / norm,
-                -wall.getStepX() * left * speed / norm + wall.getStepZ() * Traversal.ADAPTED_WALL_PRESS_BLOCKS_PER_TICK);
+        if (left != 0) {
+            ClimbPath.Step step = climbStep(player, wall, Integer.signum(left), Math.abs(left) * speed / norm);
+            return step == null ? Vec3.ZERO : new Vec3(step.x() - player.getX(), forward * speed / norm, step.z() - player.getZ());
+        }
+        return new Vec3(wall.getStepX() * Traversal.ADAPTED_WALL_PRESS_BLOCKS_PER_TICK, forward * speed / norm,
+                wall.getStepZ() * Traversal.ADAPTED_WALL_PRESS_BLOCKS_PER_TICK);
     }
 }

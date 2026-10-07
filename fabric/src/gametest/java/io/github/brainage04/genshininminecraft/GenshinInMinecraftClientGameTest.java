@@ -607,6 +607,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.getInput().releaseKey(options -> options.keySprint);
             context.getInput().releaseKey(options -> options.keyUp);
             context.getInput().releaseKey(options -> options.keyLeft);
+            context.getInput().releaseKey(options -> options.keyRight);
             context.getInput().releaseKey(options -> options.keyAttack);
         } });
     }
@@ -669,7 +670,74 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
         server.runCommand("tp @a " + (base.getX() + .5) + " " + base.getY() + " " + (base.getZ() + .5) + " 0 0");
         server.runCommand("fill " + tower + " minecraft:air");
         context.waitFor(client -> client.player.onGround() && CombatInput.state().stamina() == 100);
+        climbCornerControls(context, server);
         context.runOnClient(client -> ManagedCamera.setAngles(0, 0));
+    }
+
+    private static void climbCornerControls(ClientGameTestContext context, TestDedicatedServerContext server) {
+        server.runCommand("execute as @a at @s run genshin arena");
+        context.waitTicks(5);
+        var base = context.computeOnClient(client -> client.player.blockPosition());
+        String pillar = base.getX() + " " + base.getY() + " " + (base.getZ() + 3) + " "
+                + (base.getX() + 2) + " " + (base.getY() + 5) + " " + (base.getZ() + 5);
+        server.runCommand("fill " + pillar + " minecraft:stone");
+        server.runCommand("tp @a " + (base.getX() + 1.5) + " " + base.getY() + " " + (base.getZ() + .5) + " 0 0");
+        context.runOnClient(client -> ManagedCamera.setAngles(0, 12));
+        context.waitTicks(5);
+        context.getInput().holdKey(options -> options.keyUp);
+        context.waitFor(client -> CombatInput.state().climbing() && client.player.getY() > base.getY() + 2);
+        context.getInput().releaseKey(options -> options.keyUp);
+        context.waitTicks(3);
+        double height = context.computeOnClient(client -> client.player.getY());
+        context.runOnClient(client -> ManagedCamera.setAngles(-45, 15));
+        context.getInput().holdKey(options -> options.keyRight);
+        context.waitTicks(5);
+        double[] sample = server.computeOnServer(minecraftServer -> {
+            var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+            var stamina = CombatRuntime.get(minecraftServer).session(player).stamina();
+            return new double[]{stamina.frame(), stamina.current()};
+        });
+        for (var normal : new net.minecraft.core.Direction[]{net.minecraft.core.Direction.EAST, net.minecraft.core.Direction.NORTH,
+                net.minecraft.core.Direction.WEST, net.minecraft.core.Direction.SOUTH}) {
+            context.waitFor(client -> {
+                if (!CombatInput.state().climbing()) throw new AssertionError("Held D must stay attached around all four pillar faces");
+                if (Math.abs(CameraMath.wrap(ManagedCamera.yaw() + 45)) > .01)
+                    throw new AssertionError("Climb body turns must not rotate the independent camera");
+                return CombatInput.state().wallOrdinal() == normal.ordinal();
+            });
+            if (normal == net.minecraft.core.Direction.EAST) {
+                context.waitTicks(6);
+                context.runOnClient(client -> client.gui.hud.getChat().clearMessages(true));
+                screenshot(context, "genshin-traversal-corner");
+                server.runOnServer(minecraftServer -> {
+                    var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                    var stamina = CombatRuntime.get(minecraftServer).session(player).stamina();
+                    double frames = stamina.frame() - sample[0];
+                    double spent = sample[1] - stamina.current();
+                    if (frames < 60 || Math.abs(spent - frames * 5.36 / 60) > .000001)
+                        throw new AssertionError("Measured connected-client climb must drain5.36/s: frames=" + frames + ", spent=" + spent);
+                });
+            }
+        }
+        context.waitFor(client -> {
+            if (!CombatInput.state().climbing()) throw new AssertionError("Final face must remain attached");
+            return client.player.getX() <= base.getX() + 1.5;
+        });
+        context.getInput().releaseKey(options -> options.keyRight);
+        context.waitTicks(3);
+        context.runOnClient(client -> {
+            if (CombatInput.state().wallOrdinal() != net.minecraft.core.Direction.SOUTH.ordinal()
+                    || Math.abs(client.player.getZ() - base.getZ() - 2.7) > .01
+                    || Math.abs(client.player.getY() - height) > .01
+                    || Math.abs(CameraMath.wrap(client.player.getYRot())) > .01)
+                throw new AssertionError("Four-corner loop must return to start face/height with body facing the wall: " + client.player.position());
+        });
+        context.getInput().holdKey(options -> options.keyShift);
+        context.waitFor(client -> !CombatInput.state().climbing());
+        context.getInput().releaseKey(options -> options.keyShift);
+        server.runCommand("fill " + pillar + " minecraft:air");
+        server.runCommand("tp @a " + (base.getX() + .5) + " " + base.getY() + " " + (base.getZ() + .5) + " 0 0");
+        context.waitFor(client -> client.player.onGround() && CombatInput.state().stamina() == 100);
     }
 
     private static void spectatorExitResendsCameraYaw(ClientGameTestContext context, TestDedicatedServerContext server) {

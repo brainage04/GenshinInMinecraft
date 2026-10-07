@@ -25,11 +25,16 @@ public abstract class TraversalMovementMixin {
         if (!state.climbing() && !state.gliding()) return;
         Direction wall = state.climbing() ? TraversalGeometry.wall(state.wallOrdinal()) : null;
         float yaw = ManagedCamera.decoupled() ? ManagedCamera.yaw() : player.getYRot();
-        Vec3 motion = TraversalGeometry.motion(state.climbing() ? Traversal.Mode.CLIMB : Traversal.Mode.GLIDE,
+        Vec3 motion = TraversalGeometry.motion(player, state.climbing() ? Traversal.Mode.CLIMB : Traversal.Mode.GLIDE,
                 wall, yaw, player.input.keyPresses, state.climbJumping(), state.climbJumpSide());
         player.setDeltaMovement(motion);
         player.resetFallDistance();
         player.move(MoverType.SELF, motion);
+        if (state.climbing()) {
+            Direction attached = TraversalGeometry.attachedWall(player, wall, player.input.keyPresses,
+                    state.climbJumping(), state.climbJumpSide());
+            if (attached != null) ManagedCamera.faceClimbWall(player, attached);
+        }
         callback.cancel();
     }
 }

@@ -5,6 +5,7 @@ import io.github.brainage04.genshininminecraft.rules.Traversal;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import io.github.brainage04.genshininminecraft.combat.TraversalGeometry;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.player.Input;
@@ -78,7 +79,7 @@ public final class TraversalGameTests {
                     player.move(MoverType.SELF, player.getDeltaMovement());
                     session.tickMovement(frame + tick * 3L);
                 }
-                close(context, session.stamina().current(), 92, "Named8 units/s climbing drain");
+                close(context, session.stamina().current(), 94.64, "Owner-calibrated5.36 units/s climbing drain");
                 close(context, player.getY() - startY, 1.6, "Climb travels .08 blocks per tick");
                 context.assertTrue(player.isNoGravity(), "Attached player cannot fall from vanilla gravity");
                 session.stamina().consume(session.stamina().current() - .1, frame + 60);
@@ -163,6 +164,70 @@ public final class TraversalGameTests {
                 player.snapTo(player.position().add(-3, 0, 0));
                 session.tickMovement(frame + 75);
                 context.assertValueEqual(session.traversal().mode(), Traversal.Mode.FREE, "Server rejects attachment no longer adjacent to wall");
+            } finally { restore(context, saved); }
+        });
+        context.succeed();
+    }
+    public static void climbOutsideCorners(GameTestHelper context) { corners(context, 0); }
+    public static void climbInsideCorners(GameTestHelper context) { corners(context, 1); }
+    public static void climbOneBlockSteps(GameTestHelper context) { corners(context, 2); }
+    private static void corners(GameTestHelper context, int geometry) {
+        HilichurlGameTests.withManaged(context, (runtime, player) -> {
+            Map<BlockPos, BlockState> saved = new HashMap<>();
+            BlockPos base = player.blockPosition();
+            try {
+                for (int x = -2; x <= 7; x++) for (int z = -3; z <= 5; z++) for (int y = 0; y <= 7; y++) {
+                    boolean solid = switch (geometry) {
+                        case 0 -> x >= 0 && x < 3 && z >= 1 && z < 4;
+                        case 1 -> z >= 1 || x >= 3 && z >= -2;
+                        default -> x < 3 ? z >= 1 : x < 5 ? z >= 2 : z >= 1;
+                    };
+                    set(context, saved, base.offset(x, y, z), solid ? Blocks.STONE.defaultBlockState() : Blocks.AIR.defaultBlockState());
+                }
+                player.snapTo(base.getX() + 1.5, base.getY() + 2, base.getZ() + .7);
+                player.setOnGround(false);
+                player.setYRot(0);
+                var session = runtime.session(player);
+                long frame = Frames.atServerTick(context.getLevel().getServer().getTickCount());
+                player.setLastClientInput(UP);
+                session.tickMovement(frame);
+                context.assertValueEqual(session.traversal().mode(), Traversal.Mode.CLIMB, "Fixture attaches to south-facing wall");
+                // Switch to real A input without ascending: only the shared collision path can round the edge.
+                Input sideways = new Input(false, false, true, false, false, false, false);
+                player.setLastClientInput(sideways);
+                session.tickMovement(frame + 3);
+                double stamina = session.stamina().current();
+                boolean perpendicular = false, opposite = false;
+                int ticks = geometry == 0 ? 182 : geometry == 1 ? 40 : 102;
+                for (int tick = 1; tick <= ticks; tick++) {
+                    Vec3 before = player.position();
+                    player.move(MoverType.SELF, player.getDeltaMovement());
+                    context.assertTrue(player.position().distanceTo(before) <= .081, "No corner teleport or one-block jump");
+                    session.tickMovement(frame + 3 + tick * 3L);
+                    context.assertValueEqual(session.traversal().mode(), Traversal.Mode.CLIMB, "Server accepts corner attachment at tick" + tick);
+                    context.assertTrue(player.isNoGravity(), "Gravity remains disabled throughout the transition");
+                    Direction attached = TraversalGeometry.attachedWall(player, Direction.fromYRot(player.getYRot()), sideways, false, 0);
+                    perpendicular |= attached == Direction.WEST || attached == Direction.EAST;
+                    opposite |= attached == Direction.NORTH;
+                    context.assertTrue(attached != null, "Actual collision position has a supported attachment");
+                }
+                close(context, stamina - session.stamina().current(), ticks * 5.36 / 20, "Corners bill calibrated continuous drain only");
+                close(context, player.getY(), base.getY() + 2, "Sideways contour preserves climb height");
+                context.assertTrue(perpendicular, "Sideways input reaches a perpendicular face");
+                if (geometry == 0) {
+                    context.assertTrue(opposite, "Loop goes around the pillar's far face");
+                    context.assertTrue(player.getX() > base.getX() + 1.3 && player.getX() < base.getX() + 1.8
+                            && Math.abs(player.getZ() - base.getZ() - .7) < .001, "Four outside corners return to the starting face/position");
+                    close(context, player.getYRot(), 0, "Body turns back toward original south wall");
+                } else if (geometry == 1) {
+                    close(context, player.getX(), base.getX() + 2.7, "Inside corner follows perpendicular wall at body clearance");
+                    context.assertTrue(player.getZ() < base.getZ() - 1, "A continues along the inside wall instead of stopping");
+                    close(context, player.getYRot(), -90, "Body faces new east wall");
+                } else {
+                    context.assertTrue(player.getX() > base.getX() + 5.2, "Both receding and protruding one-block steps are traversed");
+                    close(context, player.getZ(), base.getZ() + .7, "One-block in/out steps return to original wall depth");
+                    close(context, player.getYRot(), 0, "Body returns to south normal after the stepped cliff");
+                }
             } finally { restore(context, saved); }
         });
         context.succeed();

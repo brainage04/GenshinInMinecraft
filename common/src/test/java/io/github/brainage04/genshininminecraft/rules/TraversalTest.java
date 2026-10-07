@@ -15,18 +15,18 @@ class TraversalTest {
         assertEquals(Traversal.Mode.FREE, traversal.mode());
         assertFalse(traversal.attach(96));
     }
-    @Test void movingClimbDrainsEightPerSecondButStationaryAttachmentNeverRegenerates() {
+    @Test void movingClimbDrainsOwnerCalibratedFivePointThreeSixPerSecondButStationaryAttachmentNeverRegenerates() {
         var stamina = new Stamina();
         var traversal = new Traversal(stamina);
         assertTrue(traversal.attach(0));
         traversal.tick(true, true, 0);
         traversal.tick(false, true, 60);
-        assertEquals(92, stamina.current(), 1e-9);
+        assertEquals(94.64, stamina.current(), 1e-9);
         traversal.tick(false, true, 600);
-        assertEquals(92, stamina.current(), 1e-9);
+        assertEquals(94.64, stamina.current(), 1e-9);
         traversal.detach(600);
         stamina.advanceTo(690);
-        assertEquals(92, stamina.current(), 1e-9);
+        assertEquals(94.64, stamina.current(), 1e-9);
         stamina.advanceTo(750);
         assertEquals(100, stamina.current());
     }
@@ -49,7 +49,7 @@ class TraversalTest {
         stamina.consume(95, 0);
         assertTrue(traversal.attach(0));
         traversal.tick(true, true, 0);
-        traversal.tick(true, true, 39);
+        traversal.tick(true, true, 57);
         assertEquals(0, stamina.current());
         assertEquals(Traversal.Mode.FREE, traversal.mode());
         assertTrue(stamina.exhausted());

@@ -6,7 +6,7 @@ public final class Traversal {
     public static final double CLIMB_ENTRY_STAMINA = 5;
     public static final double GLIDE_DRAIN_PER_SECOND = 3; // Approximate public player testing; stamina.md.
     public static final double ADAPTED_BLOCKS_PER_METRE = 1;
-    public static final double ADAPTED_CLIMB_DRAIN_PER_SECOND = 8;
+    public static final double ADAPTED_CLIMB_DRAIN_PER_SECOND = 5.36; // 8 × .67, owner playtest2026-10-04.
     public static final double ADAPTED_CLIMB_JUMP_COST = 25; // Citation-needed wiki25 conflicts with historical24.
     public static final double ADAPTED_CLIMB_BLOCKS_PER_TICK = .08;
     public static final double ADAPTED_CLIMB_JUMP_BLOCKS_PER_TICK = .24;

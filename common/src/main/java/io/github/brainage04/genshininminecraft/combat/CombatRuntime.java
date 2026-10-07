@@ -536,7 +536,9 @@ public final class CombatRuntime {
                     && !player.getAbilities().flying && !player.isInWater() && !player.isFallFlying();
             float yaw = Float.isNaN(cameraYaw) ? player.getYRot() : cameraYaw;
             Traversal.Mode oldMode = traversal.mode();
-            boolean adjacent = climbWall != null && TraversalGeometry.adjacent(player, climbWall);
+            if (oldMode == Traversal.Mode.CLIMB)
+                climbWall = TraversalGeometry.attachedWall(player, climbWall, input, traversal.jumping(frame), traversal.jumpSide());
+            boolean adjacent = climbWall != null;
             traversal.tick(moving, eligible && (oldMode != Traversal.Mode.CLIMB || adjacent), frame);
             if (traversal.mode() == Traversal.Mode.CLIMB) {
                 if (input.shift() || input.backward() && player.onGround()) endTraversal(frame);
@@ -577,7 +579,13 @@ public final class CombatRuntime {
             if (traversal.active()) {
                 player.setNoGravity(true);
                 player.resetFallDistance();
-                setTraversalMotion(TraversalGeometry.motion(traversal.mode(), climbWall, yaw, input,
+                if (traversal.mode() == Traversal.Mode.CLIMB) {
+                    float bodyYaw = CameraMath.facingYaw(climbWall.getStepX(), climbWall.getStepZ());
+                    player.setYRot(bodyYaw);
+                    player.setYHeadRot(bodyYaw);
+                    player.setYBodyRot(bodyYaw);
+                }
+                setTraversalMotion(TraversalGeometry.motion(player, traversal.mode(), climbWall, yaw, input,
                         traversal.jumping(frame), traversal.jumpSide()), false);
                 if (traversal.mode() == Traversal.Mode.GLIDE) gliderParticles(yaw);
             }

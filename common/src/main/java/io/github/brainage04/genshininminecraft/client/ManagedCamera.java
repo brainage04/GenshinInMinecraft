@@ -92,8 +92,11 @@ public final class ManagedCamera {
         float left = player.xxa;
         float forward = player.zza;
         if (CombatInput.state().climbing()) {
-            var wall = io.github.brainage04.genshininminecraft.combat.TraversalGeometry.wall(CombatInput.state().wallOrdinal());
-            face(player, CameraMath.facingYaw(wall.getStepX(), wall.getStepZ()), 0);
+            var state = CombatInput.state();
+            var wall = io.github.brainage04.genshininminecraft.combat.TraversalGeometry.attachedWall(player,
+                    io.github.brainage04.genshininminecraft.combat.TraversalGeometry.wall(state.wallOrdinal()),
+                    player.input.keyPresses, state.climbJumping(), state.climbJumpSide());
+            if (wall != null) faceClimbWall(player, wall);
         } else if (CombatInput.aiming()) face(player, yaw, pitch);
         else if (left * left + forward * forward > .0001F && player.tickCount > facingHoldThroughTick) {
             face(player, CameraMath.smoothYaw(player.getYRot(), CameraMath.movementYaw(yaw, left, forward),
@@ -106,6 +109,9 @@ public final class ManagedCamera {
         player.xxa = (float) (left * cosine - forward * sine);
         player.zza = (float) (forward * cosine + left * sine);
         sendYaw();
+    }
+    public static void faceClimbWall(LocalPlayer player, net.minecraft.core.Direction wall) {
+        face(player, CameraMath.facingYaw(wall.getStepX(), wall.getStepZ()), 0);
     }
     /** Edge-triggered assistance, not persistent tracking or client hit authority. */
     public static void beforeAction() {

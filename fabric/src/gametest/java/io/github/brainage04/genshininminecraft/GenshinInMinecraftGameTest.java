@@ -25,6 +25,9 @@ public class GenshinInMinecraftGameTest {
     @GameTest public void climbDrainsAndExhaustionFalls(GameTestHelper context) { TraversalGameTests.climbDrainsAndExhaustionFalls(context); }
     @GameTest public void glideDrainsAndDescends(GameTestHelper context) { TraversalGameTests.glideDrainsAndDescends(context); }
     @GameTest public void climbMantlesStepsAndRejectsOverhang(GameTestHelper context) { TraversalGameTests.climbMantlesStepsAndRejectsOverhang(context); }
+    @GameTest public void climbOutsideCorners(GameTestHelper context) { TraversalGameTests.climbOutsideCorners(context); }
+    @GameTest public void climbInsideCorners(GameTestHelper context) { TraversalGameTests.climbInsideCorners(context); }
+    @GameTest public void climbOneBlockSteps(GameTestHelper context) { TraversalGameTests.climbOneBlockSteps(context); }
 
     @GameTest
     public void genshinCommandIsRegistered(GameTestHelper context) {
