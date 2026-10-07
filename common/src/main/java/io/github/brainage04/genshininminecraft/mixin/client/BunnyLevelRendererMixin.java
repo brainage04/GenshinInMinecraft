@@ -15,5 +15,6 @@ public abstract class BunnyLevelRendererMixin {
     @Inject(method = "submitEntities", at = @At("RETURN"))
     private void genshin$bunnyContinuations(PoseStack pose, LevelRenderState state, SubmitNodeCollector collector, CallbackInfo ci) {
         BunnyVisuals.submit(pose, state, collector);
+        io.github.brainage04.genshininminecraft.client.ProjectileVisuals.submit(pose, state, collector);
     }
 }

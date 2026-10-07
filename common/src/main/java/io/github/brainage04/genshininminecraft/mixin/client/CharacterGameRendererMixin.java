@@ -14,5 +14,6 @@ public abstract class CharacterGameRendererMixin {
     private void genshin$armsSnapshot(DeltaTracker delta, boolean renderLevel, CallbackInfo ci) {
         PlayerVisuals.extractArms(delta.getGameTimeDeltaPartialTick(false));
         io.github.brainage04.genshininminecraft.client.enemy.BunnyVisuals.extract(delta.getGameTimeDeltaPartialTick(false));
+        io.github.brainage04.genshininminecraft.client.ProjectileVisuals.extract(delta.getGameTimeDeltaPartialTick(false));
     }
 }

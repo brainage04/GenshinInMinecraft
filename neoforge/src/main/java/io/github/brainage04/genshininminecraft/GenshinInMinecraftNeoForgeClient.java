@@ -24,6 +24,8 @@ import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import io.github.brainage04.genshininminecraft.network.BunnyVisualPayload;
 import io.github.brainage04.genshininminecraft.client.enemy.BunnyVisuals;
+import io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload;
+import io.github.brainage04.genshininminecraft.client.ProjectileVisuals;
 import java.util.List;
 import java.util.Set;
 import net.minecraft.resources.Identifier;
@@ -68,6 +70,7 @@ public final class GenshinInMinecraftNeoForgeClient {
             event.register(TargetAuraPayload.TYPE, (packet, context) -> CombatFeedback.accept(packet));
             event.register(PlayerCharacterPayload.TYPE, (packet, context) -> CombatFeedback.accept(packet));
             event.register(BunnyVisualPayload.TYPE, (packet, context) -> BunnyVisuals.accept(packet));
+            event.register(ProjectileVisualPayload.TYPE, (packet, context) -> ProjectileVisuals.accept(packet));
         });
         modBus.addListener((RegisterGuiLayersEvent event) ->
                 event.registerAbove(VanillaGuiLayers.HOTBAR, GenshinHud.ID, GenshinHud::render));

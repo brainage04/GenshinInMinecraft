@@ -21,6 +21,7 @@ import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
 import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import io.github.brainage04.genshininminecraft.network.BunnyVisualPayload;
+import io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
@@ -64,6 +65,7 @@ public final class GenshinInMinecraftNeoForge {
             registrar.playToClient(TargetAuraPayload.TYPE, TargetAuraPayload.CODEC);
             registrar.playToClient(PlayerCharacterPayload.TYPE, PlayerCharacterPayload.CODEC);
             registrar.playToClient(BunnyVisualPayload.TYPE, BunnyVisualPayload.CODEC);
+            registrar.playToClient(ProjectileVisualPayload.TYPE, ProjectileVisualPayload.CODEC);
         });
         CombatRuntime.setSender(PacketDistributor::sendToPlayer);
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> CombatRuntime.get(event.getServer()).tick(event.getServer()));

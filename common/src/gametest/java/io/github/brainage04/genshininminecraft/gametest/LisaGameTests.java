@@ -96,6 +96,9 @@ public final class LisaGameTests {
             session.intent(Intent.SKILL_RELEASE, start + 77);
             session.advanceTo(start + 98);
             close(context, runtime.target(distant).hp(), before, "Projectile is still in flight when Lisa leaves");
+            context.assertTrue(session.projectileSnapshots().stream().anyMatch(packet ->
+                    packet.kind() == io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload.Kind.VIOLET_ORB),
+                    "Actual server homing orb publishes render snapshots while in flight");
             context.assertTrue(session.intent(Intent.SWITCH_1, start + 98), "Lisa leaves after projectile launch before impact");
             session.advanceTo(start + 257);
             close(context, runtime.target(distant).hp(), before - lisaTalent(.8), "Launched orb keeps Lisa-owned damage after switch");
@@ -129,6 +132,9 @@ public final class LisaGameTests {
             session.advanceTo(start + 119);
             close(context, runtime.target(near).hp() + runtime.target(far).hp(), before - lisaTalent(.3656),
                     "First random-target discharge uses original approximate119 and sourced36.56%");
+            context.assertTrue(session.projectileSnapshots().stream().anyMatch(packet ->
+                    packet.kind() == io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload.Kind.ROSE_BOLT),
+                    "Actual targeted discharge publishes a Rose-to-target bolt");
             context.assertTrue(runtime.target(near).aura().gauge(Element.ELECTRO) > 0
                             || runtime.target(far).aura().gauge(Element.ELECTRO) > 0, "Discharge applies1U to its selected enemy");
             session.advanceTo(start + 148);

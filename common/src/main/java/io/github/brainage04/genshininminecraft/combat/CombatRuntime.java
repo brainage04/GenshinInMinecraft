@@ -5,6 +5,7 @@ import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
 import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import io.github.brainage04.genshininminecraft.network.BunnyVisualPayload;
+import io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload;
 import io.github.brainage04.genshininminecraft.rules.*;
 import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit;
@@ -252,6 +253,7 @@ public final class CombatRuntime {
         if (entity instanceof ServerPlayer other && ManagedWorld.isManaged(entity.level()) && player.connection != null) {
             player.connection.send(new ClientboundCustomPayloadPacket(
                     session(other).visualSnapshot(session(other).party.activeSlot())));
+            session(other).sendProjectiles(player);
         }
     }
     private static void broadcast(CombatTarget target, CustomPacketPayload payload) {
@@ -373,6 +375,12 @@ public final class CombatRuntime {
         private long lastActionSoundFrame = -1;
         private CharacterKit lastActionSoundKit;
         private Kind lastActionSoundKind;
+        private long projectileSequence;
+        private record Presentation(ServerLevel level, ProjectileVisualPayload packet) {}
+        private final Map<Long, Presentation> presentations = new HashMap<>();
+        private final CombatSounds.Budget soundBudget = new CombatSounds.Budget();
+        private final boolean[] burstWasReady = new boolean[Party.SIZE];
+        private final boolean[] skillWasCooling = new boolean[Party.SIZE];
 
         private Session(ServerPlayer player) {
             this.player = player;
@@ -429,6 +437,7 @@ public final class CombatRuntime {
                 if (intent == Intent.BURST_PRESS) {
                     rainLevel = (ServerLevel) player.level();
                     rainOrigin = player.position().add(forward(player).scale(ADAPTED_RAIN_FORWARD_DISTANCE));
+                    rainVisuals(frame);
                 }
             }
             if (accepted && intent == Intent.SKILL_PRESS) { skillCast = frame; skillAbsorbed = null; }
@@ -438,12 +447,18 @@ public final class CombatRuntime {
                 tornadoDirection = forward(player);
                 tornadoLevel = (ServerLevel) player.level();
                 burstAbsorbed = null;
+                projectile(ProjectileVisualPayload.Kind.TORNADO, tornadoLevel, tornadoOrigin,
+                        tornadoOrigin.add(tornadoDirection.scale(TORNADO_BLOCKS_PER_SECOND * 6)),
+                        frame, Math.toIntExact(TravelerAnemoKit.BURST_DURATION_FRAMES));
             }
             if (accepted && intent == Intent.BURST_PRESS && kit() instanceof KaeyaKit) icicleLevel = (ServerLevel) player.level();
             if (accepted && intent == Intent.BURST_PRESS && kit() instanceof LisaKit) {
                 roseLevel = (ServerLevel) player.level();
                 roseOrigin = player.position();
             }
+            if (accepted && intent == Intent.SKILL_PRESS && kit() instanceof TravelerAnemoKit)
+                projectile(ProjectileVisualPayload.Kind.PALM_VORTEX, (ServerLevel) player.level(),
+                        player.position().add(forward(player).scale(1.5)), Vec3.ZERO, frame, 24);
             if (accepted && intent == Intent.SKILL_PRESS)
                 motionSound(kit() instanceof AmberKit ? SoundEvents.SNOWBALL_THROW
                         : kit() instanceof KaeyaKit ? SoundEvents.GLASS_BREAK : SoundEvents.EVOKER_CAST_SPELL, .6F, 1.1F);
@@ -504,9 +519,24 @@ public final class CombatRuntime {
                 roseParticles();
             }
         }
+        private void resourceSounds() {
+            for (int slot = 0; slot < Party.SIZE; slot++) {
+                CharacterKit member = party.kit(slot);
+                boolean ready = member.state().alive() && member.energy() >= member.state().burstCost() && member.burstRemaining() == 0;
+                if (ready && !burstWasReady[slot]) motionSound(SoundEvents.NOTE_BLOCK_CHIME.value(), .35F, 1.5F);
+                burstWasReady[slot] = ready;
+                boolean cooling = member.skillRemaining() > 0;
+                if (!cooling && skillWasCooling[slot] && member.state().alive())
+                    motionSound(SoundEvents.UI_BUTTON_CLICK.value(), .18F, 1.4F);
+                skillWasCooling[slot] = cooling;
+            }
+        }
         /** Vanilla input supplies the Sprint edge; managed camera intent supplies its movement basis. */
         public void tickMovement(long frame) {
             advanceTo(frame);
+            resourceSounds();
+            presentations.values().removeIf(presentation -> presentation.level().getGameTime() * 3
+                    >= presentation.packet().startWorldFrame() + presentation.packet().durationFrames());
             if (lastMovementFrame == frame) return;
             lastMovementFrame = frame;
             var input = player.getLastClientInput();
@@ -677,6 +707,7 @@ public final class CombatRuntime {
         }
         private void clearFieldObjects() {
             if (puppetLevel != null) bunnyVisual(BunnyVisualPayload.Kind.CANCEL, Vec3.ZERO, Vec3.ZERO, 0, 0);
+            cancelProjectiles();
             endTraversal(Math.max(stamina().frame(), timeline.frame()));
             ++castGeneration;
             for (int slot = 0; slot < Party.SIZE; slot++) party.kit(slot).cancelCasts(timeline.frame());
@@ -711,6 +742,20 @@ public final class CombatRuntime {
         }
         private boolean forceSwitch(long frame) {
             if (kit().visual().action(frame) == CombatVisual.Action.FALLEN) return false;
+            motionSound(SoundEvents.PLAYER_DEATH, .6F, .9F);
+            ProjectileVisualPayload.Kind field = kit() instanceof KaeyaKit ? ProjectileVisualPayload.Kind.WALTZ_ICICLE
+                    : kit() instanceof TravelerAnemoKit ? ProjectileVisualPayload.Kind.TORNADO : null;
+            if (field != null) {
+                var iterator = presentations.values().iterator();
+                while (iterator.hasNext()) {
+                    Presentation presentation = iterator.next();
+                    if (presentation.packet().kind() != field) continue;
+                    iterator.remove();
+                    broadcastProjectile(presentation.level(), new ProjectileVisualPayload(player.getUUID(),
+                            presentation.packet().dimension(), presentation.packet().id(), ProjectileVisualPayload.Kind.CANCEL,
+                            0, 0, Vec3.ZERO, Vec3.ZERO));
+                }
+            }
             endTraversal(frame);
             boolean switched = party.forceSwitch(frame);
             if (switched) switchEffect();
@@ -743,6 +788,7 @@ public final class CombatRuntime {
             lastVisualFrame = party.frame();
         }
         private void switchEffect() {
+            motionSound(SoundEvents.ARMOR_EQUIP_LEATHER.value(), .4F, 1.3F);
             broadcastCharacter(party.activeSlot());
             DustParticleOptions dust = switch (party.activeMember().element()) {
                 case ANEMO -> ANEMO_DUST; case PYRO -> PYRO_DUST; case CRYO -> CRYO_DUST; case ELECTRO -> ELECTRO_DUST;
@@ -844,7 +890,7 @@ public final class CombatRuntime {
             boolean frostgnaw = hit.kind() == Kind.FROSTGNAW;
             double radius = sword ? SWORD_RADIUS : catalystCharge ? ADAPTED_LISA_CHARGED_RADIUS
                     : burst ? TORNADO_RADIUS : frostgnaw ? ADAPTED_FROSTGNAW_RANGE : SKILL_RADIUS;
-            List<LivingEntity> enemies = ranged ? rayTargets(level, kit.weapon()) : nearby(level, origin, radius);
+            List<LivingEntity> enemies = ranged ? rayTargets(level, kit.weapon(), hit) : nearby(level, origin, radius);
             if (frostgnaw) enemies.removeIf(enemy -> !enemy.getBoundingBox().intersects(
                     player.getX() - ADAPTED_FROSTGNAW_RANGE, player.getY(), player.getZ() - ADAPTED_FROSTGNAW_RANGE,
                     player.getX() + ADAPTED_FROSTGNAW_RANGE, player.getY() + ADAPTED_FROSTGNAW_HEIGHT,
@@ -859,6 +905,24 @@ public final class CombatRuntime {
                             || distanceSquared > .01 && (facing.x * dx + facing.z * dz)
                             < (sword || catalystCharge || frostgnaw ? SWORD_ARC_COSINE : 0) * Math.sqrt(distanceSquared);
                 });
+            }
+            if (catalystCharge) {
+                if (enemies.isEmpty()) projectile(ProjectileVisualPayload.Kind.CHARGED_BOLT, level, player.getEyePosition(),
+                        player.position().add(forward(player).scale(ADAPTED_LISA_CHARGED_RADIUS)).add(0, .5, 0), hit.frame(), 15);
+                for (LivingEntity enemy : enemies) projectile(ProjectileVisualPayload.Kind.CHARGED_BOLT, level,
+                        player.getEyePosition(), enemy.position().add(0, enemy.getBbHeight() / 2, 0), hit.frame(), 15);
+            }
+            if (hit.kind() == CharacterKit.Kind.CUTTING || hit.kind() == CharacterKit.Kind.STORM)
+                projectile(ProjectileVisualPayload.Kind.PALM_VORTEX, level,
+                        player.position().add(forward(player).scale(1.5)), Vec3.ZERO, hit.frame(), 24);
+            if (frostgnaw) {
+                Vec3 facing = forward(player);
+                for (int shard = -2; shard <= 2; shard++) {
+                    double angle = Math.toRadians(shard * 25), cosine = Math.cos(angle), sine = Math.sin(angle);
+                    Vec3 direction = new Vec3(facing.x * cosine - facing.z * sine, 0, facing.x * sine + facing.z * cosine);
+                    projectile(ProjectileVisualPayload.Kind.FROST_ICICLE, level, origin,
+                            origin.add(direction.scale(ADAPTED_FROSTGNAW_RANGE)), hit.frame(), 18);
+                }
             }
             Element absorbed = null;
             if (hit.mayAbsorb()) {
@@ -886,7 +950,70 @@ public final class CombatRuntime {
                                     : (burst ? "Elemental Burst " : "Elemental Skill ") + absorbed, hit.frame(), false);
                 }
             }
-            if (enemyHit && hit.particles() > 0) party.collect(Energy.Item.PARTICLE, hit.element(), hit.particles());
+            if (enemyHit && hit.particles() > 0) collect(hit.element(), hit.particles());
+        }
+        private long worldFrame(ServerLevel level, long frame) {
+            return level.getGameTime() * 3 + frame - Frames.atServerTick(level.getServer().getTickCount());
+        }
+        private void projectile(ProjectileVisualPayload.Kind kind, ServerLevel level, Vec3 origin, Vec3 destination,
+                long frame, int duration) {
+            projectile(++projectileSequence, kind, level, origin, destination, frame, duration);
+        }
+        private void projectile(long id, ProjectileVisualPayload.Kind kind, ServerLevel level, Vec3 origin, Vec3 destination,
+                long frame, int duration) {
+            var packet = new ProjectileVisualPayload(player.getUUID(), level.dimension().identifier(), id,
+                    kind, worldFrame(level, frame), duration, origin, destination);
+            presentations.put(id, new Presentation(level, packet));
+            broadcastProjectile(level, packet);
+        }
+        private void broadcastProjectile(ServerLevel level, ProjectileVisualPayload packet) {
+            var message = new ClientboundCustomPayloadPacket(packet);
+            for (ServerPlayer viewer : level.players())
+                if ((packet.kind() == ProjectileVisualPayload.Kind.CANCEL
+                        || viewer.position().distanceToSqr(packet.origin()) <= 64 * 64)
+                        && viewer.connection != null && viewer.connection.isAcceptingMessages()) viewer.connection.send(message);
+        }
+        private void retireProjectile(long id, ServerLevel level) {
+            presentations.remove(id);
+            broadcastProjectile(level, new ProjectileVisualPayload(player.getUUID(), level.dimension().identifier(), id,
+                    ProjectileVisualPayload.Kind.CANCEL, 0, 0, Vec3.ZERO, Vec3.ZERO));
+        }
+        private void cancelProjectiles() {
+            for (ServerLevel level : player.level().getServer().getAllLevels())
+                broadcastProjectile(level, new ProjectileVisualPayload(player.getUUID(), level.dimension().identifier(), 0,
+                        ProjectileVisualPayload.Kind.CANCEL, 0, 0, Vec3.ZERO, Vec3.ZERO));
+            presentations.clear();
+        }
+        private void sendProjectiles(ServerPlayer viewer) {
+            for (Presentation presentation : presentations.values())
+                if (presentation.level() == viewer.level() && presentation.level().getGameTime() * 3
+                        < presentation.packet().startWorldFrame() + presentation.packet().durationFrames())
+                    viewer.connection.send(new ClientboundCustomPayloadPacket(presentation.packet()));
+        }
+        public List<ProjectileVisualPayload> projectileSnapshots() {
+            return presentations.values().stream().map(Presentation::packet).toList();
+        }
+        private void collect(Element element, int count) {
+            party.collect(Energy.Item.PARTICLE, element, count);
+            motionSound(SoundEvents.EXPERIENCE_ORB_PICKUP, .35F, 1.25F);
+            resourceSounds();
+        }
+        private void rainVisuals(long frame) {
+            long generation = castGeneration;
+            ServerLevel level = rainLevel;
+            Vec3 center = rainOrigin;
+            for (int wave = 0; wave < AmberKit.rainWaveCount(); wave++) {
+                int index = wave;
+                timeline.schedule(frame + AmberKit.BURST_FIRST_HIT_FRAME + AmberKit.rainWaveOffset(wave) - 12, at -> {
+                    if (!valid() || generation != castGeneration || !party.kit(1).state().alive() || player.level() != level) return;
+                    double radius = (index & 1) == 0 ? ADAPTED_RAIN_RADIUS * .35 : ADAPTED_RAIN_RADIUS * .8;
+                    for (int arrow = 0; arrow < 6; arrow++) {
+                        double angle = 2 * Math.PI * arrow / 6 + index * .35;
+                        Vec3 impact = center.add(Math.cos(angle) * radius, .15, Math.sin(angle) * radius);
+                        projectile(ProjectileVisualPayload.Kind.RAIN_ARROW, level, impact.add(0, 4.5, 0), impact, at, 12);
+                    }
+                });
+            }
         }
         private void actionSound(CharacterKit kit, Hit hit) {
             if (lastActionSoundFrame == hit.frame() && lastActionSoundKit == kit && lastActionSoundKind == hit.kind()) return;
@@ -923,6 +1050,7 @@ public final class CombatRuntime {
             final Vec3 direction;
             LivingEntity enemy;
             Vec3 position;
+            final long visualId;
             long lastFrame;
             VioletOrb(LisaKit lisa, Hit hit, ServerLevel level) {
                 this.lisa = lisa;
@@ -933,16 +1061,24 @@ public final class CombatRuntime {
                 position = player.getEyePosition();
                 enemy = nearestEnemy(level, position, ADAPTED_VIOLET_ACQUISITION_RADIUS);
                 lastFrame = hit.frame();
+                visualId = ++projectileSequence;
             }
         }
         private void launchVioletOrb(LisaKit lisa, Hit hit, ServerLevel level) {
             VioletOrb orb = new VioletOrb(lisa, hit, level);
+            Vec3 direction = orb.enemy == null ? orb.direction
+                    : orb.enemy.position().add(0, orb.enemy.getBbHeight() / 2, 0).subtract(orb.position).normalize();
+            projectile(orb.visualId, ProjectileVisualPayload.Kind.VIOLET_ORB, level, orb.position,
+                    orb.position.add(direction.scale(ADAPTED_VIOLET_SPEED_PER_FRAME * 8)), hit.frame(), 8);
             sampleVioletOrb(orb, hit.frame() + LisaKit.TAP_FIRST_IMPACT_FRAME - LisaKit.TAP_LAUNCH_FRAME);
         }
         private void sampleVioletOrb(VioletOrb orb, long frame) {
             timeline.schedule(frame, at -> {
                 if (!valid() || orb.generation != castGeneration || !orb.lisa.state().alive()
-                        || player.level() != orb.level || at >= orb.hit.frame() + LisaKit.TAP_LIFETIME_FRAMES) return;
+                        || player.level() != orb.level || at >= orb.hit.frame() + LisaKit.TAP_LIFETIME_FRAMES) {
+                    retireProjectile(orb.visualId, orb.level);
+                    return;
+                }
                 if (orb.enemy == null || !orb.enemy.isAlive() || orb.enemy.isRemoved())
                     orb.enemy = nearestEnemy(orb.level, orb.position, ADAPTED_VIOLET_ACQUISITION_RADIUS);
                 Vec3 destination = orb.enemy == null ? orb.position.add(orb.direction)
@@ -954,11 +1090,16 @@ public final class CombatRuntime {
                 var obstruction = orb.level.clip(new net.minecraft.world.level.ClipContext(orb.position, next,
                         net.minecraft.world.level.ClipContext.Block.COLLIDER,
                         net.minecraft.world.level.ClipContext.Fluid.NONE, player));
-                if (obstruction.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK) return;
+                if (obstruction.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK) {
+                    retireProjectile(orb.visualId, orb.level);
+                    return;
+                }
                 orb.position = next;
                 orb.lastFrame = at;
+                Vec3 projected = impact ? next : next.add(difference.normalize().scale(ADAPTED_VIOLET_SPEED_PER_FRAME * 9));
+                projectile(orb.visualId, ProjectileVisualPayload.Kind.VIOLET_ORB, orb.level, next, projected, at, 9);
                 orb.level.sendParticles(ELECTRO_DUST, next.x, next.y, next.z, 5, .08, .08, .08, 0);
-                if (impact) violetImpact(orb, at);
+                if (impact) { retireProjectile(orb.visualId, orb.level); violetImpact(orb, at); }
                 else sampleVioletOrb(orb, at + ADAPTED_ORB_SAMPLE_FRAMES);
             });
         }
@@ -992,6 +1133,8 @@ public final class CombatRuntime {
                             && horizontalDistanceSquared(entity, center) <= VIOLET_HOLD_RADIUS * VIOLET_HOLD_RADIUS)) {
                 CombatTarget target = target(enemy);
                 int stacks = target.conductive().consume(hit.frame());
+                projectile(ProjectileVisualPayload.Kind.CHARGED_BOLT, level, center.add(0, 3, 0),
+                        enemy.position().add(0, enemy.getBbHeight() / 2, 0), hit.frame(), 15);
                 connected |= deal(lisa, target, Element.ELECTRO, LisaKit.holdMultiplier(stacks), 2, null, hit.frame(), false);
                 syncAura(target);
             }
@@ -1000,7 +1143,7 @@ public final class CombatRuntime {
                 level.sendParticles(ELECTRO_DUST, center.x + Math.cos(angle) * VIOLET_HOLD_RADIUS,
                         center.y + .2, center.z + Math.sin(angle) * VIOLET_HOLD_RADIUS, 2, .1, .5, .1, 0);
             }
-            if (connected) party.collect(Energy.Item.PARTICLE, Element.ELECTRO, hit.particles());
+            if (connected) collect(Element.ELECTRO, hit.particles());
         }
         private void roseParticles() {
             for (int petal = 0; petal < 6; petal++) {
@@ -1026,10 +1169,8 @@ public final class CombatRuntime {
             // Source says random enemy priority; uniform weighting/seed are explicit adaptations.
             LivingEntity selected = candidates.get(candidates.size() == 1 ? 0 : roseTargets.nextInt(candidates.size()));
             Vec3 start = roseOrigin.add(0, 1.1, 0), end = selected.position().add(0, selected.getBbHeight() / 2, 0);
-            for (int point = 0; point <= 12; point++) {
-                Vec3 bolt = start.lerp(end, point / 12.0);
-                roseLevel.sendParticles(ELECTRO_DUST, bolt.x, bolt.y, bolt.z, 1, .02, .02, .02, 0);
-            }
+            projectile(ProjectileVisualPayload.Kind.ROSE_BOLT, roseLevel, start, end, hit.frame(), 12);
+            soundBudget.play(roseLevel, start, CombatSounds.Cue.ROSE, hit.frame());
             for (LivingEntity enemy : nearby(roseLevel, selected.position(), ROSE_IMPACT_RADIUS))
                 deal(lisa, target(enemy), Element.ELECTRO, hit.multiplier(), 1, hit.icdTag(), hit.frame(), false);
         }
@@ -1073,7 +1214,7 @@ public final class CombatRuntime {
                 connected |= deal(amber, target(enemy), hit.element(), hit.multiplier(), hit.gauge(), null, hit.frame(), false);
             if (connected) {
                 puppetLevel.sendParticles(PYRO_DUST, center.x, center.y, center.z, 4, .3, .3, .3, .01);
-                party.collect(Energy.Item.PARTICLE, Element.PYRO, hit.particles());
+                collect(Element.PYRO, hit.particles());
             }
         }
         private void rain(AmberKit amber, Hit hit) {
@@ -1108,6 +1249,10 @@ public final class CombatRuntime {
             double revolution = 2 * Math.PI * (hit.frame() - hit.castFrame() - KaeyaKit.BURST_FIRST_CONTACT_FRAME)
                     / KaeyaKit.ADAPTED_REVOLUTION_FRAMES;
             Vec3 origin = player.position().add(0, .8, 0);
+            if (!end && hit.frame() == hit.castFrame() + KaeyaKit.BURST_FIRST_CONTACT_FRAME)
+                for (int icicle = 0; icicle < KaeyaKit.ICICLE_COUNT; icicle++)
+                    projectile(ProjectileVisualPayload.Kind.WALTZ_ICICLE, level, origin,
+                            new Vec3(2 * Math.PI * icicle / KaeyaKit.ICICLE_COUNT, 0, 0), hit.frame(), KaeyaKit.BURST_DURATION_FRAMES);
             for (int icicle = 0; icicle < KaeyaKit.ICICLE_COUNT; icicle++) {
                 double angle = revolution + 2 * Math.PI * icicle / KaeyaKit.ICICLE_COUNT;
                 Vec3 point = origin.add(Math.sin(angle) * ADAPTED_ICICLE_ORBIT_RADIUS, 0,
@@ -1124,32 +1269,37 @@ public final class CombatRuntime {
             }
         }
         /** Nearest unobstructed living target on the server eye ray. */
-        private LivingEntity aimedEnemy(ServerLevel level, double range) {
+        private record AimRay(LivingEntity enemy, Vec3 origin, Vec3 end) {}
+        private AimRay aimRay(ServerLevel level, double range) {
             Vec3 start = player.getEyePosition();
             Vec3 end = start.add(player.getLookAngle().scale(range));
             end = level.clip(new net.minecraft.world.level.ClipContext(start, end,
                     net.minecraft.world.level.ClipContext.Block.COLLIDER,
                     net.minecraft.world.level.ClipContext.Fluid.NONE, player)).getLocation();
             LivingEntity nearest = null;
+            Vec3 endpoint = end;
             double distance = start.distanceToSqr(end);
             for (LivingEntity enemy : level.getEntitiesOfClass(LivingEntity.class, new AABB(start, end).inflate(ADAPTED_RAY_HITBOX_MARGIN),
                     entity -> !(entity instanceof Player) && !isPuppet(entity) && entity.isAlive() && !entity.isRemoved())) {
                 var impact = enemy.getBoundingBox().inflate(ADAPTED_RAY_HITBOX_MARGIN).clip(start, end);
                 if (impact.isPresent() && start.distanceToSqr(impact.get()) < distance) {
                     nearest = enemy;
-                    distance = start.distanceToSqr(impact.get());
+                    endpoint = impact.get();
+                    distance = start.distanceToSqr(endpoint);
                 }
             }
-            return nearest;
+            return new AimRay(nearest, start, endpoint);
         }
-        private List<LivingEntity> rayTargets(ServerLevel level, CharacterKit.Weapon weapon) {
-            LivingEntity nearest = aimedEnemy(level, weapon == CharacterKit.Weapon.BOW ? ADAPTED_BOW_RANGE : ADAPTED_CATALYST_RANGE);
-            if (nearest == null) return List.of();
-            if (weapon == CharacterKit.Weapon.BOW) {
-                level.sendParticles(ParticleTypes.CRIT, nearest.getX(), nearest.getY() + 1, nearest.getZ(), 8, .1, .2, .1, .01);
-                return List.of(nearest);
-            }
-            return nearby(level, nearest.position(), ADAPTED_LISA_IMPACT_RADIUS);
+        private LivingEntity aimedEnemy(ServerLevel level, double range) { return aimRay(level, range).enemy(); }
+        private List<LivingEntity> rayTargets(ServerLevel level, CharacterKit.Weapon weapon, Hit hit) {
+            boolean bow = weapon == CharacterKit.Weapon.BOW;
+            AimRay ray = aimRay(level, bow ? ADAPTED_BOW_RANGE : ADAPTED_CATALYST_RANGE);
+            int duration = bow ? Math.max(6, (int) Math.ceil(ray.origin().distanceTo(ray.end())
+                    / ProjectileVisualPayload.ADAPTED_ARROW_BLOCKS_PER_SECOND * 60)) : 12;
+            projectile(bow ? hit.element() == Element.PYRO ? ProjectileVisualPayload.Kind.PYRO_ARROW : ProjectileVisualPayload.Kind.ARROW
+                    : ProjectileVisualPayload.Kind.CATALYST_BOLT, level, ray.origin(), ray.end(), hit.frame(), duration);
+            if (ray.enemy() == null) return List.of();
+            return bow ? List.of(ray.enemy()) : nearby(level, ray.enemy().position(), ADAPTED_LISA_IMPACT_RADIUS);
         }
         private boolean deal(CharacterKit kit, CombatTarget target, Element element, double multiplier,
                 double gauge, String tag, long frame, boolean conductiveTap) {
@@ -1177,8 +1327,13 @@ public final class CombatRuntime {
             double amount = Damage.talentDamage(stats, multiplier, element, target.level(), 0, 0,
                     target.resistance(element), amplification, 0, critical ? Damage.CritMode.CRIT : Damage.CritMode.NON_CRIT, null);
             boolean applied = target.damage(player, amount);
-            if (applied) feedback(target, amount, element, amplification == null ? null : amplification.type(), critical);
+            if (applied) {
+                feedback(target, amount, element, amplification == null ? null : amplification.type(), critical);
+                soundBudget.play((ServerLevel) target.entity().level(), target.entity().position(), CombatSounds.element(element), frame);
+                if (critical) soundBudget.play((ServerLevel) target.entity().level(), target.entity().position(), CombatSounds.Cue.CRIT, frame);
+            }
             for (Reaction reaction : reactions) {
+                soundBudget.play((ServerLevel) target.entity().level(), target.entity().position(), CombatSounds.reaction(reaction.type()), frame);
                 if (reaction.type() == Reaction.Type.SWIRL) target.countSwirl();
                 if (reaction.amplifying()) continue;
                 if (conductiveTap && (reaction.type() == Reaction.Type.OVERLOADED || reaction.type() == Reaction.Type.SUPERCONDUCT)) {
@@ -1236,7 +1391,11 @@ public final class CombatRuntime {
                 if (tick.dealsDamage()) {
                     double damage = Damage.transformativeDamage(Reaction.Type.ELECTRO_CHARGED,
                             target.ecOwner.level(), target.ecOwner.elementalMastery(), 0, target.resistance(Element.ELECTRO));
-                    if (target.damage(target.ecPlayer, damage)) feedback(target, damage, Element.ELECTRO, Reaction.Type.ELECTRO_CHARGED, false);
+                    if (target.damage(target.ecPlayer, damage)) {
+                        feedback(target, damage, Element.ELECTRO, Reaction.Type.ELECTRO_CHARGED, false);
+                        soundBudget.play((ServerLevel) target.entity().level(), target.entity().position(),
+                                CombatSounds.Cue.ELECTRO_CHARGED, frame);
+                    }
                 }
                 syncAura(target);
                 if (target.scheduledEc == frame) target.scheduledEc = -1;
@@ -1251,7 +1410,8 @@ public final class CombatRuntime {
             if (enemy == null) enemy = nearestEnemy(level, player.position(), ADAPTED_VIOLET_ACQUISITION_RADIUS);
             if (enemy == null) return null;
             CombatTarget target = target(enemy);
-            target.aura().applyHit(element, gauge, frame);
+            for (Reaction reaction : target.aura().applyHit(element, gauge, frame))
+                soundBudget.play(level, target.entity().position(), CombatSounds.reaction(reaction.type()), frame);
             if (element == Element.HYDRO || element == Element.ELECTRO) {
                 target.ecOwner = kit().stats();
                 target.ecPlayer = player;

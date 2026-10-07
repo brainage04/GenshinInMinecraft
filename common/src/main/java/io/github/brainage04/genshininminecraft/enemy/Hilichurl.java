@@ -173,6 +173,7 @@ public final class Hilichurl extends PathfinderMob implements GeoEntity {
                 }
             }
         }
+        if (getTarget() == null && target != null) playSound(SoundEvents.PIGLIN_ANGRY, .45F, .95F);
         setTarget(target);
         if (target == null) {
             returnHome();

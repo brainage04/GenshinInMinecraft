@@ -37,6 +37,11 @@ public final class AmberGameTests {
             context.assertTrue(session.intent(Intent.ATTACK_RELEASE, start + 86), "Release sourced full-charge86");
             session.advanceTo(start + 86);
             close(context, target.hp(), 885.200 - arrow(1.24), "Talent1 124% ATK Pyro uses equal-level DEF and10% RES plus Slingshot");
+            var arrowVisual = session.projectileSnapshots().stream()
+                    .filter(packet -> packet.kind() == io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload.Kind.PYRO_ARROW)
+                    .findFirst().orElseThrow(() -> new AssertionError("Charged release must publish a glowing arrow mesh"));
+            context.assertTrue(arrowVisual.durationFrames() > 0 && arrowVisual.origin().distanceToSqr(arrowVisual.destination()) > 0,
+                    "Visual-only flight has real endpoints and duration without delaying damage or Slingshot's close branch");
             close(context, target.aura().gauge(Element.PYRO), 2 * .8, "Fully charged shot applies sourced2U with aura tax");
             close(context, session.stamina().current(), 100, "Ground bow aim costs zero stamina");
             close(context, player.getAttributeValue(Attributes.MOVEMENT_SPEED), speed, "Release removes server aim slowdown");
@@ -44,6 +49,9 @@ public final class AmberGameTests {
             session.intent(Intent.ATTACK_RELEASE, start + 111);
             session.advanceTo(start + 111);
             close(context, target.hp(), 885.200 - arrow(1.24) - arrow(.4386), "Uncharged aimed shot is43.86% Physical, not Pyro");
+            context.assertTrue(session.projectileSnapshots().stream().anyMatch(packet ->
+                    packet.kind() == io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload.Kind.ARROW),
+                    "Uncharged aimed release publishes a Physical arrow, not a Pyro one");
         });
         context.succeed();
     }

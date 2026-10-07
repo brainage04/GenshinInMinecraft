@@ -18,6 +18,8 @@ import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import io.github.brainage04.genshininminecraft.network.BunnyVisualPayload;
 import io.github.brainage04.genshininminecraft.client.enemy.BunnyVisuals;
+import io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload;
+import io.github.brainage04.genshininminecraft.client.ProjectileVisuals;
 import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.FabricRenderState;
 import net.fabricmc.fabric.api.client.rendering.v1.RenderStateDataKey;
@@ -53,6 +55,8 @@ public class GenshinInMinecraftFabricClient implements ClientModInitializer {
                 (packet, context) -> CombatFeedback.accept(packet));
         ClientPlayNetworking.registerGlobalReceiver(BunnyVisualPayload.TYPE,
                 (packet, context) -> BunnyVisuals.accept(packet));
+        ClientPlayNetworking.registerGlobalReceiver(ProjectileVisualPayload.TYPE,
+                (packet, context) -> ProjectileVisuals.accept(packet));
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, GenshinHud.ID, GenshinHud::render);
         for (Identifier layer : List.of(VanillaHudElements.HEALTH_BAR, VanillaHudElements.FOOD_BAR,
                 VanillaHudElements.ARMOR_BAR, VanillaHudElements.INFO_BAR, VanillaHudElements.EXPERIENCE_LEVEL)) {

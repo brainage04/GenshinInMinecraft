@@ -34,6 +34,8 @@ public final class AmberKit extends NormalAttackKit {
     public static final int BURST_SWITCH_FRAME = 61;
     // Individual timestamps are unknown. This deliberately non-uniform schedule is NOT duration / 18.
     private static final int[] ADAPTED_RAIN_WAVE_OFFSETS = {0, 6, 12, 18, 24, 30, 36, 42, 48, 60, 66, 72, 78, 84, 90, 96, 108, 119};
+    public static int rainWaveCount() { return ADAPTED_RAIN_WAVE_OFFSETS.length; }
+    public static int rainWaveOffset(int wave) { return ADAPTED_RAIN_WAVE_OFFSETS[wave]; }
     private static final double[] MULTIPLIERS = {.3612, .3612, .4644, .4730, .5934};
     private static final int[] RELEASE_FRAMES = {14, 10, 27, 26, 26};
     private static final int[] RECOVERY_FRAMES = {26, 22, 37, 34, 60};

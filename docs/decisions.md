@@ -455,3 +455,61 @@ All screenshots below are under `fabric/build/run/clientGameTest/screenshots/` (
 
 Full clipping review: `genshin-combat-{aether,amber,kaeya,lisa}-{skill,burst}.png` and `genshin-pose-{aether,amber,kaeya,lisa}-{skill,burst}-orbit.png`; additionally `genshin-combat-{aether,lisa}-skill-{start,hold,release}.png` and `genshin-pose-{aether,lisa}-skill-{start,hold,release}-orbit.png`. Startup is sampled at cast12; hold at Traveler cast36 / Lisa full-charge cast120; releases use the real kit's actual5/3-frame hit offset. No client-only phase or gameplay strike is injected.
 
+## 2026-10-08 — visible ranged geometry and complete starter feedback (item19)
+
+Choose **(a), keep Amber's server hitscan and render cosmetic flight**, not an unsourced ballistic simulation. [KQM Amber evidence](https://library.keqingmains.com/evidence/characters/pyro/amber) and the existing [Amber mechanics record](../spec/mechanics/amber.md) establish release versus impact and flight-dependent dropoff, but the inspected public evidence/search does **not** supply a calibrated arrow speed. The named **32 blocks/s, minimum6 reference-frame** cosmetic speed is our readability adaptation. Both normal and aimed arrows use the exact authoritative blocked eye-ray intersection, or its clipped miss endpoint. Fully charged arrows have a bright Pyro core, orange trail and original animated flame tongues. The release-time damage, gauges, crit RNG and **Slingshot0-frame flight/+36% branch remain unchanged**; charge wind-up is never treated as flight. No damage goldens need recomputing.
+
+One S2C-only `ProjectileVisualPayload` carries owner/dimension/identity, absolute world-frame lifetime and endpoints. Both loaders share original custom geometry on the vanilla emissive lightning pipeline: arrowheads/shafts/feather fins, branching catalyst and Rose bolts, diamond-core spiral Violet Arc orb, wind ribbons and faceted Cryo shards. It is not a client entity and cannot grant damage or resources. Violet Arc updates from the existing server homing simulation, with its existing terrain/impact/lifetime retirement; Rose uses the actual selected target. Rain geometry falls from4.5 blocks over12 cosmetic frames **before** each unchanged damage-wave timestamp. Tornado and three Waltz icicles retain their existing trajectory/orbit and off-field behavior. Nearby same-dimension viewers receive snapshots, late trackers receive still-live geometry without audio replay, and field cancellation clears presentations. Minimal particle settings do not remove the meshes. Existing20c plush Bunny's5→45-frame throw arc/landing geometry is retained, rather than creating a second throw.
+
+`tools/models/generate.py` remains the deterministic character/enemy asset author; these small procedural effect meshes need no second texture/model asset convention. Original provenance is added outside its generated credits block. No copied Genshin artwork/audio or new sound files.
+
+### Additional vanilla sound mapping
+
+All cues are server broadcasts at actual gameplay transitions, not animation-marker callbacks or snapshot acceptance. Existing20a/20b/20c action, traversal, landing, enemy-impact and Bunny mappings above remain in effect.
+
+| Event | Minecraft sound event | Volume / pitch | Session-wide minimum interval |
+| --- | --- | --- | --- |
+| Physical hit | `entity.player.attack.strong` | .35 / .9 | 6 frames |
+| Pyro hit | `block.fire.ambient` | .35 / 1.2 | 6 frames |
+| Cryo hit | `block.glass.hit` | .35 / 1.2 | 6 frames |
+| Electro hit | `entity.breeze.shoot` | .35 / 1.2 | 6 frames |
+| Anemo hit | `entity.breeze.slide` | .35 / 1.2 | 6 frames |
+| Hydro hit (debug-seeded reaction support) | `block.fire.extinguish` | .35 / 1.2 | 6 frames |
+| Overloaded | `entity.generic.explode` | .55 / 1.2 | 12 frames |
+| Superconduct | `block.amethyst_block.break` | .35 / 1.2 | 12 frames |
+| Melt / Vaporize | `block.fire.extinguish` | .35 / 1.2 | 12 frames per reaction |
+| Swirl | `entity.breeze.slide` | .35 / 1.2 | 12 frames |
+| Electro-Charged reaction / periodic ticks | `entity.breeze.shoot` | .25 / 1.2 | 30 frames, shared across targets |
+| Frozen / Shatter | `block.glass.hit` / `block.glass.break` | .35 / 1.2 | 12 frames per reaction |
+| Actual critical talent hit | `entity.player.attack.crit` | .35 / 1.5 | 12 frames |
+| Lightning Rose selected-target discharge | `entity.breeze.shoot` | .25 / 1.2 | 12 frames |
+| Energy particle pickup (existing immediate collection) | `entity.experience_orb.pickup` | .35 / 1.25 | One cue per collection, not per particle/recipient |
+| Burst becomes ready (alive, full energy, no burst cooldown) | `block.note_block.chime` | .35 / 1.5 | Rising edge only |
+| Skill cooldown ends | `ui.button.click` | .18 / 1.4 | Falling cooldown edge only |
+| Accepted manual / forced switch | `item.armor.equip_leather` | .4 / 1.3 | Actual switch only |
+| Character falls (including forced replacement/wipe) | `entity.player.death` | .6 / .9 | Actual fall only |
+| Enemy first acquires an aggro target | `entity.piglin.angry` | .45 / .95 | Null-to-target edge only |
+
+Per-session cue budgets coalesce AoE hits/reactions and duplicate EC initial/tick feedback, without suppressing another element or reaction. Rose's30-frame discharge schedule is additionally bounded by its12-frame cue budget. Rejected casts/switches do not play success cues. Resource sounds do not add physical energy travel/funnelling or replay when an unchanged state sync arrives.
+
+### Acceptance evidence
+
+Final **`./gradlew --no-daemon build runAllGameTests` passes in7m30s**,49 actionable tasks (21 executed/28 up-to-date). All **72 required server GameTests** pass in each Fabric/NeoForge development and production run; the full connected Fabric production client suite passes. Existing sourced damage/crit/reaction/field timing goldens are unchanged. Server regressions additionally assert the charged/uncharged arrow, in-flight real homing orb and selected-target Rose snapshots. `ProjectileVisualPayloadTest`:2 tests,0 failures/errors/skipped (all mesh/cancel codec variants and AoE/EC/Rose/crit budget boundaries); `StarterLoadoutTest`:8 tests,0 failures/errors/skipped, retaining the four character-chain goldens and Slingshot18-versus19-frame source boundary.
+
+The Fabric client accepts actual server kit intents, freezes only real time for inspection, and asserts live immutable extracted projectile render states for **all12** shots/fields with **Minimal particles**. Rain capture samples frame69 (two genuine waves with12 falling meshes), rather than frame66 where the newer wave is legitimately at its starting position. Waltz asserts all3 shapes; repeated Frozen extraction cannot advance any mesh, managed-off clears them, and real Traveler/Kaeya falls retire their field meshes before expiry. The charged-arrow capture additionally verifies that release-time server damage has already occurred while cosmetic flight is visible; no delayed-hit test is applicable because no authoritative travel rule changed.
+
+Opened and inspected every projectile capture: Physical/Pyro arrows are visible in flight, Pyro has a luminous orange flame trail, Lisa's diamond-core homing orb and target-connected bolts are visible, Rain has distinct falling geometry, Traveler has wind spirals, and Kaeya has faceted cone/orbit shards. These are original placeholder-quality effects, not copied Genshin VFX. Audio mapping/budgets are exercised by code/server transitions and unit tests; no subjective audio listening is claimed in the null-audio headless session.
+
+All paths below are git-ignored under **`fabric/build/run/clientGameTest/screenshots/`**:
+
+| Required evidence | Screenshot |
+| --- | --- |
+| Amber Pyro charged arrow mid-flight | `genshin-projectile-amber-charged-mid-flight.png` |
+| Lisa real Violet Arc homing orb | `genshin-projectile-lisa-violet-arc.png` |
+| Lightning Rose actual selected-target discharge | `genshin-projectile-lightning-rose-bolt.png` |
+| Fiery Rain falling arrows | `genshin-projectile-fiery-rain.png` |
+
+Additional inspected captures: `genshin-projectile-amber-normal.png`, `genshin-projectile-amber-aimed.png`, `genshin-projectile-lisa-normal.png`, `genshin-projectile-lisa-charged.png`, `genshin-projectile-palm-vortex.png`, `genshin-projectile-gust-surge.png`, `genshin-projectile-frostgnaw.png`, `genshin-projectile-glacial-waltz.png`. Existing connected20c tests continue checking the visible Bunny throw's active presentation followed by real landing; its original throw/land/explosion renderer and snapshots are unchanged.
+
+No commit, push, git identity changes or owner-desktop/audio access.
+
