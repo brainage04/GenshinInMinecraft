@@ -1,6 +1,9 @@
 package io.github.brainage04.genshininminecraft.mixin.client;
 
 import io.github.brainage04.genshininminecraft.client.CombatInput;
+import io.github.brainage04.genshininminecraft.client.character.PlayerVisuals;
+import java.util.concurrent.CompletableFuture;
+import net.minecraft.client.GameLoadCookie;
 import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -24,4 +27,8 @@ public abstract class CombatInputMixin {
     }
     @Inject(method = "clearClientLevel", at = @At("HEAD"))
     private void genshin$forgetSession(CallbackInfo ci) { CombatInput.reset(); }
+    @Inject(method = "reloadResourcePacks(ZLnet/minecraft/client/GameLoadCookie;)Ljava/util/concurrent/CompletableFuture;", at = @At("RETURN"))
+    private void genshin$reloadCharacters(boolean force, GameLoadCookie cookie, CallbackInfoReturnable<CompletableFuture<Void>> cir) {
+        cir.getReturnValue().thenRun(() -> ((Minecraft) (Object) this).execute(PlayerVisuals::invalidateViews));
+    }
 }

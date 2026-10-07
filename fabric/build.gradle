@@ -7,6 +7,10 @@ repositories {
 		forRepository { maven { url = "https://maven.terraformersmc.com/releases/" } }
 		filter { includeGroup "com.terraformersmc" }
 	}
+	exclusiveContent {
+		forRepository { maven { url = "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/" } }
+		filter { includeGroup "com.geckolib" }
+	}
 }
 
 clientGameTestRecorder {
@@ -21,4 +25,7 @@ dependencies {
 	// Cloth Config
 	implementation("me.shedaniel.cloth:cloth-config-fabric:${rootProject.cloth_config_version}") { exclude group: "net.fabricmc.fabric-api" }
 	productionRuntimeMods("me.shedaniel.cloth:cloth-config-fabric:${rootProject.cloth_config_version}") { exclude group: "net.fabricmc.fabric-api" }
+
+	implementation("com.geckolib:geckolib-fabric-26.2:5.5.5") { exclude group: "net.fabricmc.fabric-api" }
+	productionRuntimeMods("com.geckolib:geckolib-fabric-26.2:5.5.5") { exclude group: "net.fabricmc.fabric-api" }
 }

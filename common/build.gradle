@@ -3,11 +3,16 @@ repositories {
 		forRepository { maven { url = "https://maven.shedaniel.me/" } }
 		filter { includeGroup "me.shedaniel.cloth" }
 	}
+	exclusiveContent {
+		forRepository { maven { url = "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/" } }
+		filter { includeGroup "com.geckolib" }
+	}
 }
 
 dependencies {
 	// Cloth Config: common code compiles against its loader-neutral API (AutoConfig); each loader module ships its own build.
 	implementation "me.shedaniel.cloth:cloth-config:${rootProject.cloth_config_version}"
+	compileOnly "com.geckolib:geckolib-common-26.2:5.5.5"
 
 	// Fabric's convention uses fabric-loader-junit, whose BOM is JUnit 5.10.0.
 	// Common rules use the same Jupiter platform without bootstrapping a loader.

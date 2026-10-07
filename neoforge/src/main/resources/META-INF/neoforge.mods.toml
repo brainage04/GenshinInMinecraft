@@ -38,3 +38,10 @@ type="required"
 versionRange="[${cloth_config_version},)"
 ordering="AFTER"
 side="BOTH"
+
+[[dependencies.genshininminecraft]]
+modId="geckolib"
+type="required"
+versionRange="[5.5.6,6)"
+ordering="AFTER"
+side="BOTH"

@@ -3,6 +3,10 @@ repositories {
 		forRepository { maven { url = "https://maven.shedaniel.me/" } }
 		filter { includeGroup "me.shedaniel.cloth" }
 	}
+	exclusiveContent {
+		forRepository { maven { url = "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/" } }
+		filter { includeGroup "com.geckolib" }
+	}
 }
 
 dependencies {
@@ -10,4 +14,6 @@ dependencies {
 	implementation "me.shedaniel.cloth:cloth-config-neoforge:${rootProject.cloth_config_version}"
 	// Mods the production GameTest server (:neoforge:runProductionServerGameTest) loads beside the release JAR
 	productionRuntimeMods "me.shedaniel.cloth:cloth-config-neoforge:${rootProject.cloth_config_version}"
+	implementation "com.geckolib:geckolib-neoforge-26.2:5.5.6"
+	productionRuntimeMods "com.geckolib:geckolib-neoforge-26.2:5.5.6"
 }

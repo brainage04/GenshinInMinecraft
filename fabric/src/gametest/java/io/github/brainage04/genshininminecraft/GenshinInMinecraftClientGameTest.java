@@ -76,6 +76,8 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             server.runCommand("execute as @a at @s run tp @s ~ ~ ~ 0 0");
             context.getInput().lookAt(0, 0);
             context.waitFor(client -> ManagedCamera.decoupled() && client.gameRenderer.mainCamera().isDetached());
+            CharacterRenderingChecks.characters(context, server);
+            CharacterRenderingChecks.dash(context, server);
             spectatorExitResendsCameraYaw(context, server);
             context.runOnClient(client -> {
                 ManagedCamera.setAngles(90, 15);
@@ -579,6 +581,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.waitFor(client -> !CombatInput.managed());
             context.waitFor(client -> client.options.getCameraType() == CameraType.FIRST_PERSON
                     && !ManagedCamera.decoupled() && !client.gameRenderer.mainCamera().isDetached());
+            CharacterRenderingChecks.unmanaged(context);
             context.getInput().lookAt(37, 12);
             context.waitTicks(2);
             context.runOnClient(client -> {
@@ -633,6 +636,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             client.gui.hud.getChat().clearMessages(true);
         });
         screenshot(context, "genshin-traversal-climbing");
+        CharacterRenderingChecks.traversal(context, "climb", false);
         context.getInput().holdKey(options -> options.keyShift);
         context.waitFor(client -> !CombatInput.state().climbing());
         context.getInput().releaseKey(options -> options.keyShift);
@@ -665,6 +669,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             client.gui.hud.getChat().clearMessages(true);
         });
         screenshot(context, "genshin-traversal-gliding");
+        CharacterRenderingChecks.traversal(context, "glide", true);
         context.getInput().pressKey(options -> options.keyJump);
         context.waitFor(client -> !CombatInput.state().gliding());
         server.runCommand("tp @a " + (base.getX() + .5) + " " + base.getY() + " " + (base.getZ() + .5) + " 0 0");

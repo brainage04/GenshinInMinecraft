@@ -43,6 +43,9 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 
 /** One simulation per server; loader hooks only forward intents, tick and send payloads. */
 public final class CombatRuntime {
@@ -207,6 +210,9 @@ public final class CombatRuntime {
         double horizontalSpeed = Math.sqrt(player.getKnownMovement().horizontalDistanceSqr()) * 20;
         double fraction = state.traversal.active() ? 0 : Traversal.fallHpFraction(height, horizontalSpeed,
                 TraversalGeometry.safeWater(player));
+        state.locomotion.land(height, frame);
+        if (height > .15 && !TraversalGeometry.safeWater(player))
+            state.motionSound(SoundEvents.STONE_FALL, (float) Math.clamp(.2 + height / 15, .2, 1), .8F);
         if (fraction > 0) applyCharacterLoss(state, state.kit().maxHp() * fraction, source, frame);
         return true;
     }
@@ -242,7 +248,7 @@ public final class CombatRuntime {
         }
         if (entity instanceof ServerPlayer other && ManagedWorld.isManaged(entity.level()) && player.connection != null) {
             player.connection.send(new ClientboundCustomPayloadPacket(
-                    new PlayerCharacterPayload(other.getId(), session(other).party.activeSlot())));
+                    session(other).visualSnapshot(session(other).party.activeSlot())));
         }
     }
     private static void broadcast(CombatTarget target, CustomPacketPayload payload) {
@@ -354,6 +360,10 @@ public final class CombatRuntime {
         private Direction climbWall;
         private boolean jumpKeyHeld;
         private boolean traversalJumpQueued;
+        private final Locomotion locomotion = new Locomotion();
+        private int displayedOccurrence = -1;
+        private int displayedTraversal = -1;
+        private long lastVisualFrame = -1;
 
         private Session(ServerPlayer player) {
             this.player = player;
@@ -376,6 +386,7 @@ public final class CombatRuntime {
         public Party party() { return party; }
         public Stamina stamina() { return party.stamina(); }
         public Traversal traversal() { return traversal; }
+        public Locomotion locomotion() { return locomotion; }
         public Element skillAbsorbedElement() { return skillAbsorbed; }
         public Element burstAbsorbedElement() { return burstAbsorbed; }
         public boolean intent(Intent intent, long frame) {
@@ -502,6 +513,7 @@ public final class CombatRuntime {
                 sprintKeyHeld = held;
                 dashMotion = null;
                 dashLevel = null;
+                updateLocomotion(frame);
                 return;
             }
             boolean eligible = valid() && !player.isSpectator() && !player.isPassenger()
@@ -516,6 +528,8 @@ public final class CombatRuntime {
                             0, CameraMath.movementZ(cameraYaw, left, forward) * ADAPTED_DASH_BLOCKS_PER_TICK);
                 }
                 dashLevel = (ServerLevel) player.level();
+                locomotion.begin(Locomotion.Phase.DASH, frame);
+                motionSound(SoundEvents.BREEZE_SLIDE, .55F, 1.25F);
             }
             sprintKeyHeld = held;
             if (eligible && moving && held) {
@@ -529,6 +543,27 @@ public final class CombatRuntime {
                 setHorizontalMotion(dashing ? dashMotion : Vec3.ZERO);
                 if (!dashing) { dashMotion = null; dashLevel = null; }
             }
+            updateLocomotion(frame);
+        }
+        private void updateLocomotion(long frame) {
+            var input = player.getLastClientInput();
+            var previous = locomotion.phase();
+            int mode = traversalFlags(frame) & 3;
+            boolean moving = player.getKnownMovement().horizontalDistanceSqr() > .0001
+                    || input.forward() != input.backward() || input.left() != input.right();
+            locomotion.update(frame, player.onGround(), player.getKnownMovement().y, moving,
+                    player.isSprinting(), stamina().dashing(frame), player.isInWater(), mode, traversal.jumping(frame),
+                    (input.forward() ? 1 : 0) - (input.backward() ? 1 : 0),
+                    (input.left() ? 1 : 0) - (input.right() ? 1 : 0), player.fallDistance);
+            if (locomotion.phase() == Locomotion.Phase.GLIDE_START && previous != Locomotion.Phase.GLIDE_START)
+                motionSound(SoundEvents.ARMOR_EQUIP_ELYTRA.value(), .7F, 1.1F);
+            else if ((previous == Locomotion.Phase.GLIDE_START || previous == Locomotion.Phase.GLIDE_LOOP)
+                    && mode != 2) motionSound(SoundEvents.ARMOR_EQUIP_LEATHER.value(), .5F, .8F);
+            else if (mode == 1 && !previous.name().startsWith("CLIMB"))
+                motionSound(SoundEvents.STONE_HIT, .4F, 1.25F);
+        }
+        private void motionSound(SoundEvent sound, float volume, float pitch) {
+            player.level().playSound(null, player.getX(), player.getY(), player.getZ(), sound, SoundSource.PLAYERS, volume, pitch);
         }
         private boolean tickTraversal(long frame, net.minecraft.world.entity.player.Input input, boolean moving, boolean jumped) {
             int before = traversalFlags(frame);
@@ -558,6 +593,7 @@ public final class CombatRuntime {
                         player.teleportTo(mantle.x, mantle.y, mantle.z);
                         player.setOnGround(true);
                         player.resetFallDistance();
+                        locomotion.begin(Locomotion.Phase.MANTLE, frame);
                     } else if (!player.level().noCollision(player, player.getBoundingBox()
                             .deflate(Traversal.ADAPTED_COLLISION_EPSILON).move(0,
                                     Traversal.ADAPTED_CLIMB_BLOCKS_PER_TICK, 0))) endTraversal(frame);
@@ -587,7 +623,6 @@ public final class CombatRuntime {
                 }
                 setTraversalMotion(TraversalGeometry.motion(player, traversal.mode(), climbWall, yaw, input,
                         traversal.jumping(frame), traversal.jumpSide()), false);
-                if (traversal.mode() == Traversal.Mode.GLIDE) gliderParticles(yaw);
             }
             if (before != traversalFlags(frame)) { lastSync = null; sync(); }
             return traversal.active() || oldMode != Traversal.Mode.FREE;
@@ -606,18 +641,6 @@ public final class CombatRuntime {
             if (send && player.connection != null && player.connection.isAcceptingMessages())
                 player.connection.send(new ClientboundSetEntityMotionPacket(player));
         }
-        private void gliderParticles(float yaw) {
-            double angle = Math.toRadians(yaw);
-            double sideX = Math.cos(angle), sideZ = Math.sin(angle);
-            double backX = Math.sin(angle) * Traversal.ADAPTED_WING_BACK_OFFSET;
-            double backZ = -Math.cos(angle) * Traversal.ADAPTED_WING_BACK_OFFSET;
-            for (int sample = -Traversal.ADAPTED_WING_PARTICLE_SAMPLES; sample <= Traversal.ADAPTED_WING_PARTICLE_SAMPLES; sample++) {
-                double side = sample * Traversal.ADAPTED_WING_HALF_SPAN / Traversal.ADAPTED_WING_PARTICLE_SAMPLES;
-                player.level().sendParticles(ANEMO_DUST, player.getX() + backX + sideX * side,
-                        player.getY() + Traversal.ADAPTED_WING_HEIGHT - Math.abs(side) * Traversal.ADAPTED_WING_DROOP,
-                        player.getZ() + backZ + sideZ * side, 1, 0, 0, 0, 0);
-            }
-        }
         private void setHorizontalMotion(Vec3 motion) {
             player.setDeltaMovement(motion.x, player.getDeltaMovement().y, motion.z);
             player.hurtMarked = true;
@@ -634,6 +657,7 @@ public final class CombatRuntime {
             if (sessionLevel == player.level()) return;
             sessionLevel = player.level();
             clearFieldObjects();
+            locomotion.reset(Math.max(party.frame(), timeline.frame()));
         }
         private void clearFieldObjects() {
             endTraversal(Math.max(stamina().frame(), timeline.frame()));
@@ -673,11 +697,20 @@ public final class CombatRuntime {
             else clearFieldObjects();
             return switched;
         }
+        public PlayerCharacterPayload visualSnapshot(int slot) {
+            long frame = Math.max(party.frame(), Frames.atServerTick(player.level().getServer().getTickCount()));
+            return new PlayerCharacterPayload(player.getId(), player.getUUID(), slot, locomotion.phase(),
+                    locomotion.occurrence(), locomotion.startFrame(), traversalFlags(frame), frame, player.level().getGameTime());
+        }
         private void broadcastCharacter(int slot) {
-            ((ServerLevel) player.level()).getChunkSource().chunkMap.sendToTrackingPlayers(player,
-                    new ClientboundCustomPayloadPacket(new PlayerCharacterPayload(player.getId(), slot)));
+            var packet = new ClientboundCustomPayloadPacket(visualSnapshot(slot));
+            player.level().getChunkSource().chunkMap.sendToTrackingPlayers(player, packet);
+            if (player.connection != null && player.connection.isAcceptingMessages()) player.connection.send(packet);
             displayedSlot = slot;
-            displayedLevel = (ServerLevel) player.level();
+            displayedLevel = player.level();
+            displayedOccurrence = locomotion.occurrence();
+            displayedTraversal = traversalFlags(party.frame());
+            lastVisualFrame = party.frame();
         }
         private void switchEffect() {
             broadcastCharacter(party.activeSlot());
@@ -689,7 +722,9 @@ public final class CombatRuntime {
                     20, .4, .7, .4, .03);
         }
         private void sync() {
-            if (displayedSlot != party.activeSlot() || displayedLevel != player.level()) broadcastCharacter(party.activeSlot());
+            if (displayedSlot != party.activeSlot() || displayedLevel != player.level()
+                    || displayedOccurrence != locomotion.occurrence() || displayedTraversal != traversalFlags(party.frame())
+                    || party.frame() - lastVisualFrame >= 60) broadcastCharacter(party.activeSlot());
             if (player.connection == null || !player.connection.isAcceptingMessages()) return;
             if (lastSyncLevel != player.level()) {
                 lastSync = null;

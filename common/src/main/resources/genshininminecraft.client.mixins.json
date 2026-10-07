@@ -2,7 +2,7 @@
 	"required": true,
 	"package": "io.github.brainage04.genshininminecraft.mixin.client",
 	"compatibilityLevel": "JAVA_25",
-	"client": ["CombatInputMixin", "StaminaMovementMixin", "TraversalMovementMixin", "ManagedCameraMixin", "CameraMouseMixin", "CameraMovementMixin"],
+	"client": ["CombatInputMixin", "StaminaMovementMixin", "TraversalMovementMixin", "ManagedCameraMixin", "CameraMouseMixin", "CameraMovementMixin", "CharacterAvatarStateMixin", "CharacterAvatarRendererMixin", "CharacterLivingRendererMixin", "CharacterGameRendererMixin", "CharacterHandsMixin"],
 	"injectors": {
 		"defaultRequire": 1
 	},

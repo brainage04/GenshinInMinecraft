@@ -5,6 +5,7 @@ import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
 import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
+import io.github.brainage04.genshininminecraft.client.character.PlayerVisuals;
 import io.github.brainage04.genshininminecraft.rules.CharacterBaseStats;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
@@ -43,7 +44,6 @@ public final class CombatFeedback {
         null, Component.literal("•").getVisualOrderText(), Component.literal("••").getVisualOrderText(),
         Component.literal("•••").getVisualOrderText()
     };
-    private static final Map<Integer, Integer> playerCharacters = new HashMap<>();
     private static final FormattedCharSequence[] CHARACTER_TEXT = {
         Component.literal("Traveler · Anemo").getVisualOrderText(),
         Component.literal("Amber · Pyro").getVisualOrderText(),
@@ -64,7 +64,7 @@ public final class CombatFeedback {
     }
     public static int auraElements(int targetId) { return auras.getOrDefault(targetId, 0); }
     public static int conductiveStacks(int targetId) { return conductive.getOrDefault(targetId, 0); }
-    public static void reset() { numbers.clear(); auras.clear(); conductive.clear(); playerCharacters.clear(); level = null; tick = 0; sequence = 0; }
+    public static void reset() { numbers.clear(); auras.clear(); conductive.clear(); PlayerVisuals.reset(); level = null; tick = 0; sequence = 0; }
     private static void useLevel(ClientLevel current) {
         if (level != current) {
             reset();
@@ -77,7 +77,7 @@ public final class CombatFeedback {
         numbers.removeIf(number -> tick - number.bornTick() >= LIFETIME_TICKS);
         if (level != null) auras.keySet().removeIf(id -> level.getEntity(id) == null);
         if (level != null) conductive.keySet().removeIf(id -> level.getEntity(id) == null);
-        if (level != null) playerCharacters.keySet().removeIf(id -> level.getEntity(id) == null);
+        PlayerVisuals.tick(client);
     }
     public static void accept(DamageNumberPayload packet) {
         ClientLevel current = Minecraft.getInstance().level;
@@ -101,8 +101,7 @@ public final class CombatFeedback {
     }
     public static void accept(PlayerCharacterPayload packet) {
         useLevel(Minecraft.getInstance().level);
-        if (packet.slot() < 0) playerCharacters.remove(packet.playerId());
-        else playerCharacters.put(packet.playerId(), packet.slot());
+        PlayerVisuals.accept(packet);
     }
     public static List<WorldText> extract(float partialTick) {
         Minecraft client = Minecraft.getInstance();
@@ -147,10 +146,10 @@ public final class CombatFeedback {
             texts.add(new WorldText(entity.getPosition(partialTick).add(0, entity.getBbHeight() + .9, 0),
                     text, font.width(text) / 2F, ElementPalette.color(Element.ELECTRO), .025F));
         }
-        for (var entry : playerCharacters.entrySet()) {
-            Entity entity = level.getEntity(entry.getKey());
+        for (var snapshot : PlayerVisuals.snapshots()) {
+            Entity entity = level.getEntity(snapshot.playerId());
             if (entity == null || entity == client.player || !entity.isAlive() || entity.isInvisible()) continue;
-            int slot = entry.getValue();
+            int slot = snapshot.slot();
             var text = CHARACTER_TEXT[slot];
             Element element = CharacterBaseStats.at(CharacterStatePayload.ROSTER.get(slot), 20).element();
             texts.add(new WorldText(entity.getPosition(partialTick).add(0, entity.getBbHeight() + .85, 0),

@@ -28,11 +28,6 @@ public final class Traversal {
     public static final double ADAPTED_LETHAL_FALL_BLOCKS = 25;
     public static final double ADAPTED_HORIZONTAL_ENERGY_GRAVITY = 20; // m/s² solely for the adapted damage curve.
     public static final double ADAPTED_SAFE_WATER_DEPTH = .9;
-    public static final double ADAPTED_WING_HALF_SPAN = 1.2;
-    public static final double ADAPTED_WING_BACK_OFFSET = .35;
-    public static final double ADAPTED_WING_HEIGHT = 1.4;
-    public static final int ADAPTED_WING_PARTICLE_SAMPLES = 12;
-    public static final double ADAPTED_WING_DROOP = .2;
 
     private final Stamina stamina;
     private Mode mode = Mode.FREE;
