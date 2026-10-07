@@ -578,6 +578,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                 if (CombatInput.state().activeSlot() != 0 || !GenshinHud.rejectionText().equals("Character is down"))
                     throw new AssertionError("Selecting a fallen member must preserve active Traveler and explain rejection");
             });
+            PersistenceChecks.reconnect(context, server);
             server.runCommand("gamemode adventure @a");
             context.waitFor(client -> !client.player.isCreative());
             server.runCommand("genshin managed off");
@@ -790,7 +791,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
         context.waitFor(client -> CombatInput.state().stamina() == 100 && !client.player.isSprinting());
     }
 
-    private static void screenshot(ClientGameTestContext context, String name) {
+    static void screenshot(ClientGameTestContext context, String name) {
         Path directory = context.computeOnClient(client -> client.gameDirectory.toPath().resolve("screenshots"));
         Path image = context.takeScreenshot(TestScreenshotOptions.of(name).disableCounterPrefix().withDestinationDir(directory));
         if (!Files.isRegularFile(image)) throw new AssertionError("Client GameTest screenshot was not written: " + image);

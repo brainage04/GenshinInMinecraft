@@ -6,6 +6,7 @@ import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Frames;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import io.github.brainage04.genshininminecraft.world.ManagedWorldData;
+import io.github.brainage04.genshininminecraft.world.PartySavedData;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -169,6 +170,8 @@ public final class TravelerCombatGameTests {
         var data = new ManagedWorldData();
         server.overworld().getDataStorage().set(ManagedWorldData.TYPE, data);
         CombatRuntime.stop(server);
+        var originalParties = PartySavedData.get(server);
+        server.overworld().getDataStorage().set(PartySavedData.TYPE, new PartySavedData());
         try {
             data.setManaged(server, true);
             var profile = new GameProfile(new UUID(0, 0), "traveler-kit-test");
@@ -181,6 +184,7 @@ public final class TravelerCombatGameTests {
             test.accept(CombatRuntime.get(server), player);
         } finally {
             CombatRuntime.stop(server);
+            server.overworld().getDataStorage().set(PartySavedData.TYPE, originalParties);
             server.getGameRules().setAll(rules, server);
             server.overworld().getDataStorage().set(ManagedWorldData.TYPE, original);
         }

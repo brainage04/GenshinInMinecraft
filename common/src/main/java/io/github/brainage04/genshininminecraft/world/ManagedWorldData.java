@@ -3,6 +3,7 @@ package io.github.brainage04.genshininminecraft.world;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.github.brainage04.genshininminecraft.GenshinInMinecraft;
+import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.gamerules.GameRule;
@@ -54,6 +55,7 @@ public final class ManagedWorldData extends SavedData {
             // 26.2 has no doFireTick: a radius of zero disables fire/lava spread everywhere.
             rememberAndSet(rules, GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, 0, server);
         } else {
+            CombatRuntime.suspend(server);
             rules.setAll(previousRules, server);
             previousRules = GameRuleMap.of();
         }

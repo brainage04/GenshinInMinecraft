@@ -22,6 +22,7 @@ import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Hit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Kind;
 import io.github.brainage04.genshininminecraft.world.ManagedWorld;
+import io.github.brainage04.genshininminecraft.world.PartySavedData;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
@@ -115,10 +116,41 @@ public final class CombatRuntime {
         CombatRuntime runtime = SERVERS.remove(server);
         if (runtime != null) for (Session state : runtime.players.values()) state.clearFieldObjects();
     }
+    /** Called before vanilla flushes world SavedData (autosave, save-all and orderly shutdown). */
+    public static void saveAll(MinecraftServer server) {
+        CombatRuntime runtime = SERVERS.get(server);
+        if (runtime != null) for (Session state : runtime.players.values()) state.saveResources();
+    }
+    /** Managed-off is suspension, not a free resource reset; it also ends every transient cast. */
+    public static void suspend(MinecraftServer server) {
+        CombatRuntime runtime = SERVERS.get(server);
+        if (runtime == null) return;
+        for (Session state : runtime.players.values()) {
+            state.clearFieldObjects();
+            state.stamina().stopSprint(Math.max(state.party.frame(), Frames.atServerTick(server.getTickCount())));
+        }
+        runtime.targets.clear();
+        for (Session state : runtime.players.values()) {
+            state.saveResources();
+            state.broadcastCharacter(-1);
+            if (sender != null && state.player.connection != null && state.player.connection.isAcceptingMessages())
+                sender.accept(state.player, CharacterStatePayload.UNMANAGED);
+        }
+        runtime.players.clear();
+    }
+    /** A real vanilla death respawn revives the wiped party, not a login or End return. */
+    public void respawn(ServerPlayer player) {
+        if (!ManagedWorld.isManaged(player.level())) return;
+        Session state = session(player);
+        state.party.reviveAfterWipe();
+        state.mirrorHealth();
+        state.saveResources();
+        state.sync();
+    }
     public static boolean cancelsVanillaMelee(Player player) { return ManagedWorld.isManaged(player.level()); }
     public Session session(ServerPlayer player) {
         Session previous = players.get(player.getUUID());
-        if (previous != null && previous.player != player) { previous.clearFieldObjects(); players.remove(player.getUUID()); }
+        if (previous != null && previous.player != player) forget(player.getUUID());
         Session state = players.computeIfAbsent(player.getUUID(), ignored -> new Session(player));
         state.reconcileDimension();
         return state;
@@ -136,7 +168,12 @@ public final class CombatRuntime {
     }
     public void forget(UUID uuid) {
         Session removedPlayer = players.remove(uuid);
-        if (removedPlayer != null) removedPlayer.clearFieldObjects();
+        if (removedPlayer != null) {
+            removedPlayer.clearFieldObjects();
+            removedPlayer.stamina().stopSprint(Math.max(removedPlayer.party.frame(),
+                    Frames.atServerTick(removedPlayer.player.level().getServer().getTickCount())));
+            removedPlayer.saveResources();
+        }
         CombatTarget removed = targets.remove(uuid);
         if (removed != null) broadcast(removed, new TargetAuraPayload(removed.entity().getId(), 0, 0));
     }
@@ -297,8 +334,8 @@ public final class CombatRuntime {
         else for (Session state : players.values()) state.reconcileDimension();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (!managed) {
-                Session old = players.remove(player.getUUID());
-                if (old != null) old.clearFieldObjects();
+                Session old = players.get(player.getUUID());
+                if (old != null) forget(player.getUUID());
                 if (old != null) {
                     old.broadcastCharacter(-1);
                     if (sender != null) sender.accept(player, CharacterStatePayload.UNMANAGED);
@@ -313,6 +350,7 @@ public final class CombatRuntime {
         players.values().removeIf(state -> {
             if (!state.player.isRemoved()) return false;
             state.clearFieldObjects();
+            state.saveResources();
             return true;
         });
         targets.values().removeIf(target -> target.entity().isRemoved());
@@ -401,12 +439,25 @@ public final class CombatRuntime {
                 identity.putInt(2 * Long.BYTES, slot);
                 combatOwners[party.kit(slot).state().character().ordinal()] = UUID.nameUUIDFromBytes(identity.array());
             }
-            mirroredHealth = player.getHealth();
-            kit().setHp(kit().maxHp() * player.getHealth() / player.getMaxHealth());
+            var saved = PartySavedData.get(player.level().getServer()).get(player.getUUID());
+            if (saved != null) {
+                advanceTimeline(Math.max(timeline.frame(), Frames.atServerTick(player.level().getServer().getTickCount())));
+                party.restore(saved);
+                mirrorHealth();
+            } else {
+                stamina().restore(Stamina.NEW_PLAYER_MAX, 0, false, party.frame());
+                mirroredHealth = player.getHealth();
+                kit().setHp(kit().maxHp() * player.getHealth() / player.getMaxHealth());
+            }
         }
         public CharacterKit kit() { return party.activeKit(); }
         public Party party() { return party; }
         public Stamina stamina() { return party.stamina(); }
+        private void saveResources() {
+            if (ManagedWorld.isManaged(player.level())) reconcileHealth();
+            party.advanceTo(Math.max(party.frame(), Frames.atServerTick(player.level().getServer().getTickCount())));
+            PartySavedData.get(player.level().getServer()).put(player.getUUID(), party.save());
+        }
         public Traversal traversal() { return traversal; }
         public Locomotion locomotion() { return locomotion; }
         public Element skillAbsorbedElement() { return skillAbsorbed; }

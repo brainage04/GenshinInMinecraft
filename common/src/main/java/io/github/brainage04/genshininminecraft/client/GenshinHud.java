@@ -118,7 +118,12 @@ public final class GenshinHud {
         skillCooldown = HudFormatting.cooldown(state.skillRemainingFrames());
         burstCooldown = HudFormatting.cooldown(state.burstRemainingFrames());
         switchCooldown = HudFormatting.cooldown(state.switchRemainingFrames());
-        if (state.managed() && state.rejectionSerial() != rejectionSerial) {
+        if (state.managed() && state.rejection() == CharacterStatePayload.Rejection.NONE) {
+            // Reconnect starts a new server-session serial; its baseline is not a rejected input.
+            rejectionSerial = state.rejectionSerial();
+            feedbackTicks = 0;
+            rejectionText = "";
+        } else if (state.managed() && state.rejectionSerial() != rejectionSerial) {
             rejectionSerial = state.rejectionSerial();
             flashIntent = state.rejectedIntent();
             feedbackTicks = 16; // Named .8-second adaptation, not a measured Genshin timing.

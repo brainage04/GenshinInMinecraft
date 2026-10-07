@@ -4,6 +4,7 @@ import io.github.brainage04.genshininminecraft.rules.CharacterBaseStats;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Stats;
 import io.github.brainage04.genshininminecraft.rules.StarterLoadout;
+import io.github.brainage04.genshininminecraft.rules.PartySave;
 
 /** Mutable server-owned member state; switching never reconstructs this object. */
 public final class CharacterState {
@@ -76,6 +77,14 @@ public final class CharacterState {
     public int comboIndex() { return combo; }
     public long comboResetFrame() { return comboReset; }
     public boolean alive() { return hp > 0; }
+    public void restore(PartySave.Member saved, long frame) {
+        setHp(saved.fallen() ? 0 : saved.hp());
+        energy = alive() ? Math.clamp(saved.energy(), 0, burstCost) : 0;
+        skillReady = frame + saved.skillRemaining();
+        burstReady = frame + saved.burstRemaining();
+        skillCooldownFrames = saved.skillCooldownFrames();
+        burstCooldownFrames = saved.burstCooldownFrames();
+    }
     public void setHp(double value) {
         hp = Math.clamp(value, 0, maxHp());
         if (hp == 0) energy = 0; // party.md: fallen characters lose their Burst energy.

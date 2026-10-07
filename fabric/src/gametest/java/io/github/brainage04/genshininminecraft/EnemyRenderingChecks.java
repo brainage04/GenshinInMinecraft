@@ -137,6 +137,7 @@ final class EnemyRenderingChecks {
             server.runCommand("tick unfreeze"); server.runCommand("tick rate 20");
             if (context.computeOnClient(client -> client.gui.hud.isHidden())) context.getInput().pressKey(options -> options.keyToggleGui);
             server.runCommand("genshin managed off"); context.waitFor(client -> !CombatInput.managed());
+            PersistenceChecks.resetFixture(server);
             server.runCommand("genshin managed on"); context.waitFor(client -> CombatInput.managed() && CombatInput.state().activeSlot() == 0);
             context.runOnClient(client -> { client.options.fov().set(fov); ManagedCamera.setAngles(0, 0); });
         }

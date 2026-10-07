@@ -32,6 +32,29 @@ public final class Party {
     public long frame() { return timeline.frame(); }
     public long switchReadyFrame() { return switchReady; }
     public void advanceTo(long frame) { timeline.advanceTo(frame); stamina.advanceTo(frame); }
+    public PartySave save() {
+        var saved = new java.util.ArrayList<PartySave.Member>(SIZE);
+        for (CharacterState member : members) saved.add(PartySave.Member.capture(member, frame()));
+        return new PartySave(PartySave.CURRENT_VERSION, active, saved, stamina.current(),
+                stamina.regenRemaining(), stamina.exhausted(), PartySave.remaining(switchReady, frame()));
+    }
+    /** Only restore into a fresh party: actions, buffs and field callbacks are deliberately transient. */
+    public void restore(PartySave save) {
+        for (int slot = 0; slot < SIZE; slot++) members.get(slot).restore(save.members().get(slot), frame());
+        active = save.activeSlot();
+        if (!activeMember().alive()) {
+            for (int offset = 1; offset < SIZE; offset++) {
+                int next = (active + offset) % SIZE;
+                if (members.get(next).alive()) { active = next; break; }
+            }
+        }
+        switchReady = frame() + save.switchRemaining();
+        stamina.restore(save.stamina(), save.staminaRegenRemaining(), save.staminaExhausted(), frame());
+    }
+    public void reviveAfterWipe() {
+        for (CharacterState member : members) if (member.alive()) return;
+        for (CharacterState member : members) member.setHp(Math.round(member.maxHp() * PartySave.WIPE_REVIVE_HP_FRACTION));
+    }
     public boolean switchTo(int slot, long frame) {
         advanceTo(frame);
         if (slot < 0 || slot >= SIZE || slot == active || !members.get(slot).alive()

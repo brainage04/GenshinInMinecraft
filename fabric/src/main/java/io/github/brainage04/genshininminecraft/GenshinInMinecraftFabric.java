@@ -59,6 +59,9 @@ public class GenshinInMinecraftFabric implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(server -> CombatRuntime.get(server).tick(server));
         ServerLifecycleEvents.SERVER_STOPPED.register(CombatRuntime::stop);
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> CombatRuntime.get(server).forget(handler.player.getUUID()));
+        net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
+            if (!alive) CombatRuntime.get(newPlayer.level().getServer()).respawn(newPlayer);
+        });
         AttackEntityCallback.EVENT.register((player, level, hand, entity, hit) ->
                 CombatRuntime.cancelsVanillaMelee(player) ? InteractionResult.FAIL : InteractionResult.PASS);
         GenshinInMinecraft.initialize(FabricLoader.getInstance()

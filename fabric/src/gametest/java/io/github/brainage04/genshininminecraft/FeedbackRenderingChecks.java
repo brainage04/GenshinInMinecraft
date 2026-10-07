@@ -42,6 +42,7 @@ final class FeedbackRenderingChecks {
                     if (!CombatFeedback.damageNumbers().isEmpty()) throw new AssertionError("Unmanage must clear combat text");
                 });
                 if (target >= 0) discard(server, target);
+                PersistenceChecks.resetFixture(server);
                 server.runCommand("genshin managed on"); context.waitFor(client -> CombatInput.managed());
                 target = server.computeOnServer(s -> {
                     var player = s.getPlayerList().getPlayers().getFirst();
@@ -141,6 +142,7 @@ final class FeedbackRenderingChecks {
                     throw new AssertionError("Incoming club damage must have an ordinary white Physical number, not red");
             });
             server.runCommand("genshin managed off"); context.waitFor(client -> !CombatInput.managed());
+            PersistenceChecks.resetFixture(server);
             server.runCommand("genshin managed on"); context.waitFor(client -> CombatInput.managed());
             long switchFrame = server.computeOnServer(s -> {
                 var session = CombatRuntime.get(s).session(s.getPlayerList().getPlayers().getFirst());
@@ -157,6 +159,7 @@ final class FeedbackRenderingChecks {
             server.runCommand("tick unfreeze"); server.runCommand("tick rate 20");
             if (target >= 0) discard(server, target);
             server.runCommand("genshin managed off"); context.waitFor(client -> !CombatInput.managed());
+            PersistenceChecks.resetFixture(server);
             server.runCommand("genshin managed on"); context.waitFor(client -> CombatInput.managed() && CombatInput.state().activeSlot() == 0);
             context.runOnClient(client -> { client.options.particles().set(particles); ManagedCamera.setAngles(0, 0); });
         }

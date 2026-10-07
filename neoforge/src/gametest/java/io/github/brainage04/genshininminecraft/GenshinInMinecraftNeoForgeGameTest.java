@@ -11,6 +11,7 @@ import io.github.brainage04.genshininminecraft.gametest.KaeyaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.AmberGameTests;
 import io.github.brainage04.genshininminecraft.gametest.LisaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.CombatLifecycleGameTests;
+import io.github.brainage04.genshininminecraft.gametest.PersistenceGameTests;
 import java.util.Map;
 import java.util.function.Consumer;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -24,6 +25,9 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 @EventBusSubscriber(modid = GenshinInMinecraft.MOD_ID)
 public final class GenshinInMinecraftNeoForgeGameTest {
     private static final Map<String, Consumer<GameTestHelper>> TESTS = Map.ofEntries(
+            Map.entry("logout_and_saved_data_restart_restore_resources_not_fields", PersistenceGameTests::logoutAndSavedDataRestartRestoreResourcesNotFields),
+            Map.entry("managed_off_suspends_resources_and_cancels_queued_landing", PersistenceGameTests::managedOffSuspendsResourcesAndCancelsQueuedLanding),
+            Map.entry("wiped_party_respawn_revives_35_percent_and_retains_cooldown", PersistenceGameTests::wipedPartyRespawnRevives35PercentAndRetainsCooldown),
             Map.entry("live_normals_roll_seeded_crits_and_update_harbinger_hp_condition", HilichurlGameTests::liveNormalsRollSeededCritsAndUpdateHarbingerHpCondition),
             Map.entry("safe_fall_does_not_damage", TraversalGameTests::safeFallDoesNotDamage),
             Map.entry("damaging_fall_loses_half_max_hp", TraversalGameTests::damagingFallLosesHalfMaxHp),

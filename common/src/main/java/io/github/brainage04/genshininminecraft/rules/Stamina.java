@@ -41,6 +41,19 @@ public final class Stamina {
     public double current() { return current; }
     public double maximum() { return maximum; }
     public long frame() { return frame; }
+    public int regenRemaining() { return PartySave.remaining(regenReady, frame); }
+    /** Rebase recovery without offline regeneration or resuming held movement/dash invulnerability. */
+    public void restore(double value, int regenRemaining, boolean wasExhausted, long at) {
+        current = Math.clamp(value, 0, maximum);
+        frame = at;
+        regenReady = at + regenRemaining;
+        exhausted = current == 0 || wasExhausted && current <= ADAPTED_EXHAUSTION_RECOVERY_THRESHOLD;
+        sprinting = false;
+        dashStart = -1;
+        dashEnd = 0;
+        traversalDrainPerFrame = 0;
+        traversalAttached = false;
+    }
     public boolean exhausted() { return exhausted; }
     public boolean sprinting() { return sprinting; }
     public boolean draining() { return sprinting || frame < dashEnd || traversalDrainPerFrame > 0; }

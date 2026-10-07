@@ -108,6 +108,7 @@ final class CharacterRenderingChecks {
                 final int selected = slot;
                 server.runCommand("genshin managed off");
                 context.waitFor(client -> !CombatInput.managed());
+                PersistenceChecks.resetFixture(server);
                 server.runCommand("genshin managed on");
                 context.waitFor(client -> PlayerVisuals.usesCharacter(client.player));
                 server.runOnServer(minecraftServer -> {
@@ -143,6 +144,7 @@ final class CharacterRenderingChecks {
             server.runCommand("tick rate 20");
             server.runCommand("genshin managed off");
             context.waitFor(client -> !CombatInput.managed());
+            PersistenceChecks.resetFixture(server);
             server.runCommand("genshin managed on");
             context.waitFor(client -> PlayerVisuals.usesCharacter(client.player) && CombatInput.state().activeSlot() == 0);
             context.runOnClient(client -> { client.options.fov().set(fov); ManagedCamera.setAngles(0, 0); });
@@ -213,6 +215,7 @@ final class CharacterRenderingChecks {
             int slot, String name, int defaultFov) {
         server.runCommand("genshin managed off");
         context.waitFor(client -> !CombatInput.managed());
+        PersistenceChecks.resetFixture(server);
         server.runCommand("genshin managed on");
         context.waitFor(client -> PlayerVisuals.usesCharacter(client.player));
         server.runOnServer(minecraftServer -> {

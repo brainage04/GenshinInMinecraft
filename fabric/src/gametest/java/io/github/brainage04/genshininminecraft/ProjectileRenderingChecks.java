@@ -52,6 +52,7 @@ final class ProjectileRenderingChecks {
                     if (!ProjectileVisuals.renderStates().isEmpty()) throw new AssertionError("Unmanage must clear projectiles");
                 });
                 if (target >= 0) { final int old = target; server.runOnServer(s -> { var entity = s.getPlayerList().getPlayers().getFirst().level().getEntity(old); if (entity != null) entity.discard(); }); }
+                PersistenceChecks.resetFixture(server);
                 server.runCommand("genshin managed on"); context.waitFor(client -> CombatInput.managed());
                 target = server.computeOnServer(s -> {
                     var player = s.getPlayerList().getPlayers().getFirst();
@@ -132,6 +133,7 @@ final class ProjectileRenderingChecks {
             if (target >= 0) { final int id = target; server.runOnServer(s -> { var entity = s.getPlayerList().getPlayers().getFirst().level().getEntity(id); if (entity != null) entity.discard(); }); }
             if (context.computeOnClient(client -> client.gui.hud.isHidden())) context.getInput().pressKey(options -> options.keyToggleGui);
             server.runCommand("genshin managed off"); context.waitFor(client -> !CombatInput.managed());
+            PersistenceChecks.resetFixture(server);
             server.runCommand("genshin managed on"); context.waitFor(client -> CombatInput.managed() && CombatInput.state().activeSlot() == 0);
             context.runOnClient(client -> { client.options.fov().set(fov); client.options.particles().set(particles); ManagedCamera.setAngles(0, 0); });
         }

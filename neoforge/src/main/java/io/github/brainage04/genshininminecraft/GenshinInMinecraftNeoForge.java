@@ -73,6 +73,10 @@ public final class GenshinInMinecraftNeoForge {
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedOutEvent event) -> {
             if (event.getEntity() instanceof ServerPlayer player) CombatRuntime.get(player.level().getServer()).forget(player.getUUID());
         });
+        NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerRespawnEvent event) -> {
+            if (!event.isEndConquered() && event.getEntity() instanceof ServerPlayer player)
+                CombatRuntime.get(player.level().getServer()).respawn(player);
+        });
         NeoForge.EVENT_BUS.addListener((PlayerEvent.StartTracking event) -> {
             if (event.getEntity() instanceof ServerPlayer player) {
                 CombatRuntime.get(player.level().getServer()).startTracking(player, event.getTarget());

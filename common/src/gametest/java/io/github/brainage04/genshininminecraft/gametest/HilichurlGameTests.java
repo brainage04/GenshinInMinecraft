@@ -11,6 +11,7 @@ import io.github.brainage04.genshininminecraft.rules.kit.AmberKit;
 import io.github.brainage04.genshininminecraft.rules.kit.KaeyaKit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import io.github.brainage04.genshininminecraft.world.ManagedWorldData;
+import io.github.brainage04.genshininminecraft.world.PartySavedData;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -391,6 +392,8 @@ public final class HilichurlGameTests {
         var data = new ManagedWorldData();
         server.overworld().getDataStorage().set(ManagedWorldData.TYPE, data);
         CombatRuntime.stop(server);
+        var originalParties = PartySavedData.get(server);
+        server.overworld().getDataStorage().set(PartySavedData.TYPE, new PartySavedData());
         var profile = new GameProfile(new UUID(0, 0), "hilichurl-test");
         var player = new ServerPlayer(server, level, profile, ClientInformation.createDefault());
         player.connection = new ServerGamePacketListenerImpl(server, new Connection(PacketFlow.SERVERBOUND), player,
@@ -417,6 +420,7 @@ public final class HilichurlGameTests {
             for (int x = -8; x <= 8; x++) for (int z = -8; z <= 8; z++)
                 level.setBlock(floor.offset(x, 0, z), saved.get(index++), Block.UPDATE_CLIENTS | Block.UPDATE_SKIP_ALL_SIDEEFFECTS);
             CombatRuntime.stop(server);
+            server.overworld().getDataStorage().set(PartySavedData.TYPE, originalParties);
             server.getGameRules().setAll(rules, server);
             server.overworld().getDataStorage().set(ManagedWorldData.TYPE, original);
         }

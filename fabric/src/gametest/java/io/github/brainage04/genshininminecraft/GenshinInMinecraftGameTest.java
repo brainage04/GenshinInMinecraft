@@ -11,10 +11,20 @@ import io.github.brainage04.genshininminecraft.gametest.KaeyaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.AmberGameTests;
 import io.github.brainage04.genshininminecraft.gametest.LisaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.CombatLifecycleGameTests;
+import io.github.brainage04.genshininminecraft.gametest.PersistenceGameTests;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 
 public class GenshinInMinecraftGameTest {
+    @GameTest public void logoutAndSavedDataRestartRestoreResourcesNotFields(GameTestHelper context) {
+        PersistenceGameTests.logoutAndSavedDataRestartRestoreResourcesNotFields(context);
+    }
+    @GameTest public void managedOffSuspendsResourcesAndCancelsQueuedLanding(GameTestHelper context) {
+        PersistenceGameTests.managedOffSuspendsResourcesAndCancelsQueuedLanding(context);
+    }
+    @GameTest public void wipedPartyRespawnRevives35PercentAndRetainsCooldown(GameTestHelper context) {
+        PersistenceGameTests.wipedPartyRespawnRevives35PercentAndRetainsCooldown(context);
+    }
     @GameTest public void liveNormalsRollSeededCritsAndUpdateHarbingerHpCondition(GameTestHelper context) {
         HilichurlGameTests.liveNormalsRollSeededCritsAndUpdateHarbingerHpCondition(context);
     }
