@@ -41,6 +41,13 @@ Goal: a player can join a world (test arena now, the ported map once it exists),
 25. [x] Animation polish from review: fixed Amber Fiery Rain head-crossing arms/bow with outward shoulders and a world-up bow; corrected Kaeya's raised sword and Lisa's Rose/channel palm plus Traveler's channel hand clearance. Inspected every skill/burst and Traveler/Lisa startup/hold/full-release anchor in front3/4 and default orbit; numeric bow/channel regressions and full gate pass (6m18s). Evidence: `fabric/build/run/clientGameTest/screenshots/genshin-combat-amber-burst.png`, `genshin-pose-*-orbit.png`; full paths/review in decisions.
 26. [x] Larger/brighter original arrows, bolts, orbs and Cryo shards with element-coloured trails; alpha-blended unlit purple cores fix white Lightning Rose bolts. All gameplay endpoints/timing/Slingshot rules unchanged. Full gate passes (8m05s); existing twelve Minimal-particle projectile scenes and new target-side purple-pixel regression pass. Inspected `fabric/build/run/clientGameTest/screenshots/genshin-projectile-amber-charged-mid-flight.png`, `genshin-projectile-lightning-rose-bolt.png`, and `genshin-projectile-lisa-violet-arc.png`; decisions/fidelity/ui updated.
 
+## Next candidates (not started; known gaps from playtest round 1)
+
+27. [ ] Elemental resonance (party.md has the sourced rules; co-op already counts rosters across players once it exists).
+28. [ ] Enemy ATK by level: hilichurls hit with a flat 120 ATK at every level because no public curve was found; find a sourced curve or ask the owner to measure.
+29. [ ] Artifacts (the remaining loadout gap after the weapon fix) and a character screen.
+30. [ ] Model polish: the original GeckoLib models are recognisable but blocky; refine from owner feedback (review request 10) or swap in owner-supplied open-format models.
+
 ## Questions for the owner
 
 1. ~~**Controls in managed worlds.**~~ Answered 2026-10-04: keep the takeover (E/Q/1–4/left click belong to the game in managed worlds).
