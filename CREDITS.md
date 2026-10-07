@@ -20,11 +20,11 @@ This is a private-use project for the owner and friends. Code licensing does not
 
 <!-- character-assets:start -->
 
-## Original generated character assets (20a)
+## Original generated character assets (20a/20b)
 
 `tools/models/generate.py` authors the Aether, Amber, Kaeya and Lisa cuboid geometry,
 128×128 per-face shaded/pixel-painted textures, articulated weapons and original wind gliders,
-and all locomotion key poses. Authored for this repository, 2026-10-08; no extracted game assets,
+and all locomotion/combat key poses. Authored for this repository, 2026-10-08; no extracted game assets,
 downloaded fan meshes, traced textures, YiFang content or copied sound files. Outputs under
 `assets/genshininminecraft/geckolib/{models,animations}/character` and
 `textures/entity/character` are reproducible with Python 3 (stdlib only); `--check` compares bytes.
@@ -36,6 +36,6 @@ Public visual references (silhouette/colour/signature features only):
 - [Lisa](https://genshin-impact.fandom.com/wiki/Lisa)
 
 These are placeholder-quality original adaptations, not faithful source-game meshes/poses.
-All locomotion sounds refer to built-in Minecraft events; no new audio assets.
+All locomotion/combat sounds refer to built-in Minecraft events; no new audio assets.
 
 <!-- character-assets:end -->

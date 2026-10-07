@@ -1,6 +1,7 @@
 package io.github.brainage04.genshininminecraft.rules.kit;
 
 import io.github.brainage04.genshininminecraft.rules.Element;
+import io.github.brainage04.genshininminecraft.rules.CombatVisual;
 import io.github.brainage04.genshininminecraft.rules.Stamina;
 import io.github.brainage04.genshininminecraft.rules.Stats;
 
@@ -20,6 +21,7 @@ public interface CharacterKit {
             int particles, long castFrame) {}
 
     CharacterState state();
+    CombatVisual visual();
     Stamina stamina();
     Weapon weapon();
     long frame();

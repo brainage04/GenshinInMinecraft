@@ -32,12 +32,13 @@ Goal: a player can join a world (test arena now, the ported map once it exists),
 19. [ ] Visible projectiles for every ranged hit (Amber arrows/aimed shots, Lisa orbs/charged, Baron Bunny throw, Rose bolts) plus sound effects for attacks, skills, bursts, hits, reactions, dash, glide and landing.
 20. [ ] Real character models and animation (GeckoLib, 26.2 on both loaders):
    - [x] 20a. GeckoLib dependency on both loaders/common API, original shaded/articulated Aether/Amber/Kaeya/Lisa bodies and first-person arms, server-synced locomotion (18-frame dash, jump/fall/soft-hard landing, directional climb/climb-jump/mantle, glide start/loop/stop, swim), deployable glider geometry and vanilla transition sounds. Deterministic author/check pipeline and provenance/install/fidelity records included. Full `./gradlew --no-daemon build runAllGameTests` passes (4m44s;72 server tests per development/production run); inspected four front3/4 character captures plus dash/climb/glide and first-person evidence under `fabric/build/run/clientGameTest/screenshots/genshin-character-*.png`. See decisions.
-   - [ ] 20b. Attack, charged, skill and burst animations for all four characters, timed to the kit frames.
+   - [x] 20b. Attack, charged/drawn aim, tap/channel/release skill, burst, hurt and fallen animations for all four characters, server-committed and timed to the kit frames. Original generator clips, vanilla action sounds, parsed-JSON timing/conditional-phase tests and12 exact-frame N1/E/Q client captures. Full `./gradlew --no-daemon build runAllGameTests` passes (5m39s;72 server tests per loader/mode); field/projectile impacts remain independent of player casting clips (decisions/fidelity).
    - [ ] 20c. Hilichurl and Baron Bunny models with idle/walk/telegraph/strike/hurt/death animations.
 21. [ ] Damage numbers like the game: element colours, pop-and-float animation, crit styling, reaction labels. Also: the switch-cooldown overlay dims the inactive rows so much that their HP bars become unreadable; Genshin keeps HP visible under the grey.
 22. [ ] Keep character state across logout (HP, energy, cooldowns, stamina, active slot).
 23. [ ] Put the game on the map: locate Mondstadt, Starfell Valley and Windrise on the 26.2 copy from the owner's coordinates, then add a versioned overlay with Statues of The Seven, Waypoints and hilichurl camps there.
 24. [ ] Two-player co-op on a dedicated server (two real clients), following Genshin's co-op rules.
+25. [ ] Animation polish from review: Amber's Fiery Rain pose has her arms/bow clipping through her head (`genshin-combat-amber-burst.png`); recheck every skill/burst pose for clipping from the default orbit camera.
 
 ## Questions for the owner
 

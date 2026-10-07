@@ -1,6 +1,7 @@
 package io.github.brainage04.genshininminecraft.rules.kit;
 
 import io.github.brainage04.genshininminecraft.rules.CharacterBaseStats;
+import io.github.brainage04.genshininminecraft.rules.CombatVisual;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.EventTimeline;
 import io.github.brainage04.genshininminecraft.rules.Stamina;
@@ -13,6 +14,7 @@ abstract class NormalAttackKit implements CharacterKit {
     protected final Stamina stamina;
     protected final CharacterState state;
     protected final Consumer<Hit> hits;
+    protected final CombatVisual visual = new CombatVisual();
     private final Weapon weapon;
     private long generation;
     private long switchReady;
@@ -28,6 +30,7 @@ abstract class NormalAttackKit implements CharacterKit {
         stamina.advanceTo(timeline.frame());
     }
     @Override public final CharacterState state() { return state; }
+    @Override public final CombatVisual visual() { return visual; }
     @Override public final Stamina stamina() { return stamina; }
     @Override public final Weapon weapon() { return weapon; }
     @Override public final long frame() { return timeline.frame(); }
@@ -44,7 +47,9 @@ abstract class NormalAttackKit implements CharacterKit {
         return true;
     }
     protected abstract void normal(long frame, int index);
+    protected abstract int normalHitFrame(int index);
     protected final void combo(long frame, int index, int count, int recovery) {
+        visual.begin(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.normal(index), frame, normalHitFrame(index), recovery);
         state.combo = (index + 1) % count;
         state.actionReady = frame + recovery;
         state.comboReset = state.actionReady + ADAPTED_COMBO_RESET_FRAMES;
@@ -73,12 +78,16 @@ abstract class NormalAttackKit implements CharacterKit {
             state.actionReady = frame + recovery;
             switchReady = frame + firstSwapFrame;
             action.accept(frame);
+            visual.begin(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.CHARGED, frame,
+                    chargedHitFrame(), recovery);
         });
     }
     @Override public boolean canSwitch(long frame) { return frame >= switchReady; }
+    protected abstract int chargedHitFrame();
     @Override public long switchRemaining(long frame) { return Math.max(0, switchReady - frame); }
     @Override public void leaveField(long frame) {
         held = false;
+        visual.clear(frame);
         ++generation;
         state.combo = 0;
         state.comboReset = 0;

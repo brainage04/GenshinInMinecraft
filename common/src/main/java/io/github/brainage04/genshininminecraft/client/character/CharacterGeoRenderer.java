@@ -45,8 +45,6 @@ public final class CharacterGeoRenderer extends GeoObjectRenderer<CharacterAnima
         } else {
             pose.scale(input.scale(), input.scale(), input.scale());
             pose.mulPose(Axis.YP.rotationDegrees(180 - input.bodyYaw()));
-            if (input.deathTime() > 0) pose.mulPose(Axis.ZP.rotationDegrees(
-                    Math.min((float) Math.sqrt(Math.max(0, input.deathTime() - 1) / 20 * 1.6), 1) * 90));
             pose.translate(0, .01, 0);
         }
     }
@@ -58,10 +56,12 @@ public final class CharacterGeoRenderer extends GeoObjectRenderer<CharacterAnima
             bones.ifPresent("hips", bone -> bone.skipRender(true));
             bones.ifPresent("torso", bone -> bone.skipRender(true).setRotation(0, 0, 0));
             bones.ifPresent("root", bone -> bone.setRotation(0, 0, 0).setTranslation(0, 0, 0));
-            bones.ifPresent("right_arm", bone -> bone.setRotation(1.05F, 0, -.12F));
-            bones.ifPresent("left_arm", bone -> bone.setRotation(1.05F, 0, .12F));
-            bones.ifPresent("right_forearm", bone -> bone.setRotation(.25F, 0, 0));
-            bones.ifPresent("left_forearm", bone -> bone.setRotation(.25F, 0, 0));
+            if (input.action() == io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.NONE) {
+                bones.ifPresent("right_arm", bone -> bone.setRotation(1.05F, 0, -.12F));
+                bones.ifPresent("left_arm", bone -> bone.setRotation(1.05F, 0, .12F));
+                bones.ifPresent("right_forearm", bone -> bone.setRotation(.25F, 0, 0));
+                bones.ifPresent("left_forearm", bone -> bone.setRotation(.25F, 0, 0));
+            }
         } else {
             bones.ifPresent("head", bone -> bone.setRotY(bone.getRotY() - (float) Math.toRadians(input.headYaw()))
                     .setRotX(bone.getRotX() - (float) Math.toRadians(Math.clamp(input.pitch(), -45, 45))));

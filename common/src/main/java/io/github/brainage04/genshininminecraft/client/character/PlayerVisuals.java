@@ -5,6 +5,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import io.github.brainage04.genshininminecraft.client.CombatInput;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import io.github.brainage04.genshininminecraft.rules.Locomotion;
+import io.github.brainage04.genshininminecraft.rules.CombatAnimations;
+import io.github.brainage04.genshininminecraft.rules.CombatVisual;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -77,7 +79,8 @@ public final class PlayerVisuals {
             cached = new Views(player.getUUID(), packet.slot(), new CharacterAnimatable(packet.slot()), new CharacterAnimatable(packet.slot()));
             views.put(player.getId(), cached);
         }
-        double frame = Locomotion.renderFrame(packet.sampleFrame(), packet.sampleGameTime(), level.getGameTime(), partialTick);
+        double frame = Locomotion.renderFrame(packet.sampleFrame(), packet.sampleGameTime(), level.getGameTime(),
+                level.tickRateManager().isFrozen() ? 0 : partialTick);
         float bodyYaw = vanilla == null ? Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot) : vanilla.bodyRot;
         float headYaw = vanilla == null ? Mth.rotLerp(partialTick, player.yHeadRotO, player.yHeadRot) - bodyYaw : vanilla.yRot;
         float pitch = vanilla == null ? player.getXRot(partialTick) : vanilla.xRot;
@@ -91,7 +94,11 @@ public final class PlayerVisuals {
         var input = new CharacterRenderInput(((long) player.getId() << 1) | (firstPerson ? 1 : 0), packet.slot(),
                 packet.phase(), packet.occurrence(), packet.phase().seconds(frame, packet.phaseStartFrame()),
                 level.getGameTime() + partialTick, bodyYaw, headYaw, pitch, scale, light, overlay,
-                invisible, invisibleToPlayer, outline, vanilla == null ? player.deathTime : vanilla.deathTime, firstPerson);
+                invisible, invisibleToPlayer, outline, vanilla == null ? player.deathTime : vanilla.deathTime, firstPerson,
+                packet.action(), packet.actionOccurrence(), packet.action() == CombatVisual.Action.NONE ? 0
+                : CombatAnimations.seconds(packet.slot(), packet.action(), frame - packet.actionStartFrame(),
+                        packet.strikeFrame(), packet.recoveryFrames()),
+                packet.hurtOccurrence(), Math.max(0, frame - packet.hurtStartFrame()) / 60);
         var animatable = firstPerson ? cached.arms() : cached.body();
         return RENDERER.fillRenderState(animatable, input, RENDERER.createRenderState(animatable, input), partialTick);
     }

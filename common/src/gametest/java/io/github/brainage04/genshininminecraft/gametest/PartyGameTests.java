@@ -58,10 +58,22 @@ public final class PartyGameTests {
             close(context, player.getHealth(), 10, "Active Amber HP fraction mirrors to vanilla health");
             context.assertFalse(runtime.receive(player, Intent.SWITCH_3), "A second switch inside one second is rejected");
             context.assertValueEqual(session.party().activeSlot(), 1, "Rejected switch leaves Amber active");
+            context.assertTrue(session.intent(Intent.ATTACK_PRESS, start), "Accepted Amber N1 starts a committed visual");
+            session.intent(Intent.ATTACK_RELEASE, start);
+            var visual = session.visualSnapshot(1);
+            context.assertValueEqual(visual.action(), io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.N1,
+                    "Public appearance carries actual N1, not incremented N2");
+            context.assertTrue(visual.actionStartFrame() == start && visual.strikeFrame() == 14 && visual.recoveryFrames() == 26,
+                    "Public action preserves kit clock/hit/recovery");
+            context.assertFalse(session.intent(Intent.ATTACK_PRESS, start), "Blocked second normal is rejected");
+            context.assertTrue(session.visualSnapshot(1).actionOccurrence() == visual.actionOccurrence(),
+                    "Rejected normal cannot restart authoritative animation");
             context.assertFalse(session.intent(Intent.SWITCH_3, start + 59), "One frame before sourced cooldown is still rejected");
             context.assertTrue(session.intent(Intent.SWITCH_3, start + 60), "Exact one-second boundary accepts switch");
             context.assertTrue(session.intent(Intent.SWITCH_4, start + 120), "Switch to Lisa after another full cooldown");
             close(context, player.getHealth(), 20, "Lisa's full HP mirrors after switching away from half-HP Amber");
+            context.assertValueEqual(session.visualSnapshot(3).action(), io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.NONE,
+                    "Switch cancels the old body's combat action immediately");
             close(context, session.party().kit(1).hp(), 2037.88 / 2, "Off-field Amber retains her HP");
         });
         context.succeed();
@@ -78,6 +90,8 @@ public final class PartyGameTests {
             context.assertTrue(runtime.enemyHit(player, enemy, 120, 1, 20), "Lethal character hit accepted");
             context.assertTrue(player.isAlive(), "A surviving party member prevents vanilla death");
             context.assertValueEqual(session.party().activeSlot(), 1, "Immediate cyclic replacement selects Amber");
+            context.assertValueEqual(session.visualSnapshot(1).action(), io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.NONE,
+                    "Forced replacement must not inherit the fallen character's held channel");
             close(context, session.party().kit(0).hp(), 0, "Fallen Traveler stays dead");
             close(context, session.party().kit(0).energy(), 0, "Fallen Traveler energy resets to zero");
             close(context, player.getHealth(), 20, "Vanilla health now mirrors full-HP Amber");
@@ -88,6 +102,8 @@ public final class PartyGameTests {
             }
             context.assertFalse(player.isAlive(), "All four fallen members permit ordinary vanilla death");
             context.assertValueEqual(player.getKillCredit(), enemy, "Vanilla party-wipe death retains attacker credit");
+            context.assertValueEqual(session.visualSnapshot(3).action(), io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.FALLEN,
+                    "Party wipe publishes the final fallen pose rather than stale skill/locomotion");
         });
         context.succeed();
     }

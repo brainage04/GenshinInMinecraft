@@ -37,6 +37,10 @@ public final class AmberKit extends NormalAttackKit {
     private static final double[] MULTIPLIERS = {.3612, .3612, .4644, .4730, .5934};
     private static final int[] RELEASE_FRAMES = {14, 10, 27, 26, 26};
     private static final int[] RECOVERY_FRAMES = {26, 22, 37, 34, 60};
+    public static int normalStrike(int index) { return RELEASE_FRAMES[index]; }
+    public static int normalRecovery(int index) { return RECOVERY_FRAMES[index]; }
+    @Override protected int normalHitFrame(int index) { return normalStrike(index); }
+    @Override protected int chargedHitFrame() { return 0; }
     private boolean attackHeld;
     private boolean aiming;
     private long attackStart;
@@ -64,6 +68,7 @@ public final class AmberKit extends NormalAttackKit {
             long release = Math.max(frame, attackStart + AIMED_MIN_RELEASE_FRAME);
             boolean charged = frame - attackStart >= FULL_CHARGE_FRAME;
             startTalent(release, AIMED_RECOVERY_FRAMES, AIMED_RECOVERY_FRAMES);
+            visual.begin(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.AIM_RELEASE, release, 0, AIMED_RECOVERY_FRAMES);
             hit(release, Kind.CHARGED, charged ? CHARGED_MULTIPLIER : AIMED_MULTIPLIER,
                     charged ? Element.PYRO : Element.PHYSICAL, charged ? CHARGED_GAUGE : 0,
                     charged ? "Charged Attack" : null, attackStart);
@@ -80,6 +85,7 @@ public final class AmberKit extends NormalAttackKit {
                 super.leaveField(at);
                 aiming = true;
                 state.actionReady = Long.MAX_VALUE;
+                visual.hold(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.AIM_HOLD, attackStart);
             });
             return true;
         }
@@ -88,6 +94,9 @@ public final class AmberKit extends NormalAttackKit {
         if (intent == Intent.SKILL_PRESS) {
             if (frame < state.skillReady) return false;
             startTalent(frame, SKILL_RECOVERY_FRAME, SKILL_SWITCH_FRAME);
+            // Landing is independent of the shorter player cast; release uses the existing CD-start anchor.
+            visual.begin(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.SKILL_TAP, frame,
+                    SKILL_COOLDOWN_START_FRAME, SKILL_RECOVERY_FRAME);
             state.skillCooldown(frame + SKILL_COOLDOWN_START_FRAME, SKILL_COOLDOWN_FRAMES);
             long cast = puppetCast = frame;
             timeline.schedule(frame + ADAPTED_PUPPET_LANDING_FRAME, at -> {
@@ -101,6 +110,8 @@ public final class AmberKit extends NormalAttackKit {
         } else {
             if (frame < state.burstReady || state.energy < BURST_COST) return false;
             startTalent(frame, BURST_RECOVERY_FRAME, BURST_SWITCH_FRAME);
+            visual.begin(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.BURST, frame,
+                    BURST_FIRST_HIT_FRAME, BURST_RECOVERY_FRAME);
             state.energy -= BURST_COST; // Reserve at authoritative acceptance, not original frame59.
             state.burstCooldown(frame + BURST_COOLDOWN_START_FRAME, BURST_COOLDOWN_FRAMES);
             rainCast = frame;

@@ -373,3 +373,48 @@ Final verification: **`./gradlew --no-daemon build runAllGameTests` passed in4m4
 
 Inspected character standing/first-person and locomotion captures under `fabric/build/run/clientGameTest/screenshots/`: `genshin-character-{aether,amber,kaeya,lisa}.png`, `genshin-character-{aether,amber,kaeya,lisa}-arms.png`, and `genshin-character-{dash,climb,glide}.png`. Final dash image visibly shows the authored forward lean/arm sweep; climb shows reaching arms and bent legs; glide shows the original segmented wings/braid/scarf without the retired dense particle placeholder. Art remains **placeholder-quality original blocky adaptation**, not faithful source-game/fan meshes. Remote-player extraction/cache identity is covered by a client fixture, **not a two-real-client co-op claim** (item24). Only20a is ticked; kit action animations/enemy geometry remain20b/20c. No map/world data, commit, push or git identity changes.
 
+## 2026-10-08 — server-committed four-character combat animation (20b)
+
+Each kit publishes `CombatVisual` at **accepted** normals, timeline-driven charged/aim entry, skill start/channel/tap/release and burst acceptance. The public visual payload adds action/occurrence/start, actual strike/recovery offsets and a separate hurt occurrence/start beside locomotion and the existing clock anchors. Combo rendering never reads the already-incremented combo index. Recovery publishes NONE; legal/forced switching cancels the old body's action. Party wipe holds the final character's fallen pose; automatic replacement remains immediate rather than delaying gameplay for an off-field death animation. No plunge action exists in these kits, and none is invented.
+
+`CombatAnimations` caches descriptors sourced directly from the kit normal accessors and named talent anchors. The Python generator reads those descriptors and the original kit numeric tables, failing on unrecognised anchor expressions, rather than maintaining a second renderer frame table. Its original motions include five different sword cuts/thrusts, two-hit charged spins (Kaeya's two damage components share frame16), five bow shots, a separately jointed drawn bow string, four book-and-palm catalyst casts, the actual held skill phases, and distinct E/Q gestures. Upper-body tracks reset their owned joints/transforms; they leave legs/root/hips to locomotion. Fallen alone owns the whole body; an additive18-frame hurt controller adds torso/head recoil without new gameplay interruption or poise.
+
+Combat/held/recoil controllers use the pinned20a post-initialization absolute seeking adapter, cached RawAnimations, zero transitions, explicit loop modulo and one-shot clamps. First-person no longer overwrites authored combat arms with idle hand rotations. Frozen-world extraction uses no interpolated partial tick so a frozen pose cannot drift. Reload, repeat extraction/new occurrence, cancellation, fresh-view re-entry and first-person share the same immutable extracted input contract.
+
+Conditional phase timing is preserved: Traveler early tap stays on the original cast clock (storm32/recovery74); held release starts a new5/48-frame phase. Lisa early tap has launch17/recovery38; a later pre-threshold release skips directly to the strike and retains only `max(0,cast+38-release)` recovery, rather than playing a new universal38-frame tap. Lisa hold uses release+3/+27, and automatic releases publish real release occurrences. Aim hold draws through the existing86-frame charge threshold; release begins at the kit's actual `max(inputRelease,cast+15)` frame and recovers10 frames.
+
+Distinguish **player gestures from independent field/projectile impacts**: Amber's player throw recovers at32, before Bunny lands at45; use the existing cooldown-start5 as a named **adapted throw-pose/release anchor**, not a claim of measured throw release. Lisa tap's gesture is orb launch17; target-dependent impact starts no earlier than22. Lightning Rose summon/placement56 ends the cast at85, whereas formation59 and discharge119 remain independent field events. Existing server hit/field schedules and persistent effects are unchanged; no animation keyframe launches a second projectile or deals damage.
+
+Vanilla sound mapping (server broadcast only, no copied audio or client replay on late tracking):
+
+| Action/event | Minecraft event | Volume / pitch |
+| --- | --- | --- |
+| Traveler/Kaeya normal and charged strike | `entity.player.attack.sweep` | .65 / normal1.1, charged.9 |
+| Amber normal/aim release | `entity.arrow.shoot` | .65 / normal1.1, aimed.9 |
+| Lisa normal/charged and Violet Arc orb launch | `block.amethyst_block.chime` | .65 / normal-orb1.1, charged.9 |
+| Palm Vortex/Lisa skill acceptance | `entity.evoker.cast_spell` | .6 /1.1 |
+| Frostgnaw acceptance / hit | `block.glass.break` | .6 /1.1; .65 /1.1 |
+| Baron Bunny throw acceptance | `entity.snowball.throw` | .6 /1.1 |
+| All burst cast acceptance | `entity.illusioner.cast_spell` | .85 /1.0 (Lisa.85) |
+| Palm Vortex final storm release | `entity.breeze.wind_burst` | .65 /1.1 |
+| Violet Arc hold release / Lightning Rose placement | `entity.evoker.cast_spell` | .65 /1.1 |
+
+Same-kit/same-kind/same-frame sound deduplication prevents Kaeya's simultaneous charged damage components from playing the sweep twice. Rejected inputs do not play cast sounds or publish a new combat occurrence. This completes player action sounds only; item19's ranged projectile/reaction/hit-effects scope remains separate.
+
+JUnit parses every generated action JSON, checks real strike bone keys and inert audit labels at kit frame/60, recovery length, independent sourced normal/talent goldens, distinct normal motion, upper-body ownership and conditional Lisa seeking. Rules and shared party GameTests cover accepted/rejected normals, real charge/aim transitions, hold/auto-release, legal/forced switching and party-wipe visual state. Fabric client checks bake every clip with GeckoLib, seek late/repeated/new-occurrence/cancelled/re-entry/first-person snapshots before and after reload, and capture N1/E/Q for all four through actual server-accepted kits. The capture observer is test-only: align acceptance within the server's three-frame interval, observe the real EventTimeline at the exact sourced hit/launch frame, then briefly freeze/slower-tick the world and refresh ordinary vanilla time plus the actual public snapshot. No fabricated action/pose packet is injected for these captures.
+
+Audit labels live in ignored `genshin_markers` metadata, not GeckoLib's executable Molang timeline. Separate `genshin_field_events` metadata/JUnit checks retain Bunny landing45 and Lisa's earliest impact22/Rose formation59/discharge119 without stretching their shorter player clips. The Bunny rules assertion advances past player recovery32, then proves the real landing event remains at45. Screenshots clear only already-spawned client particles immediately before capture so the authored body pose remains readable; no field/entity/gameplay state is removed.
+
+
+Verification: final `python3 tools/models/generate.py --check` and `./gradlew --no-daemon build runAllGameTests` passed (**5m39s**). All **72 required server tests** passed in each Fabric/NeoForge development/production run; Fabric production client GameTests passed. `CombatAnimationTest` reports **5 tests, zero failures/errors**, including independent field events and every generated action; the public visual codec round-trip test also passed. No commit, push or identity changes.
+
+Inspected N1/skill/burst pose captures are in `fabric/build/run/clientGameTest/screenshots/`:
+
+| Character | N1 | Skill | Burst | Captured player-action frame offsets |
+| --- | --- | --- | --- | --- |
+| Traveler | `genshin-combat-aether-n1.png` | `genshin-combat-aether-skill.png` | `genshin-combat-aether-burst.png` | 13 / 32 / 96 |
+| Amber | `genshin-combat-amber-n1.png` | `genshin-combat-amber-skill.png` | `genshin-combat-amber-burst.png` | 14 / **adapted throw cue5** / 72 |
+| Kaeya | `genshin-combat-kaeya-n1.png` | `genshin-combat-kaeya-skill.png` | `genshin-combat-kaeya-burst.png` | 14 / 28 / 52 |
+| Lisa | `genshin-combat-lisa-n1.png` | `genshin-combat-lisa-skill.png` | `genshin-combat-lisa-burst.png` | 26 / **orb launch17** / placement56 |
+
+The screenshots are original placeholder-quality combat gestures: sword sweep/palm thrust/forward burst, bow release/Bunny throw/bow-to-sky, Frostgnaw thrust/raised Waltz sword, and book/palm/Rose summon. Amber landing45 and Lisa target-dependent impact are not mislabelled as player strike poses during recovery; their separate kit/JSON anchors remain checked.

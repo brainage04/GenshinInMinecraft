@@ -47,6 +47,10 @@ public final class LisaKit extends NormalAttackKit {
     private static final int[] HIT_FRAMES = {26, 17, 17, 31};
     private static final int[] RECOVERY_FRAMES = {30, 20, 34, 57};
     private static final int[] CHARGE_FRAMES = {31, 24, 40};
+    public static int normalStrike(int index) { return HIT_FRAMES[index]; }
+    public static int normalRecovery(int index) { return RECOVERY_FRAMES[index]; }
+    @Override protected int normalHitFrame(int index) { return normalStrike(index); }
+    @Override protected int chargedHitFrame() { return ADAPTED_CHARGED_HIT_FRAMES; }
     private long skillHeld = -1;
     private long roseCast = -1;
     private int holdThreshold = HOLD_CHARGE_FRAMES;
@@ -72,12 +76,19 @@ public final class LisaKit extends NormalAttackKit {
             if (frame < state.skillReady) return false;
             startTalent(frame, HOLD_MAX_FRAMES + HOLD_RECOVERY_OFFSET, HOLD_MAX_FRAMES + HOLD_SWITCH_OFFSET);
             skillHeld = frame;
+            visual.hold(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.SKILL_START, frame);
+            timeline.schedule(frame + TAP_LAUNCH_FRAME, at -> {
+                if (skillHeld == frame)
+                    visual.hold(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.SKILL_HOLD, at);
+            });
             timeline.schedule(frame + HOLD_MAX_FRAMES, at -> {
                 if (skillHeld == frame && state.alive()) releaseSkill(at);
             });
         } else {
             if (frame < state.burstReady || state.energy < BURST_COST) return false;
             startTalent(frame, BURST_RECOVERY_FRAME, BURST_SWITCH_FRAME);
+            visual.begin(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.BURST, frame,
+                    ROSE_PLACEMENT_FRAME, BURST_RECOVERY_FRAME);
             state.energy -= BURST_COST; // Reserve at acceptance, not original drain63.
             state.burstCooldown(frame + BURST_COOLDOWN_START_FRAME, BURST_COOLDOWN_FRAMES);
             roseCast = frame;
@@ -96,10 +107,19 @@ public final class LisaKit extends NormalAttackKit {
         startTalent(frame, recovery, swap);
         if (hold) {
             state.skillCooldown(frame, HOLD_COOLDOWN_FRAMES);
+            visual.begin(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.SKILL_RELEASE, frame,
+                    HOLD_HIT_OFFSET, HOLD_RECOVERY_OFFSET);
             hit(frame + HOLD_HIT_OFFSET, Kind.VIOLET_HOLD, 0, Element.ELECTRO, 2, null, HOLD_PARTICLES, cast);
         } else {
             // Delayed early release shifts launch rather than firing an orb while still holding.
             long launch = Math.max(cast + TAP_LAUNCH_FRAME, frame);
+            // Preserve the real early-release cast clock; a late tap launches immediately on release.
+            if (frame <= cast + TAP_LAUNCH_FRAME)
+                visual.begin(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.SKILL_TAP, cast,
+                        TAP_LAUNCH_FRAME, TAP_RECOVERY_FRAME);
+            else
+                visual.begin(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.SKILL_TAP, frame,
+                        0, recovery);
             state.skillCooldown(launch, TAP_COOLDOWN_FRAMES);
             hit(launch, Kind.VIOLET_ORB, TAP_MULTIPLIER, Element.ELECTRO, 1, NORMAL_ICD_TAG, cast);
         }

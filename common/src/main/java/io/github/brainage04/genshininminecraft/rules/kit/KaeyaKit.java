@@ -10,6 +10,8 @@ import java.util.function.Consumer;
 public final class KaeyaKit extends NormalAttackKit {
     public static final double BURST_COST = 60;
     public static final long CHARGED_SWITCH_FRAME = 34;
+    public static final int CHARGED_HIT_FRAME = 16;
+    public static final int CHARGED_RECOVERY_FRAMES = 54;
     public static final double SKILL_MULTIPLIER = 1.912;
     public static final double SKILL_GAUGE = 2;
     public static final int SKILL_HIT_FRAME = 28;
@@ -37,6 +39,10 @@ public final class KaeyaKit extends NormalAttackKit {
     private static final int[] HIT_FRAMES = {14, 9, 14, 23, 30};
     private static final int[] RECOVERY_FRAMES = {27, 27, 47, 46, 74};
     private static final int[] CHARGE_FRAMES = {36, 31, 55, 54};
+    public static int normalStrike(int index) { return HIT_FRAMES[index]; }
+    public static int normalRecovery(int index) { return RECOVERY_FRAMES[index]; }
+    @Override protected int normalHitFrame(int index) { return normalStrike(index); }
+    @Override protected int chargedHitFrame() { return CHARGED_HIT_FRAME; }
     public KaeyaKit(Consumer<Hit> hits) { this(new EventTimeline(), new Stamina(), hits); }
     public KaeyaKit(EventTimeline timeline, Stamina stamina, Consumer<Hit> hits) {
         super(CharacterBaseStats.Character.KAEYA, Weapon.SWORD, BURST_COST, timeline, stamina, hits);
@@ -48,12 +54,16 @@ public final class KaeyaKit extends NormalAttackKit {
         if (intent == Intent.SKILL_PRESS) {
             if (frame < state.skillReady) return false;
             startTalent(frame, SKILL_RECOVERY_FRAME, SKILL_SWITCH_FRAME);
+            visual.begin(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.SKILL_TAP, frame,
+                    SKILL_HIT_FRAME, SKILL_RECOVERY_FRAME);
             state.skillCooldown(frame + SKILL_COOLDOWN_START_FRAME, SKILL_COOLDOWN_FRAMES);
             hit(frame + SKILL_HIT_FRAME, Kind.FROSTGNAW, SKILL_MULTIPLIER, Element.CRYO,
                     SKILL_GAUGE, null, ADAPTED_SKILL_PARTICLES, frame);
         } else {
             if (frame < state.burstReady || state.energy < BURST_COST) return false;
             startTalent(frame, BURST_RECOVERY_FRAME, BURST_SWITCH_FRAME);
+            visual.begin(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.BURST, frame,
+                    BURST_FIRST_CONTACT_FRAME, BURST_RECOVERY_FRAME);
             // Reserve at acceptance, like Traveler, instead of the measured frame51 drain.
             state.energy -= BURST_COST;
             state.burstCooldown(frame + BURST_COOLDOWN_START_FRAME, BURST_COOLDOWN_FRAMES);
@@ -89,11 +99,11 @@ public final class KaeyaKit extends NormalAttackKit {
     @Override protected void normal(long frame, int index) {
         combo(frame, index, 5, RECOVERY_FRAMES[index]);
         hit(frame + HIT_FRAMES[index], Kind.NORMAL, MULTIPLIERS[index], Element.PHYSICAL, 0, null, frame);
-        if (index < 4) charge(frame + CHARGE_FRAMES[index], Stamina.SWORD_CHARGED_COST, 54,
+        if (index < 4) charge(frame + CHARGE_FRAMES[index], Stamina.SWORD_CHARGED_COST, CHARGED_RECOVERY_FRAMES,
                 (int) CHARGED_SWITCH_FRAME, at -> {
                     // Original sheet: 16-frame first hit; second hit has zero offset, not frame zero.
-                    hit(at + 16, Kind.CHARGED, .5504, Element.PHYSICAL, 0, null, frame);
-                    hit(at + 16, Kind.CHARGED, .731, Element.PHYSICAL, 0, null, frame);
+                    hit(at + CHARGED_HIT_FRAME, Kind.CHARGED, .5504, Element.PHYSICAL, 0, null, frame);
+                    hit(at + CHARGED_HIT_FRAME, Kind.CHARGED, .731, Element.PHYSICAL, 0, null, frame);
                 });
     }
 }

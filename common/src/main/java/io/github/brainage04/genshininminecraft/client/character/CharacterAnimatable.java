@@ -13,6 +13,8 @@ public final class CharacterAnimatable implements GeoAnimatable {
     public int slot() { return slot; }
     @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
         controllers.add(new SyncedLocomotionController());
+        controllers.add(new SyncedCombatController());
+        controllers.add(new SyncedCombatController(true));
     }
     @Override public AnimatableInstanceCache getAnimatableInstanceCache() { return cache; }
 }

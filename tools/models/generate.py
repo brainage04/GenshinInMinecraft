@@ -8,6 +8,7 @@ references only. All coordinates, painted pixels and key poses below are authore
 import argparse
 import json
 import math
+import re
 from pathlib import Path
 import struct
 import zlib
@@ -205,7 +206,8 @@ class Model:
             for sign in (-1, 1):
                 c('weapon', [3.35, 12.5 + sign * 3.9 - 1.8, -.2], [.8, 3.6, 1], 'accent', [sign * 25, 0, 0])
                 c('weapon', [3.4, 12.5 + sign * 6 - .5, 1], [.7, 1.4, 1.3], 'cloth')
-            c('weapon', [3.68, 6.4, 2.2], [.18, 12.2, .18], 'white')
+            self.add('bow_string', 'weapon', [3.8, 12.5, 2.2])
+            c('bow_string', [3.68, 6.4, 2.2], [.18, 12.2, .18], 'white')
         else:
             c('weapon', [2.1, 11.6, -1.8], [3.4, .8, 4.2], 'dark')
             c('weapon', [2.25, 12.35, -1.65], [3.1, .6, 3.9], 'white')
@@ -306,7 +308,196 @@ def animations(model):
         if 'braid' in tracks:
             keys('braid', [(0, [-cape / 2, 0, 3]), (length / 2, [-cape / 2 - 4, 0, -3]), (length, [-cape / 2, 0, 3])])
         result['locomotion.' + name] = {'loop': loop, 'animation_length': length / 60, 'bones': tracks}
-    return {'format_version': '1.8.0', 'animations': result}
+    result.update(combat_animations(model))
+    return {'format_version': '1.8.0', 'animations': result, 'genshin_field_events': field_events(model.name)}
+
+
+def field_events(name):
+    # Independent impacts may occur AFTER cast recovery; do not lengthen the player's motion.
+    anchors = {'amber': ('AmberKit', ('ADAPTED_PUPPET_LANDING_FRAME',)),
+               'lisa': ('LisaKit', ('TAP_FIRST_IMPACT_FRAME', 'ADAPTED_ROSE_FORMATION_FRAME', 'ROSE_FIRST_DISCHARGE_FRAME'))}
+    if name not in anchors:
+        return {}
+    cls, constants = anchors[name]
+    source = (ROOT / f'common/src/main/java/io/github/brainage04/genshininminecraft/rules/kit/{cls}.java').read_text()
+    result = {}
+    for constant in constants:
+        match = re.search(r'\b' + constant + r'\s*=\s*(\d+)\s*;', source)
+        assert match, f'Missing independent field anchor {constant}'
+        result[constant] = int(match[1]) / 60
+    return result
+
+
+def combat_timings(name):
+    """Read the small Java descriptors, not a second copy of the kits' frame tables."""
+    java = ROOT / 'common/src/main/java/io/github/brainage04/genshininminecraft/rules'
+    classes = ('TravelerAnemoKit', 'AmberKit', 'KaeyaKit', 'LisaKit')
+    slot = NAMES.index(name)
+    sources = {cls: (java / f'kit/{cls}.java').read_text() for cls in classes}
+    def scalar(value):
+        if re.fullmatch(r'-?\d+', value):
+            return int(value)
+        cls, constant = value.split('.')
+        match = re.search(r'\b' + constant + r'\s*=\s*(\d+)\s*;', sources[cls])
+        assert match, f'Expected numeric kit anchor {value}'
+        return int(match[1])
+    def array(field):
+        match = re.search(r'\b' + field + r'\s*=\s*\{([\d, ]+)\}', sources[classes[slot]])
+        assert match, f'Missing normal table {field}'
+        return [int(value) for value in match[1].split(',')]
+    hits = array(('NORMAL_HIT_FRAMES', 'RELEASE_FRAMES', 'HIT_FRAMES', 'HIT_FRAMES')[slot])
+    recoveries = array('NORMAL_RECOVERY_FRAMES' if slot == 0 else 'RECOVERY_FRAMES')
+    result = {f'n{i + 1}': (hit, -1, recovery, False) for i, (hit, recovery) in enumerate(zip(hits, recoveries))}
+    descriptor = (java / 'CombatAnimations.java').read_text()
+    for match in re.finditer(r'put\((\d), Action\.(\w+), ([\w.-]+), ([\w.-]+), ([\w.-]+), (true|false)\);', descriptor):
+        if int(match[1]) == slot:
+            result[match[2].lower()] = (scalar(match[3]), scalar(match[4]), scalar(match[5]), match[6] == 'true')
+    # Authored, not researched, universal additive recoil and final fallen pose.
+    result['hurt'] = (3, -1, 18, False)
+    result['fallen'] = (30, -1, 60, False)
+    return result
+
+
+def combat_animations(model):
+    result = {}
+    upper = ('torso', 'head', 'hair', 'accessory', 'right_arm', 'right_forearm', 'right_hand',
+             'left_arm', 'left_forearm', 'left_hand', 'weapon', 'cape')
+    upper += tuple(b['name'] for b in model.bones if b['name'] in ('braid', 'bow_string'))
+    for action, (strike, second, length, loop) in combat_timings(model.name).items():
+        tracks = {bone: {'rotation': [0, 0, 0], 'position': [0, 0, 0], 'scale': [1, 1, 1]} for bone in upper}
+        def keys(bone, values, channel='rotation'):
+            assert all(0 <= frame <= length and all(math.isfinite(x) for x in value) for frame, value in values)
+            assert all(values[i][0] < values[i + 1][0] for i in range(len(values) - 1)), (action, bone, values)
+            tracks.setdefault(bone, {})[channel] = {str(frame / 60): value for frame, value in values}
+        def gesture(bone, wind, hit, rest=(0, 0, 0)):
+            if strike == 0:
+                values = [(0, hit), (length, list(rest))]
+            else:
+                values = [(0, list(rest)), (max(1, strike * .65), wind), (strike, hit)]
+                if strike < length:
+                    values.append((length, list(rest)))
+            keys(bone, values)
+        sword = model.name in ('aether', 'kaeya')
+        if action.startswith('n'):
+            n = int(action[1:]) - 1
+            if sword:
+                # Cross cut, reverse cut, rising cut, overhead chop, forward thrust: not one reused swing.
+                winds = [(-45, -55, -65), (-55, 65, 60), (25, -25, -30), (-165, 0, 18), (-50, -20, 30)]
+                hits = [(-70, 55, 55), (-60, -55, -50), (-135, 15, 30), (-65, 0, -18), (-90, 0, -5)]
+                offset = 10 if model.name == 'kaeya' else 0
+                gesture('right_arm', list(winds[n]), [hits[n][0] - offset, hits[n][1], hits[n][2]])
+                gesture('right_forearm', [-55, 0, 0], [-12 if n != 4 else -5, 0, 0])
+                gesture('torso', [-5, (-1 if n % 2 else 1) * -35, 8], [10, (-1 if n % 2 else 1) * 30, -8])
+                gesture('left_arm', [-25, 0, -35], [15, 0, -25])
+                gesture('weapon', [0, 0, -15], [0, 0, 20 if n < 4 else 0])
+            elif model.name == 'amber':
+                gesture('torso', [0, -35 + n * 4, 0], [4, -30 + n * 4, -3])
+                gesture('left_arm', [-85, 0, -15 - n * 2], [-85, 0, -15 - n * 2])
+                gesture('right_arm', [-80, -25, 35], [-65 + n * 3, -35, 55])
+                gesture('right_forearm', [-95, 0, 0], [-45, 0, 0])
+                gesture('weapon', [85, 0, 0], [85, 0, 0])
+                keys('bow_string', [(0, [0, 0, 0]), (strike * .65, [0, 0, 2.2]), (strike, [0, 0, 0]), (length, [0, 0, 0])], 'position')
+            else:
+                gesture('right_arm', [-35 - n * 22, -25 + n * 15, 30], [-85 - n * 15, 25 - n * 15, 15 + n * 12])
+                gesture('right_forearm', [-65, 0, 0], [-8, 0, 0])
+                gesture('left_arm', [-45, 0, -20], [-50, 0, -25])
+                gesture('weapon', [-25, 0, -15], [-35, 0, -20])
+                gesture('torso', [-4, -20 + n * 12, 5], [4, 15 - n * 10, -5])
+        elif action == 'charged':
+            if sword:
+                keys('torso', [(0, [0, -60, 0]), (strike, [10, 110, -8]),
+                               (second if second > strike else strike + 6, [5, 300, 8]), (length, [0, 360, 0])])
+                gesture('right_arm', [-50, -45, -70], [-85, 30, 80])
+                gesture('right_forearm', [-40, 0, 0], [-10, 0, 0])
+                gesture('left_arm', [-30, 0, -40], [20, 0, -60])
+                if second > strike:
+                    keys('right_arm', [(0, [-40, -25, -45]), (strike * .65, [-50, -45, -70]),
+                                       (strike, [-85, 30, 80]), (second, [-95, -40, -70]), (length, [0, 0, 6])])
+            else:
+                gesture('right_arm', [-165, 0, 35], [-90, 0, 15])
+                gesture('left_arm', [-75, 0, -35], [-70, 0, -55])
+                gesture('weapon', [-45, 0, -15], [-30, 0, -20])
+                gesture('torso', [-12, -15, 0], [15, 20, 0])
+        elif action in ('aim_hold', 'aim_release'):
+            draw = [(0, 0), (9, .5), (15, .85), (length, 1)] if action == 'aim_hold' else [(0, 1), (length, 0)]
+            keys('left_arm', [(frame, [-85 * amount, 0, -18 * amount]) for frame, amount in draw])
+            keys('right_arm', [(frame, [-80 * amount, -30 * amount, 48 * amount]) for frame, amount in draw])
+            keys('right_forearm', [(frame, [-100 * amount, 0, 0]) for frame, amount in draw])
+            keys('torso', [(frame, [0, -32 * amount, 0]) for frame, amount in draw])
+            keys('weapon', [(frame, [85 * amount, 0, 0]) for frame, amount in draw])
+            keys('bow_string', [(frame, [0, 0, 2.8 * amount]) for frame, amount in draw], 'position')
+            if action == 'aim_release':
+                keys('bow_string', [(0, [0, 0, 0]), (2, [0, 0, -.5]), (length, [0, 0, 0])], 'position')
+        elif action in ('skill_start', 'skill_hold'):
+            target = {'left_arm': [-95, 0, -25], 'right_arm': [-75, 0, 25],
+                      'left_forearm': [-20, 0, 0], 'right_forearm': [-30, 0, 0], 'torso': [8, 0, 0]}
+            if model.name == 'lisa':
+                target |= {'left_arm': [-55, 0, -25], 'right_arm': [-140, 0, 35],
+                           'weapon': [-35, 0, -20], 'torso': [-8, 0, 0]}
+            for bone, pose in target.items():
+                keys(bone, [(0, pose if loop else [0, 0, 0]), (length / 2, [pose[0] - 5, pose[1], pose[2]]), (length, pose)])
+        elif action in ('skill_tap', 'skill_release'):
+            if model.name == 'amber':
+                gesture('right_arm', [-145, -20, 20], [-90, 0, 10])
+                gesture('right_forearm', [-65, 0, 0], [-5, 0, 0])
+                gesture('left_arm', [15, 0, -25], [20, 0, -30])
+                gesture('torso', [-12, -30, 0], [16, 20, 0])
+            elif model.name == 'kaeya':
+                gesture('left_arm', [-45, -25, -30], [-90, 0, -12])
+                gesture('left_forearm', [-65, 0, 0], [-5, 0, 0])
+                gesture('right_arm', [-60, -20, 35], [-95, 0, 10])
+                gesture('torso', [-8, -25, 0], [12, 20, 0])
+            else:
+                gesture('right_arm', [-130, 0, 30], [-95, 0, 12])
+                gesture('right_forearm', [-45, 0, 0], [-5, 0, 0])
+                gesture('left_arm', [-55, 0, -25], [-85 if model.name == 'aether' else -55, 0, -20])
+                gesture('torso', [-8, -15, 0], [14, 15, 0])
+                if model.name == 'lisa':
+                    gesture('weapon', [-35, 0, -20], [-25, 0, -20])
+        elif action == 'burst':
+            if model.name == 'amber':
+                gesture('left_arm', [-145, 0, -20], [-160, 0, -15])
+                gesture('right_arm', [-130, -30, 40], [-140, -25, 55])
+                gesture('right_forearm', [-100, 0, 0], [-25, 0, 0])
+                gesture('weapon', [85, 0, 0], [85, 0, 0])
+                gesture('head', [-25, 0, 0], [-35, 0, 0])
+                keys('bow_string', [(0, [0, 0, 0]), (strike * .65, [0, 0, 2.8]), (strike, [0, 0, 0]), (length, [0, 0, 0])], 'position')
+            elif model.name == 'kaeya':
+                gesture('right_arm', [-65, -30, 20], [-165, 0, 15])
+                gesture('left_arm', [-35, 0, -20], [-85, 0, -55])
+                gesture('weapon', [0, 0, -30], [0, 0, 0])
+                gesture('torso', [-8, -25, 0], [-5, 20, 0])
+            elif model.name == 'lisa':
+                gesture('left_arm', [-60, 0, -25], [-95, 0, -50])
+                gesture('right_arm', [-150, -20, 25], [-165, 15, 35])
+                gesture('weapon', [-35, 0, -20], [-60, 0, -25])
+                gesture('torso', [-12, -25, 0], [-5, 20, 0])
+            else:
+                gesture('left_arm', [-145, -20, -35], [-95, 0, -15])
+                gesture('right_arm', [-130, 20, 35], [-100, 0, 20])
+                gesture('torso', [-15, -35, 0], [15, 35, 0])
+        elif action == 'hurt':
+            # Additive controller: zero is a neutral delta, not a competing full-body pose.
+            tracks = {}
+            keys('torso', [(0, [0, 0, 0]), (strike, [-12, 0, 8]), (length, [0, 0, 0])])
+            keys('head', [(0, [0, 0, 0]), (strike, [-8, 0, -6]), (length, [0, 0, 0])])
+        elif action == 'fallen':
+            tracks = {bone['name']: {'rotation': [0, 0, 0], 'position': [0, 0, 0], 'scale': [1, 1, 1]} for bone in model.bones}
+            keys('root', [(0, [0, 0, 0]), (strike, [0, 0, 80]), (length, [0, 0, 90])])
+            keys('root', [(0, [0, 0, 0]), (strike, [0, 1, 0]), (length, [0, 1, 0])], 'position')
+            keys('right_arm', [(0, [0, 0, 6]), (strike, [-30, 0, 25]), (length, [-30, 0, 25])])
+            keys('left_arm', [(0, [0, 0, -6]), (strike, [-20, 0, -20]), (length, [-20, 0, -20])])
+            for side in ('left', 'right'):
+                tracks['glider_' + side]['scale'] = [.001, .001, .001]
+        # Strike/release anchors are real bone keys and inert audit labels, never sound/gameplay callbacks.
+        markers = {}
+        if strike >= 0:
+            markers[str(strike / 60)] = ['strike']
+        if second >= 0:
+            markers.setdefault(str(second / 60), []).append('strike.second')
+        result['combat.' + action] = {'loop': loop, 'animation_length': length / 60, 'bones': tracks,
+                                     'genshin_markers': {time: ' '.join(labels) for time, labels in markers.items()}}
+    return result
 
 
 def json_bytes(data):
@@ -324,10 +515,10 @@ def outputs():
     credits = ROOT / 'CREDITS.md'
     start, end = '<!-- character-assets:start -->', '<!-- character-assets:end -->'
     text = credits.read_text()
-    block = '\n'.join([start, '', '## Original generated character assets (20a)', '',
+    block = '\n'.join([start, '', '## Original generated character assets (20a/20b)', '',
         '`tools/models/generate.py` authors the Aether, Amber, Kaeya and Lisa cuboid geometry,',
         '128×128 per-face shaded/pixel-painted textures, articulated weapons and original wind gliders,',
-        'and all locomotion key poses. Authored for this repository, 2026-10-08; no extracted game assets,',
+        'and all locomotion/combat key poses. Authored for this repository, 2026-10-08; no extracted game assets,',
         'downloaded fan meshes, traced textures, YiFang content or copied sound files. Outputs under',
         '`assets/genshininminecraft/geckolib/{models,animations}/character` and',
         '`textures/entity/character` are reproducible with Python 3 (stdlib only); `--check` compares bytes.',
@@ -337,7 +528,7 @@ def outputs():
         '- [Kaeya](https://genshin-impact.fandom.com/wiki/Kaeya)',
         '- [Lisa](https://genshin-impact.fandom.com/wiki/Lisa)',
         '', 'These are placeholder-quality original adaptations, not faithful source-game meshes/poses.',
-        'All locomotion sounds refer to built-in Minecraft events; no new audio assets.', '', end])
+        'All locomotion/combat sounds refer to built-in Minecraft events; no new audio assets.', '', end])
     if start in text:
         before, remaining = text.split(start, 1)
         _, after = remaining.split(end, 1)

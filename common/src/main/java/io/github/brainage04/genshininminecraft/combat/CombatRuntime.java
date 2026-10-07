@@ -222,6 +222,7 @@ public final class CombatRuntime {
         kit.setHp(Math.max(0, kit.hp() - amount));
         if (source.getEntity() instanceof LivingEntity enemy) player.setLastHurtByMob(enemy);
         player.getCombatTracker().recordDamage(source, (float) (amount * player.getMaxHealth() / kit.maxHp()));
+        kit.visual().hurt(frame);
         if (kit.hp() == 0) state.forceSwitch(frame);
         state.mirrorHealth();
         player.level().broadcastDamageEvent(player, source);
@@ -364,6 +365,12 @@ public final class CombatRuntime {
         private int displayedOccurrence = -1;
         private int displayedTraversal = -1;
         private long lastVisualFrame = -1;
+        private int displayedActionOccurrence = -1;
+        private CombatVisual.Action displayedAction = CombatVisual.Action.NONE;
+        private int displayedHurtOccurrence = -1;
+        private long lastActionSoundFrame = -1;
+        private CharacterKit lastActionSoundKit;
+        private Kind lastActionSoundKind;
 
         private Session(ServerPlayer player) {
             this.player = player;
@@ -433,6 +440,11 @@ public final class CombatRuntime {
                 roseLevel = (ServerLevel) player.level();
                 roseOrigin = player.position();
             }
+            if (accepted && intent == Intent.SKILL_PRESS)
+                motionSound(kit() instanceof AmberKit ? SoundEvents.SNOWBALL_THROW
+                        : kit() instanceof KaeyaKit ? SoundEvents.GLASS_BREAK : SoundEvents.EVOKER_CAST_SPELL, .6F, 1.1F);
+            if (accepted && intent == Intent.BURST_PRESS)
+                motionSound(SoundEvents.ILLUSIONER_CAST_SPELL, .85F, kit() instanceof LisaKit ? .85F : 1F);
             sync();
             return accepted;
         }
@@ -681,6 +693,8 @@ public final class CombatRuntime {
             player.getAttribute(Attributes.MOVEMENT_SPEED).removeModifier(AIM_SPEED_ID);
         }
         private void reconcileHealth() {
+            if (player.getHealth() < mirroredHealth)
+                kit().visual().hurt(Math.max(party.frame(), Frames.atServerTick(player.level().getServer().getTickCount())));
             if (player.getHealth() != mirroredHealth) kit().setHp(kit().maxHp() * player.getHealth() / player.getMaxHealth());
             if (kit().hp() == 0) forceSwitch(Math.max(party.frame(),
                     Frames.atServerTick(player.level().getServer().getTickCount())));
@@ -691,16 +705,24 @@ public final class CombatRuntime {
             player.setHealth(mirroredHealth);
         }
         private boolean forceSwitch(long frame) {
+            if (kit().visual().action(frame) == CombatVisual.Action.FALLEN) return false;
             endTraversal(frame);
             boolean switched = party.forceSwitch(frame);
             if (switched) switchEffect();
-            else clearFieldObjects();
+            else {
+                clearFieldObjects();
+                if (kit().visual().action(frame) != CombatVisual.Action.FALLEN)
+                    kit().visual().hold(CombatVisual.Action.FALLEN, frame);
+            }
             return switched;
         }
         public PlayerCharacterPayload visualSnapshot(int slot) {
             long frame = Math.max(party.frame(), Frames.atServerTick(player.level().getServer().getTickCount()));
             return new PlayerCharacterPayload(player.getId(), player.getUUID(), slot, locomotion.phase(),
-                    locomotion.occurrence(), locomotion.startFrame(), traversalFlags(frame), frame, player.level().getGameTime());
+                    locomotion.occurrence(), locomotion.startFrame(), traversalFlags(frame), frame, player.level().getGameTime(),
+                    kit().visual().action(frame), kit().visual().occurrence(), kit().visual().startFrame(),
+                    kit().visual().strikeFrame(), kit().visual().recoveryFrames(),
+                    kit().visual().hurtOccurrence(), kit().visual().hurtStartFrame());
         }
         private void broadcastCharacter(int slot) {
             var packet = new ClientboundCustomPayloadPacket(visualSnapshot(slot));
@@ -710,6 +732,9 @@ public final class CombatRuntime {
             displayedLevel = player.level();
             displayedOccurrence = locomotion.occurrence();
             displayedTraversal = traversalFlags(party.frame());
+            displayedActionOccurrence = kit().visual().occurrence();
+            displayedAction = kit().visual().action(party.frame());
+            displayedHurtOccurrence = kit().visual().hurtOccurrence();
             lastVisualFrame = party.frame();
         }
         private void switchEffect() {
@@ -724,6 +749,9 @@ public final class CombatRuntime {
         private void sync() {
             if (displayedSlot != party.activeSlot() || displayedLevel != player.level()
                     || displayedOccurrence != locomotion.occurrence() || displayedTraversal != traversalFlags(party.frame())
+                    || displayedActionOccurrence != kit().visual().occurrence()
+                    || displayedAction != kit().visual().action(party.frame())
+                    || displayedHurtOccurrence != kit().visual().hurtOccurrence()
                     || party.frame() - lastVisualFrame >= 60) broadcastCharacter(party.activeSlot());
             if (player.connection == null || !player.connection.isAcceptingMessages()) return;
             if (lastSyncLevel != player.level()) {
@@ -775,6 +803,7 @@ public final class CombatRuntime {
         }
         private void hit(CharacterKit kit, Hit hit) {
             if (!valid()) return;
+            actionSound(kit, hit);
             ServerLevel level = (ServerLevel) player.level();
             if (hit.kind() == Kind.BUNNY_LAND || hit.kind() == Kind.BUNNY_EXPLODE) {
                 if (level == puppetLevel) puppet((AmberKit) kit, hit);
@@ -853,6 +882,21 @@ public final class CombatRuntime {
                 }
             }
             if (enemyHit && hit.particles() > 0) party.collect(Energy.Item.PARTICLE, hit.element(), hit.particles());
+        }
+        private void actionSound(CharacterKit kit, Hit hit) {
+            if (lastActionSoundFrame == hit.frame() && lastActionSoundKit == kit && lastActionSoundKind == hit.kind()) return;
+            SoundEvent sound = switch (hit.kind()) {
+                case NORMAL, CHARGED -> kit.weapon() == CharacterKit.Weapon.SWORD ? SoundEvents.PLAYER_ATTACK_SWEEP
+                        : kit.weapon() == CharacterKit.Weapon.BOW ? SoundEvents.ARROW_SHOOT : SoundEvents.AMETHYST_BLOCK_CHIME;
+                case STORM -> SoundEvents.BREEZE_WIND_CHARGE_BURST.value();
+                case FROSTGNAW -> SoundEvents.GLASS_BREAK;
+                case VIOLET_ORB -> SoundEvents.AMETHYST_BLOCK_CHIME;
+                case VIOLET_HOLD, ROSE_PLACE -> SoundEvents.EVOKER_CAST_SPELL;
+                default -> null;
+            };
+            if (sound == null) return;
+            lastActionSoundFrame = hit.frame(); lastActionSoundKit = kit; lastActionSoundKind = hit.kind();
+            motionSound(sound, .65F, hit.kind() == Kind.CHARGED ? .9F : 1.1F);
         }
         private LivingEntity nearestEnemy(ServerLevel level, Vec3 center, double radius) {
             LivingEntity nearest = null;

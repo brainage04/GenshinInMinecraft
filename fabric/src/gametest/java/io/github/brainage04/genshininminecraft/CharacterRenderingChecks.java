@@ -11,6 +11,11 @@ import io.github.brainage04.genshininminecraft.client.ManagedCamera;
 import io.github.brainage04.genshininminecraft.client.character.*;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import io.github.brainage04.genshininminecraft.rules.Locomotion;
+import io.github.brainage04.genshininminecraft.rules.CombatVisual;
+import io.github.brainage04.genshininminecraft.rules.CombatAnimations;
+import io.github.brainage04.genshininminecraft.rules.Frames;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit;
+import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
@@ -82,6 +87,7 @@ final class CharacterRenderingChecks {
             context.getInput().pressKey(GLFW.GLFW_KEY_F5);
             context.waitFor(client -> ManagedCamera.decoupled());
         }
+        combat(context, server);
         context.runOnClient(CharacterRenderingChecks::remoteSnapshotFixture);
         var reload = context.computeOnClient(Minecraft::reloadResourcePacks);
         context.waitFor(client -> reload.isDone());
@@ -94,6 +100,107 @@ final class CharacterRenderingChecks {
         context.runOnClient(client -> ManagedCamera.setAngles(0, 0));
         context.waitTicks(20);
     }
+    private static void combat(ClientGameTestContext context, TestDedicatedServerContext server) {
+        int fov = context.computeOnClient(client -> client.options.fov().get());
+        String[] names = {"aether", "amber", "kaeya", "lisa"};
+        try {
+            for (int slot = 0; slot < 4; slot++) {
+                final int selected = slot;
+                server.runCommand("genshin managed off");
+                context.waitFor(client -> !CombatInput.managed());
+                server.runCommand("genshin managed on");
+                context.waitFor(client -> PlayerVisuals.usesCharacter(client.player));
+                server.runOnServer(minecraftServer -> {
+                    var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+                    var session = CombatRuntime.get(minecraftServer).session(player);
+                    if (selected != 0 && !session.intent(CharacterKit.Intent.values()[CharacterKit.Intent.SWITCH_1.ordinal() + selected],
+                            Frames.atServerTick(minecraftServer.getTickCount()))) throw new AssertionError("Capture switch rejected");
+                });
+                context.waitFor(client -> PlayerVisuals.snapshot(client.player.getId()).slot() == selected);
+                context.waitTicks(20);
+                context.runOnClient(client -> {
+                    var avatar = (net.minecraft.client.renderer.entity.state.AvatarRenderState)
+                            client.getEntityRenderDispatcher().getRenderer(client.player).createRenderState(client.player, 0);
+                    ManagedCamera.setAngles(avatar.bodyRot + 150, 10);
+                    client.options.fov().set(55);
+                    client.gui.hud.getChat().clearMessages(true);
+                });
+                context.getInput().pressKey(options -> options.keyToggleGui);
+                context.waitFor(client -> client.gui.hud.isHidden());
+                actionCapture(context, server, selected, CharacterKit.Intent.ATTACK_PRESS, CombatVisual.Action.N1,
+                        "genshin-combat-" + names[slot] + "-n1");
+                actionCapture(context, server, selected, CharacterKit.Intent.SKILL_PRESS, CombatVisual.Action.SKILL_TAP,
+                        "genshin-combat-" + names[slot] + "-skill");
+                actionCapture(context, server, selected, CharacterKit.Intent.BURST_PRESS, CombatVisual.Action.BURST,
+                        "genshin-combat-" + names[slot] + "-burst");
+                context.getInput().pressKey(options -> options.keyToggleGui);
+                context.waitFor(client -> !client.gui.hud.isHidden());
+                server.runCommand("tick unfreeze");
+            }
+        } finally {
+            server.runCommand("tick unfreeze");
+            server.runCommand("tick rate 20");
+            server.runCommand("genshin managed off");
+            context.waitFor(client -> !CombatInput.managed());
+            server.runCommand("genshin managed on");
+            context.waitFor(client -> PlayerVisuals.usesCharacter(client.player) && CombatInput.state().activeSlot() == 0);
+            context.runOnClient(client -> { client.options.fov().set(fov); ManagedCamera.setAngles(0, 0); });
+        }
+    }
+    private static void actionCapture(ClientGameTestContext context, TestDedicatedServerContext server, int slot,
+            CharacterKit.Intent intent, CombatVisual.Action action, String name) {
+        var timing = CombatAnimations.timing(slot, action);
+        // Place the accepted action inside the current 60-fps tick interval so its sourced hitmark
+        // falls exactly on a server tick. No visual packet/pose is invented; the real kit drains it.
+        int offset = (3 - timing.strike() % 3) % 3;
+        long start = server.computeOnServer(minecraftServer -> {
+            var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+            var session = CombatRuntime.get(minecraftServer).session(player);
+            long frame = Frames.atServerTick(minecraftServer.getTickCount()) + offset;
+            if (intent == CharacterKit.Intent.BURST_PRESS) session.kit().grantEnergy(80);
+            if (!session.intent(intent, frame)) throw new AssertionError("Real kit rejected capture action " + action);
+            if (intent == CharacterKit.Intent.ATTACK_PRESS) session.intent(CharacterKit.Intent.ATTACK_RELEASE, frame);
+            if (intent == CharacterKit.Intent.SKILL_PRESS && (slot == 0 || slot == 3))
+                session.intent(CharacterKit.Intent.SKILL_RELEASE, frame);
+            try {
+                var field = CombatRuntime.class.getDeclaredField("timeline");
+                field.setAccessible(true);
+                var timeline = (io.github.brainage04.genshininminecraft.rules.EventTimeline) field.get(CombatRuntime.get(minecraftServer));
+                timeline.schedule(frame + timing.strike(), at -> {
+                    var snapshot = session.visualSnapshot(slot);
+                    if (snapshot.sampleFrame() != at || snapshot.action() != action)
+                        throw new AssertionError("Capture must publish the actual kit at the exact hitmark: " + snapshot);
+                    minecraftServer.tickRateManager().setTickRate(1);
+                    minecraftServer.tickRateManager().setFrozen(true);
+                    player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTimePacket(snapshot.sampleGameTime(), java.util.Map.of()));
+                    player.connection.send(new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(snapshot));
+                });
+            } catch (ReflectiveOperationException ex) { throw new AssertionError("Cannot install test-only timeline observation", ex); }
+            return frame;
+        });
+        long hit = start + timing.strike();
+        context.waitFor(client -> {
+            var snapshot = PlayerVisuals.snapshot(client.player.getId());
+            return snapshot != null && snapshot.action() == action && snapshot.actionStartFrame() == start
+                    && snapshot.sampleFrame() == hit && client.level.getGameTime() == snapshot.sampleGameTime()
+                    && client.level.tickRateManager().isFrozen();
+        });
+        context.runOnClient(client -> {
+            var state = (CharacterAvatarState) client.getEntityRenderDispatcher().getRenderer(client.player).createRenderState(client.player, 0);
+            var input = state.genshin$characterState().input();
+            if (input.action() != action || Math.abs(input.actionSeconds() - timing.strike() / 60.0) > .000001)
+                throw new AssertionError("Actual extraction must be exactly at the sourced hitmark: " + input);
+            var controller = state.genshin$characterState().getGeckolibData(DataTickets.ANIMATION_CONTROLLER_STATES)[1];
+            if (Math.abs(controller.animationPoint().animTime() - input.actionSeconds()) > .000001)
+                throw new AssertionError("Baked action controller must seek the actual hit pose");
+            client.particleEngine.clearParticles(); // Keep this pose evidence readable; field gameplay is untouched.
+        });
+        screenshot(context, name);
+        server.runCommand("tick unfreeze");
+        server.runCommand("tick rate 20");
+        context.waitFor(client -> PlayerVisuals.snapshot(client.player.getId()).action() == CombatVisual.Action.NONE);
+    }
+
     static void dash(ClientGameTestContext context, TestDedicatedServerContext server) {
         // Slow real server ticks only for capture; no injected visual phase or invented movement.
         int fov = context.computeOnClient(client -> client.options.fov().get());
@@ -176,7 +283,14 @@ final class CharacterRenderingChecks {
                  var anim = client.getResourceManager().openAsReader(Identifier.fromNamespaceAndPath("genshininminecraft", "geckolib/animations/" + id.getPath() + ".animation.json"))) {
                 if (Geometry.GSON.fromJson(geo, Geometry.class).bake(id).getBone("weapon").isEmpty()) throw new AssertionError("Geometry parser discarded weapon");
                 var clips = ActorAnimations.GSON.fromJson(anim, ActorAnimations.class).animations();
-                if (clips.size() != Locomotion.Phase.values().length) throw new AssertionError("Incomplete parsed locomotion set");
+                int required = Locomotion.Phase.values().length;
+                for (var action : CombatVisual.Action.values()) {
+                    if (CombatAnimations.timing(slot, action) == null) continue;
+                    required++;
+                    if (model.getBakedAnimation(character, action.clip()) == null)
+                        throw new AssertionError("Missing baked combat clip: " + id + ":" + action.clip());
+                }
+                if (clips.size() != required) throw new AssertionError("Incomplete parsed locomotion/combat set");
             } catch (java.io.IOException ex) { throw new AssertionError("Cannot parse generated GeckoLib assets", ex); }
             var controller = state.getGeckolibData(DataTickets.ANIMATION_CONTROLLER_STATES)[0];
             if (Math.abs(controller.animationPoint().animTime() - .2) > .000001)
@@ -190,10 +304,56 @@ final class CharacterRenderingChecks {
             if (Math.abs(controller.animationPoint().animTime() - .2) > .000001)
                 throw new AssertionError("New occurrence cannot mutate already-extracted controller state");
         }
+        combatSeeking();
     }
+    private static void combatSeeking() {
+        for (int slot = 0; slot < 4; slot++) {
+            var character = new CharacterAnimatable(slot);
+            for (var action : CombatVisual.Action.values()) {
+                var timing = CombatAnimations.timing(slot, action);
+                if (timing == null || action == CombatVisual.Action.HURT) continue;
+                double seconds = Math.min(.15, timing.recovery() / 120.0);
+                var input = combatInput(slot, action, 5, seconds, false);
+                var state = PlayerVisuals.renderer().fillRenderState(character, input,
+                        PlayerVisuals.renderer().createRenderState(character, input), .5F);
+                var captured = state.getGeckolibData(DataTickets.ANIMATION_CONTROLLER_STATES)[1];
+                if (Math.abs(captured.animationPoint().animTime() - seconds) > .000001)
+                    throw new AssertionError("First late combat seek " + slot + ":" + action);
+                var again = PlayerVisuals.renderer().fillRenderState(character, input,
+                        PlayerVisuals.renderer().createRenderState(character, input), .5F);
+                if (Math.abs(again.getGeckolibData(DataTickets.ANIMATION_CONTROLLER_STATES)[1].animationPoint().animTime() - seconds) > .000001)
+                    throw new AssertionError("Duplicate action extraction/pass must not progress time");
+                var next = combatInput(slot, action, 6, .01, true);
+                var arms = PlayerVisuals.renderer().fillRenderState(character, next,
+                        PlayerVisuals.renderer().createRenderState(character, next), .5F);
+                if (Math.abs(arms.getGeckolibData(DataTickets.ANIMATION_CONTROLLER_STATES)[1].animationPoint().animTime() - .01) > .000001)
+                    throw new AssertionError("New occurrence/first-person must seek its own time");
+                if (Math.abs(captured.animationPoint().animTime() - seconds) > .000001)
+                    throw new AssertionError("New occurrence must not mutate an already-extracted action snapshot");
+                // A newly created view simulates culling/re-entry/cache invalidation/late tracking.
+                var fresh = new CharacterAnimatable(slot);
+                var reentry = PlayerVisuals.renderer().fillRenderState(fresh, input,
+                        PlayerVisuals.renderer().createRenderState(fresh, input), .5F);
+                if (Math.abs(reentry.getGeckolibData(DataTickets.ANIMATION_CONTROLLER_STATES)[1].animationPoint().animTime() - seconds) > .000001)
+                    throw new AssertionError("Re-entry cannot restart a committed action");
+                var clear = combatInput(slot, CombatVisual.Action.NONE, 7, 0, false);
+                var cancelled = PlayerVisuals.renderer().fillRenderState(character, clear,
+                        PlayerVisuals.renderer().createRenderState(character, clear), .5F);
+                var remaining = cancelled.getGeckolibData(DataTickets.ANIMATION_CONTROLLER_STATES);
+                if (remaining.length != 1 || Math.abs(remaining[0].animationPoint().animTime() - .1) > .000001)
+                    throw new AssertionError("Cancelled/swapped action must leave only the unchanged locomotion controller");
+            }
+        }
+    }
+    private static CharacterRenderInput combatInput(int slot, CombatVisual.Action action, int occurrence, double seconds, boolean arms) {
+        return new CharacterRenderInput(12000L + slot, slot, Locomotion.Phase.WALK, 1, .1, 100,
+                0, 0, 0, 1, 0xf000f0, 0, false, false, 0, 0, arms, action, occurrence, seconds, 0, 1);
+    }
+
     private static CharacterRenderInput input(int slot, Locomotion.Phase phase, int occurrence, double seconds) {
         return new CharacterRenderInput(9999L + slot, slot, phase, occurrence, seconds, 100,
-                0, 0, 0, 1, 0xf000f0, 0, false, false, 0, 0, false);
+                0, 0, 0, 1, 0xf000f0, 0, false, false, 0, 0, false,
+                CombatVisual.Action.NONE, 0, 0, 0, 1);
     }
     private static void remoteSnapshotFixture(Minecraft client) {
         // A real RemotePlayer/render-state path with a synthetic public packet; not a two-client network claim.
@@ -204,13 +364,13 @@ final class CharacterRenderingChecks {
         try {
             for (int slot = 0; slot < 4; slot++) {
                 CombatFeedback.accept(new PlayerCharacterPayload(remote.getId(), remote.getUUID(), slot, Locomotion.Phase.IDLE,
-                        slot + 1, 0, 0, 120, client.level.getGameTime()));
+                        slot + 1, 0, 0, 120, client.level.getGameTime(), CombatVisual.Action.NONE, 0, 0, -1, 0, 0, -60));
                 var state = client.getEntityRenderDispatcher().getRenderer(remote).createRenderState(remote, 0);
                 var geo = ((CharacterAvatarState) state).genshin$characterState();
                 if (geo == null || geo.input().slot() != slot) throw new AssertionError("Remote accepted switch must use its own character cache");
             }
             CombatFeedback.accept(new PlayerCharacterPayload(remote.getId(), new UUID(99, 99), 0, Locomotion.Phase.IDLE,
-                    1, 0, 0, 120, client.level.getGameTime()));
+                    1, 0, 0, 120, client.level.getGameTime(), CombatVisual.Action.NONE, 0, 0, -1, 0, 0, -60));
             if (PlayerVisuals.usesCharacter(remote)) throw new AssertionError("Reused entity ID must never inherit another UUID's visual");
         } finally { client.level.removeEntity(remote.getId(), Entity.RemovalReason.DISCARDED); }
     }
