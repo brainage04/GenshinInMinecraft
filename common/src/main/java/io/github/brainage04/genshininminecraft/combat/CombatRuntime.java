@@ -200,6 +200,11 @@ public final class CombatRuntime {
         var source = level.damageSources().mobAttack(enemy);
         if (player.isInvulnerableTo(level, source)) return false;
         applyCharacterLoss(state, amount, source, frame);
+        // Incoming combat damage uses the attack's element too, not a red damage-taken override.
+        var number = new ClientboundCustomPayloadPacket(new DamageNumberPayload(player.getId(),
+                (float) amount, Element.PHYSICAL, null, false));
+        level.getChunkSource().chunkMap.sendToTrackingPlayers(player, number);
+        if (player.connection != null && player.connection.isAcceptingMessages()) player.connection.send(number);
         return true;
     }
     /** Environmental max-HP loss bypasses DEF/RES/shields and dash protection. */

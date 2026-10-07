@@ -36,8 +36,4 @@ public final class HudFormatting {
         return hp <= 0 || !active && (remainingFrames > 0 || blocked);
     }
 
-    /** Three billboard-pixel lanes separate a talent hit, reaction and absorbed hit. */
-    public static int damageLane(int sequence) {
-        return (Math.floorMod(sequence, 3) - 1) * 32;
-    }
 }

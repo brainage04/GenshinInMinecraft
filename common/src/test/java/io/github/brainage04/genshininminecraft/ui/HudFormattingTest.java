@@ -55,15 +55,6 @@ class HudFormattingTest {
         assertTrue(HudFormatting.partyUnavailable(true, 0, 0, false));
     }
 
-    @Test void simultaneousDamageUsesDistinctBillboardLanesAndWrapsSafely() {
-        assertEquals(-32, HudFormatting.damageLane(0));
-        assertEquals(0, HudFormatting.damageLane(1));
-        assertEquals(32, HudFormatting.damageLane(2));
-        assertEquals(-32, HudFormatting.damageLane(3));
-        assertEquals(32, HudFormatting.damageLane(-1));
-        assertEquals(0, HudFormatting.damageLane(Integer.MIN_VALUE));
-    }
-
     @Test void resourceFractionClampsEmptyFullOverfullAndInvalidState() {
         assertEquals(0, HudFormatting.fraction(0, 60));
         assertEquals(.5, HudFormatting.fraction(30, 60));

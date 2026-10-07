@@ -1,4 +1,4 @@
-package io.github.brainage04.genshininminecraft.client;
+package io.github.brainage04.genshininminecraft.ui;
 
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Reaction;
@@ -9,11 +9,23 @@ public final class ElementPalette {
     public static int color(Element element) {
         return switch (element) {
             case ANEMO -> 0xff72e2c3;
-            case PYRO -> 0xffff905b;
+            case PYRO -> 0xffff784c;
             case CRYO -> 0xffa2e8f5;
             case ELECTRO -> 0xffcf9bff;
             case HYDRO -> 0xff69baff;
-            case PHYSICAL -> 0xfff5f2e9;
+            case PHYSICAL -> 0xffffffff;
+        };
+    }
+    /** Reaction labels have their own colour, not necessarily the element of their damage. */
+    public static int reactionColor(Reaction.Type reaction) {
+        return switch (reaction) {
+            case SWIRL -> color(Element.ANEMO);
+            case MELT, VAPORIZE -> 0xffffcb73;
+            case OVERLOADED -> 0xffff6372;
+            case SUPERCONDUCT -> 0xffb5a4ff;
+            case ELECTRO_CHARGED -> color(Element.ELECTRO);
+            case FROZEN -> color(Element.CRYO);
+            case SHATTER -> color(Element.PHYSICAL);
         };
     }
     public static String symbol(Element element) {

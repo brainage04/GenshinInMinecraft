@@ -80,6 +80,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             CharacterRenderingChecks.dash(context, server);
             EnemyRenderingChecks.enemies(context, server);
             ProjectileRenderingChecks.projectiles(context, server);
+            FeedbackRenderingChecks.feedback(context, server);
             spectatorExitResendsCameraYaw(context, server);
             context.runOnClient(client -> {
                 ManagedCamera.setAngles(90, 15);

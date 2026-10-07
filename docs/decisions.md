@@ -513,3 +513,36 @@ Additional inspected captures: `genshin-projectile-amber-normal.png`, `genshin-p
 
 No commit, push, git identity changes or owner-desktop/audio access.
 
+## 2026-10-08 — animated combat text, readable unavailable HP and projectile polish (21 / 26)
+
+Public research and evidence limits are in [ui.md](../spec/mechanics/ui.md#damage-numbers-and-projectile-readability-items21--26-researched-2026-10-08). Game8 identifies larger numbers as crits; no consulted description establishes a separate crit icon/outline, so use1.4× original bold text without an icon. Historical KQM-linked incoming bubble evidence shows blue Hydro damage on the character, **not red**: current Physical hilichurl hits now send white damage numbers to the victim and tracking peers; arbitrary HP reconciliation is not a combat-number source.
+
+Move the existing Minecraft-independent `ElementPalette` into `ui/`, sharing it with the HUD/feedback/projectile renderers and pure tests. Keep amount colour separate from reaction-label colour; amplified Melt/Vaporize carry a gold name above the real amplified number. Original150ms pop overshoot,22-pixel eased rise, hashed cosmetic drift and delayed1.1s fade are explicit adaptations, not measured Genshin timings. Target-local occupied48-pixel slots replace the global wrapping three-lane counter. Distance-proportional billboard scale keeps text angular size readable; paired number/label offsets are applied before emphasis, and world-clock animation freezes deterministically. Cache formatted text widths when accepting the actual packet, not each render.
+
+Living party HP is green and drawn after the unavailable sweep, so dim names/energy never erase the bar's fill. Fallen HP remains empty. No cooldown, switching, crit calculation or damage-rule change.
+
+Increase original arrow/bolt/orb/Cryo geometry and add element-coloured trails, retaining all existing authoritative endpoints/lifetimes/cancellation. Rose's white appearance was caused by pale nested cores and **additive lightning blending**; use vanilla's full-bright position-colour alpha pipeline (`debugQuads`) with purple core/halo instead. No custom pipeline/texture assets or copied game art. Amber remains the documented hitscan plus cosmetic-flight adaptation; Slingshot and damage goldens stay unchanged.
+
+Seven pure animation/colour/stacking tests and connected Fabric captures/assertions cover real crit/Swirl/amplified Melt, incoming victim delivery, finite switch grayout with half-HP pixels, and Rose's actual target-side purple pixels. Existing twelve projectile scenes still run with Minimal particles at ordinary70FOV/orbit distance.
+
+
+### Acceptance evidence
+
+Final **`./gradlew --no-daemon build runAllGameTests` passed in8m05s**,49 actionable tasks (10 executed/39 up-to-date). All **72 required server GameTests** passed in each Fabric/NeoForge development and production run; the complete connected Fabric production client scenario passed, including both screenshot pixel regressions. `DamageNumberAnimationTest`: **7 tests,0 failures/errors/skipped**; existing damage/Slingshot/crit goldens remain unchanged.
+
+During implementation the new exact-zero drift boundary caught signed−0.0 (now normalized at age≤0), and NeoForge's offline fixture exposed sending to a non-accepting connection (now uses the existing `isAcceptingMessages` guard). The crit capture initially compared float1.4 to double1.4 and could sample packet receipt at the freeze tick: it now uses the same float emphasis type and advances three **real** frozen-step world ticks after packet arrival, without relaxing size/colour/expiry assertions or injecting a visual packet.
+
+Opened and inspected the required evidence: white bold **47** crit; gold **Melt** above pale-blue **398** amplified damage; dim grey party names/0.9s cooldown with bright green half-full Traveler HP; a larger orange Pyro arrow/trail mid-flight; and a clearly purple, thicker Rose discharge rather than white. The additional Swirl capture shows a teal label plus distinct teal talent number, but its lower reaction amount is occluded by the rear-view character; **Melt is the unobstructed required paired label-and-number screenshot**. Number/label pairing and separate Swirl damage colour are asserted from actual render state. The brighter violet orb was also opened and inspected. No subjective audio or pinned7.1 pixel equivalence is claimed.
+
+All screenshot paths are git-ignored:
+
+| Required evidence | Path |
+| --- | --- |
+| Critical damage number | `fabric/build/run/clientGameTest/screenshots/genshin-damage-crit.png` |
+| Reaction label with amplified number | `fabric/build/run/clientGameTest/screenshots/genshin-damage-melt.png` |
+| Grey unavailable rows with readable half HP | `fabric/build/run/clientGameTest/screenshots/genshin-switch-cooldown-readable-hp.png` |
+| Amber charged arrow mid-flight | `fabric/build/run/clientGameTest/screenshots/genshin-projectile-amber-charged-mid-flight.png` |
+| Lightning Rose purple bolt mid-discharge | `fabric/build/run/clientGameTest/screenshots/genshin-projectile-lightning-rose-bolt.png` |
+
+Additional inspected captures: `fabric/build/run/clientGameTest/screenshots/genshin-damage-swirl.png` and `fabric/build/run/clientGameTest/screenshots/genshin-projectile-lisa-violet-arc.png`. Items21 and26 are checked only after this successful gate. No commit, push, identity override, copied game assets or owner-session access.
+

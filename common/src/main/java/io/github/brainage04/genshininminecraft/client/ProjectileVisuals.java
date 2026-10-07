@@ -6,6 +6,8 @@ import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
 import io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload;
 import io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload.Kind;
 import io.github.brainage04.genshininminecraft.rules.kit.KaeyaKit;
+import io.github.brainage04.genshininminecraft.rules.Element;
+import io.github.brainage04.genshininminecraft.ui.ElementPalette;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -68,7 +70,9 @@ public final class ProjectileVisuals {
         for (var state : extracted) {
             pose.pushPose();
             pose.translate(-camera.x, -camera.y, -camera.z);
-            collector.submitCustomGeometry(pose, RenderTypes.lightning(), (snapshot, vertices) -> draw(snapshot, vertices, state));
+            // Unlit position/colour alpha blending preserves purple; additive lightning plus
+            // overlapping pale cores saturated Rose bolts to white at ordinary camera distance.
+            collector.submitCustomGeometry(pose, RenderTypes.debugQuads(), (snapshot, vertices) -> draw(snapshot, vertices, state));
             pose.popPose();
         }
     }
@@ -78,38 +82,42 @@ public final class ProjectileVisuals {
                 Vec3 direction = state.destination().subtract(state.origin()).normalize();
                 Vec3 tip = state.origin().lerp(state.destination(), state.progress());
                 boolean pyro = state.kind() != Kind.ARROW;
-                Vec3 tail = tip.subtract(direction.scale(.85));
-                beam(pose, vertices, tail, tip, .035, pyro ? 0xffffce55 : 0xffe5cda0);
+                Vec3 tail = tip.subtract(direction.scale(1.2));
+                int color = ElementPalette.color(pyro ? Element.PYRO : Element.PHYSICAL);
+                beam(pose, vertices, tip.subtract(direction.scale(2.2)), tail, .15, (color & 0xffffff) | 0x90000000);
+                beam(pose, vertices, tail, tip, .09, color);
                 // Broad original diamond head and two crossed feather fins, not a particle-only tracer.
-                diamond(pose, vertices, tip.subtract(direction.scale(.12)), tip.add(direction.scale(.18)), .12,
-                        pyro ? 0xfffff2b0 : 0xfff2f5ff);
-                diamond(pose, vertices, tail, tail.add(direction.scale(.24)), .10, pyro ? 0xffff9435 : 0xffe8e1c5);
+                diamond(pose, vertices, tip.subtract(direction.scale(.18)), tip.add(direction.scale(.25)), .22, color);
+                diamond(pose, vertices, tail, tail.add(direction.scale(.35)), .18, color);
                 if (pyro) {
-                    beam(pose, vertices, tip.subtract(direction.scale(1.6)), tail, .08, 0x90ff6b22);
-                    diamond(pose, vertices, tip.subtract(direction.scale(.35)), tip.add(direction.scale(.2)), .18, 0x70ff8c25);
+                    beam(pose, vertices, tip.subtract(direction.scale(2.2)), tail, .22, 0x90ff6b22);
+                    diamond(pose, vertices, tip.subtract(direction.scale(.4)), tip.add(direction.scale(.25)), .28, 0x70ff8c25);
                     for (int flame = 0; flame < 3; flame++) {
                         Vec3 ember = tip.subtract(direction.scale(.65 + flame * .3));
                         double lick = .18 + .07 * Math.sin(state.elapsed() * .9 + flame * 2);
-                        diamond(pose, vertices, ember, ember.add(0, lick, 0), .08, 0xafffa52c);
+                        diamond(pose, vertices, ember, ember.add(0, lick, 0), .13, 0xafffa52c);
                     }
                 }
             }
             case VIOLET_ORB -> {
                 Vec3 center = state.origin().lerp(state.destination(), state.progress());
-                diamond(pose, vertices, center.add(0, -.25, 0), center.add(0, .25, 0), .25, 0xffead6ff);
-                spiral(pose, vertices, center.add(0, -.3, 0), .37, .6, state.elapsed() * .22, 0xb0b95aff);
-                beam(pose, vertices, state.origin(), center, .045, 0x80bc66ff);
+                int color = ElementPalette.color(Element.ELECTRO);
+                diamond(pose, vertices, center.add(0, -.38, 0), center.add(0, .38, 0), .36, color);
+                spiral(pose, vertices, center.add(0, -.4, 0), .52, .8, state.elapsed() * .22, 0xb0b95aff);
+                Vec3 tail = center.subtract(state.destination().subtract(state.origin()).normalize().scale(1.8));
+                beam(pose, vertices, tail, center, .13, 0xa0bc66ff);
             }
             case CATALYST_BOLT, CHARGED_BOLT, ROSE_BOLT -> {
                 Vec3 difference = state.destination().subtract(state.origin());
                 Vec3 previous = state.origin();
-                double width = state.kind() == Kind.CHARGED_BOLT ? .10 : .055;
+                double width = state.kind() == Kind.CHARGED_BOLT ? .18 : .12;
                 for (int segment = 1; segment <= 8; segment++) {
                     double fraction = segment / 8.0;
                     double jitter = segment == 8 ? 0 : Math.sin(segment * 2.7 + state.id()) * .15;
                     Vec3 next = state.origin().add(difference.scale(fraction)).add(jitter, -jitter * .7, jitter * .4);
-                    beam(pose, vertices, previous, next, width, 0xffd8a4ff);
-                    beam(pose, vertices, previous, next, width * .35, 0xfffaf0ff);
+                    beam(pose, vertices, previous, next, width * 1.8, 0x70b95aff);
+                    beam(pose, vertices, previous, next, width, ElementPalette.color(Element.ELECTRO));
+                    beam(pose, vertices, previous, next, width * .45, 0xffbb78ff);
                     previous = next;
                 }
             }
@@ -119,8 +127,9 @@ public final class ProjectileVisuals {
                     Vec3 tip = start.lerp(end, state.progress());
                     start = tip.subtract(end.subtract(start).normalize().scale(.9)); end = tip;
                 }
-                diamond(pose, vertices, start, end, .16, 0xff9eefff);
-                beam(pose, vertices, start, end, .035, 0xfff0ffff);
+                diamond(pose, vertices, start, end, .23, ElementPalette.color(Element.CRYO));
+                beam(pose, vertices, start.subtract(end.subtract(start).normalize().scale(.6)), start, .12, 0x90a2e8f5);
+                beam(pose, vertices, start, end, .07, 0xffd0f6ff);
             }
             case PALM_VORTEX -> spiral(pose, vertices, state.origin(), 1.1, 1.8, state.elapsed() * .25, 0xb070f4cd);
             case TORNADO -> {

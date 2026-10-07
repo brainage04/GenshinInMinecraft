@@ -117,7 +117,8 @@ final class ProjectileRenderingChecks {
                     if (CombatRuntime.get(s).target(enemy).hp() >= CombatRuntime.get(s).target(enemy).maxHp())
                         throw new AssertionError("Visual-only arrow must preserve authoritative release-time damage");
                 });
-                screenshot(context, "genshin-projectile-" + scene.name());
+                Path screenshot = screenshot(context, "genshin-projectile-" + scene.name());
+                if (scene.mesh() == Kind.ROSE_BOLT) assertPurpleBolt(context, screenshot);
                 if (scene.mesh() == Kind.WALTZ_ICICLE || scene.mesh() == Kind.TORNADO) {
                     server.runOnServer(s -> {
                         if (!CombatRuntime.get(s).handleDeath(s.getPlayerList().getPlayers().getFirst()))
@@ -135,7 +136,7 @@ final class ProjectileRenderingChecks {
             context.runOnClient(client -> { client.options.fov().set(fov); client.options.particles().set(particles); ManagedCamera.setAngles(0, 0); });
         }
     }
-    private static void freeze(TestDedicatedServerContext server, long frame) {
+    static void freeze(TestDedicatedServerContext server, long frame) {
         long aligned = (frame + 2) / 3 * 3;
         server.runOnServer(s -> timeline(s).schedule(aligned, at -> {
             s.tickRateManager().setTickRate(1); s.tickRateManager().setFrozen(true);
@@ -149,11 +150,37 @@ final class ProjectileRenderingChecks {
             return (EventTimeline) field.get(CombatRuntime.get(server));
         } catch (ReflectiveOperationException ex) { throw new AssertionError("Cannot observe test-only timeline", ex); }
     }
-    private static void screenshot(ClientGameTestContext context, String name) {
+    /** Inspect actual pixels near the target-side bolt, away from Lisa's purple clothing. */
+    private static void assertPurpleBolt(ClientGameTestContext context, Path screenshot) {
+        double[] projection = context.computeOnClient(client -> {
+            var mesh = ProjectileVisuals.renderStates().stream().filter(state -> state.kind() == Kind.ROSE_BOLT).findFirst().orElseThrow();
+            var camera = client.gameRenderer.mainCamera();
+            var point = mesh.origin().lerp(mesh.destination(), .75).subtract(camera.position());
+            var forward = camera.forwardVector(); var left = camera.leftVector(); var up = camera.upVector();
+            double depth = point.x * forward.x() + point.y * forward.y() + point.z * forward.z();
+            double focal = 1 / (2 * Math.tan(Math.toRadians(camera.getFov()) / 2));
+            double aspect = client.getWindow().getWidth() / (double) client.getWindow().getHeight();
+            return new double[] {.5 - focal * (point.x * left.x() + point.y * left.y() + point.z * left.z()) / depth / aspect,
+                    .5 - focal * (point.x * up.x() + point.y * up.y() + point.z * up.z()) / depth};
+        });
+        try {
+            var image = javax.imageio.ImageIO.read(screenshot.toFile());
+            int cx = (int) Math.round(projection[0] * image.getWidth()), cy = (int) Math.round(projection[1] * image.getHeight());
+            int purple = 0;
+            for (int y = Math.max(0, cy - 12); y < Math.min(image.getHeight(), cy + 13); y++)
+                for (int x = Math.max(0, cx - 12); x < Math.min(image.getWidth(), cx + 13); x++) {
+                    int color = image.getRGB(x, y), red = color >> 16 & 255, green = color >> 8 & 255, blue = color & 255;
+                    if (red > 140 && blue - red > 25 && blue - green > 60) purple++;
+                }
+            if (purple < 12) throw new AssertionError("Rose bolt must cover readable bright Electro pixels, not a white thin line: " + purple);
+        } catch (java.io.IOException ex) { throw new AssertionError("Cannot inspect Rose screenshot", ex); }
+    }
+    private static Path screenshot(ClientGameTestContext context, String name) {
         context.waitTicks(2);
         var directory = context.computeOnClient(client -> client.gameDirectory.toPath().resolve("screenshots"));
         var path = context.takeScreenshot(TestScreenshotOptions.of(name).disableCounterPrefix().withDestinationDir(directory));
         if (!Files.isRegularFile(path)) throw new AssertionError("Missing projectile screenshot " + path);
         GenshinInMinecraft.LOGGER.info("Projectile GameTest screenshot: {}", path.toAbsolutePath());
+        return path;
     }
 }

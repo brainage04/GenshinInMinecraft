@@ -5,6 +5,7 @@ import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Stamina;
 import io.github.brainage04.genshininminecraft.rules.CharacterBaseStats;
 import io.github.brainage04.genshininminecraft.ui.HudFormatting;
+import io.github.brainage04.genshininminecraft.ui.ElementPalette;
 import java.util.List;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -158,7 +159,6 @@ public final class GenshinHud {
             boolean fallen = member.hp() <= 0;
             int color = unavailable ? 0xff89929f : ElementPalette.color(member.element());
             graphics.text(font, member.name(), x + 7, y + 4, color);
-            bar(graphics, x + 7, y + 16, 73, 4, member.hp(), member.maxHp(), unavailable ? EMPTY : HP);
             bar(graphics, x + 7, y + 23, 73, 3, member.energy(), member.maxEnergy(), color);
             if (unavailable) {
                 double covered = fallen || CombatInput.state().switchBlocked() && switchCooldown.isEmpty()
@@ -167,6 +167,8 @@ public final class GenshinHud {
                 graphics.fill(x, y, width - 10, bottom, 0x8820252d);
                 if (!fallen) graphics.centeredText(font, switchCooldown.isEmpty() ? "LOCK" : switchCooldown, x + 95, y + 18, BORDER);
             }
+            // Availability greys the row, not its health: retain the green HP information.
+            bar(graphics, x + 7, y + 16, 73, 4, member.hp(), member.maxHp(), HP);
             if (fallen) {
                 graphics.centeredText(font, "X", x + 95, y + 17, 0xffbbbbbb);
                 graphics.outline(x + 88, y + 14, 15, 14, 0xff89929f);
