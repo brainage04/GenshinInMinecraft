@@ -57,6 +57,7 @@ public final class LisaKit extends NormalAttackKit {
     }
     public static double holdMultiplier(int stacks) { return HOLD_MULTIPLIERS[stacks]; }
     public void setCryoSlowed(boolean slowed) { holdThreshold = slowed ? CRYO_HOLD_CHARGE_FRAMES : HOLD_CHARGE_FRAMES; }
+    @Override public long switchRemaining(long frame) { return skillHeld >= 0 ? 0 : super.switchRemaining(frame); }
     @Override public boolean intent(Intent intent, long frame) {
         if (intent != Intent.SKILL_PRESS && intent != Intent.SKILL_RELEASE && intent != Intent.BURST_PRESS)
             return super.intent(intent, frame);
@@ -78,7 +79,7 @@ public final class LisaKit extends NormalAttackKit {
             if (frame < state.burstReady || state.energy < BURST_COST) return false;
             startTalent(frame, BURST_RECOVERY_FRAME, BURST_SWITCH_FRAME);
             state.energy -= BURST_COST; // Reserve at acceptance, not original drain63.
-            state.burstReady = frame + BURST_COOLDOWN_START_FRAME + BURST_COOLDOWN_FRAMES;
+            state.burstCooldown(frame + BURST_COOLDOWN_START_FRAME, BURST_COOLDOWN_FRAMES);
             roseCast = frame;
             roseEvent(frame + ROSE_PLACEMENT_FRAME, Kind.ROSE_PLACE, ROSE_PLACEMENT_MULTIPLIER, 0, frame);
             for (int index = 0; index < ROSE_DISCHARGE_COUNT; index++)
@@ -94,12 +95,12 @@ public final class LisaKit extends NormalAttackKit {
         int swap = hold ? HOLD_SWITCH_OFFSET : (int) Math.max(0, cast + TAP_SWITCH_FRAME - frame);
         startTalent(frame, recovery, swap);
         if (hold) {
-            state.skillReady = frame + HOLD_COOLDOWN_FRAMES;
+            state.skillCooldown(frame, HOLD_COOLDOWN_FRAMES);
             hit(frame + HOLD_HIT_OFFSET, Kind.VIOLET_HOLD, 0, Element.ELECTRO, 2, null, HOLD_PARTICLES, cast);
         } else {
             // Delayed early release shifts launch rather than firing an orb while still holding.
             long launch = Math.max(cast + TAP_LAUNCH_FRAME, frame);
-            state.skillReady = launch + TAP_COOLDOWN_FRAMES;
+            state.skillCooldown(launch, TAP_COOLDOWN_FRAMES);
             hit(launch, Kind.VIOLET_ORB, TAP_MULTIPLIER, Element.ELECTRO, 1, NORMAL_ICD_TAG, cast);
         }
     }

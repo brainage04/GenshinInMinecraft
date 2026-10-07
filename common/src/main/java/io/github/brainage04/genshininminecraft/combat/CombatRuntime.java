@@ -319,6 +319,9 @@ public final class CombatRuntime {
         private final Random roseTargets;
         private final UUID[] combatOwners = new UUID[Party.SIZE];
         private CharacterStatePayload lastSync;
+        private int rejectionSerial;
+        private int rejectedIntent;
+        private CharacterStatePayload.Rejection rejection = CharacterStatePayload.Rejection.NONE;
         private float mirroredHealth;
         private long skillCast = -1;
         private Element skillAbsorbed;
@@ -380,15 +383,17 @@ public final class CombatRuntime {
             // Drain prior hits before installing a new cast's absorption/origin.
             advanceTo(frame);
             if (intent == Intent.TRAVERSAL_JUMP) { traversalJumpQueued = true; return true; }
-            if (traversal.active()) return false; // Attached ordinary combat/party switching is unavailable.
+            if (traversal.active()) { reject(intent, frame); sync(); return false; }
             int slot = intent.switchSlot();
             if (slot >= 0) {
                 boolean switched = party.switchTo(slot, frame);
                 if (switched) { mirrorHealth(); switchEffect(); }
+                else if (slot != party.activeSlot()) reject(intent, frame);
                 sync();
                 return switched;
             }
             boolean accepted = kit().intent(intent, frame);
+            if (!accepted) reject(intent, frame);
             if (accepted && (intent == Intent.ATTACK_PRESS || intent == Intent.SKILL_PRESS)) actionLevel = (ServerLevel) player.level();
             if (accepted && kit() instanceof AmberKit) {
                 if (intent == Intent.SKILL_PRESS) {
@@ -419,6 +424,28 @@ public final class CombatRuntime {
             }
             sync();
             return accepted;
+        }
+        private void reject(Intent intent, long frame) {
+            var reason = CharacterStatePayload.Rejection.NONE;
+            int slot = intent.switchSlot();
+            if (slot >= 0) {
+                if (!party.members().get(slot).alive()) reason = CharacterStatePayload.Rejection.FALLEN;
+                else if (traversal.mode() == Traversal.Mode.CLIMB) reason = CharacterStatePayload.Rejection.CLIMBING;
+                else if (traversal.mode() == Traversal.Mode.GLIDE) reason = CharacterStatePayload.Rejection.GLIDING;
+                else if (frame < party.switchReadyFrame()) reason = CharacterStatePayload.Rejection.SWITCH_COOLDOWN;
+                else reason = CharacterStatePayload.Rejection.SWITCH_BLOCKED;
+            } else if (intent == Intent.SKILL_PRESS) {
+                reason = kit().skillRemaining() > 0 ? CharacterStatePayload.Rejection.SKILL_COOLDOWN
+                        : CharacterStatePayload.Rejection.ACTION_BLOCKED;
+            } else if (intent == Intent.BURST_PRESS) {
+                reason = kit().burstRemaining() > 0 ? CharacterStatePayload.Rejection.BURST_COOLDOWN
+                        : kit().energy() < kit().state().burstCost() ? CharacterStatePayload.Rejection.ENERGY
+                        : CharacterStatePayload.Rejection.ACTION_BLOCKED;
+            } else if (intent == Intent.ATTACK_PRESS) reason = CharacterStatePayload.Rejection.ACTION_BLOCKED;
+            if (reason == CharacterStatePayload.Rejection.NONE) return;
+            rejectionSerial++;
+            rejectedIntent = intent.ordinal() + 1;
+            rejection = reason;
         }
         public void advanceTo(long frame) {
             reconcileDimension();
@@ -661,30 +688,42 @@ public final class CombatRuntime {
                 lastSyncLevel = (ServerLevel) player.level();
             }
             int traversalFlags = traversalFlags(party.frame());
-            if (lastSync != null && lastSync.traversalFlags() == traversalFlags
+            // Input feedback bypasses ordinary change-only throttling; never infer rejection on the client.
+            if (lastSync != null && lastSync.rejectionSerial() == rejectionSerial
+                    && lastSync.traversalFlags() == traversalFlags
                     && party.frame() - lastSyncFrame < Frames.atServerTick(CHARACTER_SYNC_INTERVAL_TICKS)) return;
             float stamina = (float) stamina().current();
             boolean exhausted = stamina().exhausted();
             boolean draining = stamina().draining();
+            int switchRemaining = (int) Math.max(Math.max(0, party.switchReadyFrame() - party.frame()),
+                    kit().switchRemaining(party.frame()));
+            boolean switchBlocked = traversal.active() || !kit().canSwitch(party.frame());
+            boolean actionBlocked = traversal.active() || kit().actionBlocked();
             boolean changed = lastSync == null || lastSync.activeSlot() != party.activeSlot()
                     || lastSync.stamina() != stamina || lastSync.staminaExhausted() != exhausted
-                    || lastSync.staminaDraining() != draining || lastSync.traversalFlags() != traversalFlags;
+                    || lastSync.staminaDraining() != draining || lastSync.traversalFlags() != traversalFlags
+                    || lastSync.switchRemainingFrames() != switchRemaining || lastSync.switchBlocked() != switchBlocked
+                    || lastSync.actionBlocked() != actionBlocked || lastSync.rejectionSerial() != rejectionSerial;
             for (int index = 0; !changed && index < Party.SIZE; index++) {
                 var member = party.kit(index);
                 var previous = lastSync.members().get(index);
                 changed = previous.hpFraction() != (float) (member.hp() / member.maxHp())
                         || previous.energy() != (float) member.energy()
                         || previous.skillRemainingFrames() != member.skillRemaining()
-                        || previous.burstRemainingFrames() != member.burstRemaining();
+                        || previous.burstRemainingFrames() != member.burstRemaining()
+                        || previous.skillCooldownFrames() != member.state().skillCooldownFrames()
+                        || previous.burstCooldownFrames() != member.state().burstCooldownFrames();
             }
             if (!changed) return;
             var members = new java.util.ArrayList<CharacterStatePayload.Member>(Party.SIZE);
             for (int index = 0; index < Party.SIZE; index++) {
                 var member = party.kit(index);
                 members.add(new CharacterStatePayload.Member((float) (member.hp() / member.maxHp()),
-                        (float) member.energy(), (int) member.skillRemaining(), (int) member.burstRemaining()));
+                        (float) member.energy(), (int) member.skillRemaining(), (int) member.burstRemaining(),
+                        member.state().skillCooldownFrames(), member.state().burstCooldownFrames()));
             }
-            lastSync = new CharacterStatePayload(true, party.activeSlot(), members, stamina, exhausted, draining, traversalFlags);
+            lastSync = new CharacterStatePayload(true, party.activeSlot(), members, stamina, exhausted, draining,
+                    traversalFlags, switchRemaining, switchBlocked, actionBlocked, rejectionSerial, rejectedIntent, rejection);
             lastSyncFrame = party.frame();
             if (sender != null) sender.accept(player, lastSync);
         }

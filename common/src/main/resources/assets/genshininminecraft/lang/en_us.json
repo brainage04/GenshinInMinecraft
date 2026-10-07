@@ -8,6 +8,15 @@
   "key.genshininminecraft.party2": "Party member 2",
   "key.genshininminecraft.party3": "Party member 3",
   "key.genshininminecraft.party4": "Party member 4",
+  "hud.genshininminecraft.rejection.switch_cooldown": "Character-switching in cooldown",
+  "hud.genshininminecraft.rejection.switch_blocked": "Cannot switch character now",
+  "hud.genshininminecraft.rejection.fallen": "Character is down",
+  "hud.genshininminecraft.rejection.skill_cooldown": "Elemental Skill is on cooldown",
+  "hud.genshininminecraft.rejection.action_blocked": "Action unavailable during recovery",
+  "hud.genshininminecraft.rejection.burst_cooldown": "Elemental Burst is on cooldown",
+  "hud.genshininminecraft.rejection.energy": "Not enough Energy",
+  "hud.genshininminecraft.rejection.climbing": "Cannot switch character while climbing",
+  "hud.genshininminecraft.rejection.gliding": "Cannot switch character while gliding",
   "text.autoconfig.genshininminecraft.title": "GenshinInMinecraft Settings",
   "text.autoconfig.genshininminecraft.option.logConfigOnStartup": "Log config on startup"
 }

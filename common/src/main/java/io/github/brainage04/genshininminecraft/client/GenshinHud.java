@@ -11,6 +11,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.resources.Identifier;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.network.chat.Component;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 
 /** Shared client-only drawing. Loaders own layer registration and vanilla-layer suppression. */
 public final class GenshinHud {
@@ -24,11 +28,38 @@ public final class GenshinHud {
     private static final int STAMINA_SEGMENTS = 48;
     private static final int[] STAMINA_X = new int[STAMINA_SEGMENTS];
     private static final int[] STAMINA_Y = new int[STAMINA_SEGMENTS];
+    private static final int SWEEP_STEPS = 64;
+    private static final int[][] SWEEP_RUNS = new int[SWEEP_STEPS + 1][];
+    private static final int[] RING_X = new int[STAMINA_SEGMENTS];
+    private static final int[] RING_Y = new int[STAMINA_SEGMENTS];
     static {
         for (int index = 0; index < STAMINA_SEGMENTS; index++) {
             double angle = Math.toRadians(-135 + index * 270.0 / (STAMINA_SEGMENTS - 1));
             STAMINA_X[index] = (int) Math.round(14 * Math.cos(angle));
             STAMINA_Y[index] = (int) Math.round(14 * Math.sin(angle));
+            double ringAngle = -Math.PI / 2 + index * 2 * Math.PI / STAMINA_SEGMENTS;
+            RING_X[index] = (int) Math.round(18 * Math.cos(ringAngle));
+            RING_Y[index] = (int) Math.round(18 * Math.sin(ringAngle));
+        }
+        // Rasterize original circular sectors once; rendering submits scanlines, not per-pixel trigonometry.
+        for (int step = 0; step <= SWEEP_STEPS; step++) {
+            int[] runs = new int[36 * 6];
+            int count = 0;
+            for (int y = -18; y < 18; y++) {
+                int start = -19;
+                for (int x = -18; x <= 18; x++) {
+                    boolean covered = x < 18 && (x + .5) * (x + .5) + (y + .5) * (y + .5) <= 18 * 18
+                            && HudFormatting.radialCovered(x + .5, y + .5, step / (double) SWEEP_STEPS);
+                    if (covered && start == -19) start = x;
+                    if (!covered && start != -19) {
+                        runs[count++] = start;
+                        runs[count++] = y;
+                        runs[count++] = x;
+                        start = -19;
+                    }
+                }
+            }
+            SWEEP_RUNS[step] = java.util.Arrays.copyOf(runs, count);
         }
     }
     private static List<PartyMember> party = List.of();
@@ -38,14 +69,40 @@ public final class GenshinHud {
     private static String skillCooldown = "";
     private static String burstCooldown = "";
     private static String traversalHint = "";
+    private static String switchCooldown = "";
+    private static int rejectionSerial;
+    private static int feedbackTicks;
+    private static int flashIntent;
+    private static String rejectionText = "";
 
     public record PartyMember(String name, Element element, float hp, float maxHp, float energy,
             float maxEnergy, boolean active) {}
 
     private GenshinHud() {}
     public static List<PartyMember> party() { return party; }
+    public static boolean partyUnavailable(int slot) {
+        var member = party.get(slot);
+        var state = CombatInput.state();
+        return HudFormatting.partyUnavailable(member.active(), member.hp(), state.switchRemainingFrames(), state.switchBlocked());
+    }
+    public static double skillSweepFraction() {
+        var state = CombatInput.state();
+        return HudFormatting.sweepFraction(state.skillRemainingFrames(), state.skillCooldownFrames());
+    }
+    public static double burstSweepFraction() {
+        var state = CombatInput.state();
+        return HudFormatting.sweepFraction(state.burstRemainingFrames(), state.burstCooldownFrames());
+    }
+    public static boolean rejectionVisible() { return feedbackTicks > 0; }
+    public static String rejectionText() { return rejectionText; }
+    public static void tick() { if (feedbackTicks > 0) feedbackTicks--; }
     public static void accept(CharacterStatePayload state) {
-        if (!state.managed()) party = List.of();
+        if (!state.managed()) {
+            party = List.of();
+            rejectionSerial = 0;
+            feedbackTicks = 0;
+            rejectionText = "";
+        }
         else {
             var rows = new java.util.ArrayList<PartyMember>(4);
             for (int index = 0; index < state.members().size(); index++) {
@@ -59,6 +116,16 @@ public final class GenshinHud {
         hpText = Math.round(state.hp()) + " / " + Math.round(state.maxHp());
         skillCooldown = HudFormatting.cooldown(state.skillRemainingFrames());
         burstCooldown = HudFormatting.cooldown(state.burstRemainingFrames());
+        switchCooldown = HudFormatting.cooldown(state.switchRemainingFrames());
+        if (state.managed() && state.rejectionSerial() != rejectionSerial) {
+            rejectionSerial = state.rejectionSerial();
+            flashIntent = state.rejectedIntent();
+            feedbackTicks = 16; // Named .8-second adaptation, not a measured Genshin timing.
+            boolean normal = flashIntent == Intent.ATTACK_PRESS.ordinal() + 1;
+            rejectionText = normal ? "" : Component.translatable("hud.genshininminecraft.rejection."
+                    + state.rejection().name().toLowerCase(java.util.Locale.ROOT)).getString();
+            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK.value(), .7F, .25F));
+        }
         traversalHint = "";
         if (state.climbing() || state.gliding()) {
             var options = Minecraft.getInstance().options;
@@ -87,10 +154,30 @@ public final class GenshinHud {
                 graphics.outline(x, y, 112, rowHeight - 3, BORDER);
                 graphics.fill(x, y, x + 3, y + rowHeight - 3, ElementPalette.color(member.element()));
             }
-            graphics.text(font, member.name(), x + 7, y + 4, ElementPalette.color(member.element()));
+            boolean unavailable = partyUnavailable(index);
+            boolean fallen = member.hp() <= 0;
+            int color = unavailable ? 0xff89929f : ElementPalette.color(member.element());
+            graphics.text(font, member.name(), x + 7, y + 4, color);
+            bar(graphics, x + 7, y + 16, 73, 4, member.hp(), member.maxHp(), unavailable ? EMPTY : HP);
+            bar(graphics, x + 7, y + 23, 73, 3, member.energy(), member.maxEnergy(), color);
+            if (unavailable) {
+                double covered = fallen || CombatInput.state().switchBlocked() && switchCooldown.isEmpty()
+                        ? 1 : HudFormatting.sweepFraction(CombatInput.state().switchRemainingFrames(), 60);
+                int bottom = y + (int) Math.ceil((rowHeight - 3) * covered);
+                graphics.fill(x, y, width - 10, bottom, 0x8820252d);
+                if (!fallen) graphics.centeredText(font, switchCooldown.isEmpty() ? "LOCK" : switchCooldown, x + 95, y + 18, BORDER);
+            }
+            if (fallen) {
+                graphics.centeredText(font, "X", x + 95, y + 17, 0xffbbbbbb);
+                graphics.outline(x + 88, y + 14, 15, 14, 0xff89929f);
+            }
+            // Rebound slot keys remain readable above the unavailable sweep.
             graphics.text(font, CombatInput.PARTY[index].getTranslatedKeyMessage().getString(), width - 20, y + 4, BORDER);
-            bar(graphics, x + 7, y + 16, 88, 4, member.hp(), member.maxHp(), HP);
-            bar(graphics, x + 7, y + 23, 88, 3, member.energy(), member.maxEnergy(), ElementPalette.color(member.element()));
+            if (feedbackTicks > 0 && flashIntent == Intent.SWITCH_1.ordinal() + index + 1)
+                graphics.outline(x, y, 112, rowHeight - 3, 0xfff5f2e9);
+            var memberState = CombatInput.state().members().get(index);
+            if (!member.active() && !fallen && member.energy() >= member.maxEnergy() && memberState.burstRemainingFrames() == 0)
+                graphics.fill(x + 76, y + 4, x + 80, y + 8, ElementPalette.color(member.element()));
         }
         if (active == null) return;
         int hpWidth = Math.min(180, width / 2 - 12);
@@ -100,12 +187,14 @@ public final class GenshinHud {
         bar(graphics, hpX, hpY, hpWidth, 7, active.hp(), active.maxHp(), HP);
         graphics.centeredText(font, hpText, width / 2, hpY + 10, 0xfff5f2e9);
         icon(graphics, font, width - 106, height - 63, CombatInput.SKILL.getTranslatedKeyMessage().getString(),
-                skillCooldown, true, false, active.element());
+                skillCooldown, 1, false, active.element(), skillSweepFraction(), Intent.SKILL_PRESS);
         boolean full = HudFormatting.fraction(active.energy(), active.maxEnergy()) == 1;
         boolean ready = full && CombatInput.state().burstRemainingFrames() == 0;
         icon(graphics, font, width - 57, height - 63, CombatInput.BURST.getTranslatedKeyMessage().getString(),
-                burstCooldown, full, ready, active.element());
-        bar(graphics, width - 53, height - 29, 32, 3, active.energy(), active.maxEnergy(), ElementPalette.color(active.element()));
+                burstCooldown, HudFormatting.fraction(active.energy(), active.maxEnergy()), ready, active.element(),
+                burstSweepFraction(), Intent.BURST_PRESS);
+        if (feedbackTicks > 0 && !rejectionText.isEmpty())
+            graphics.centeredText(font, rejectionText, width / 2, height / 4, 0xfff5f2e9);
         staminaWheel(graphics, width / 2 + 35, height / 2);
         if (!traversalHint.isEmpty()) graphics.centeredText(font, traversalHint, width / 2, height - 87, BORDER);
         if (CombatInput.aiming()) {
@@ -155,20 +244,34 @@ public final class GenshinHud {
         if (filled > 0) graphics.fill(x, y, x + filled, y + height, color);
     }
     private static void icon(GuiGraphicsExtractor graphics, Font font, int x, int y, String key,
-            String cooldown, boolean energized, boolean ready, Element element) {
-        int color = energized ? ElementPalette.color(element) : 0xff89929f;
+            String cooldown, double energyFraction, boolean ready, Element element, double sweep, Intent intent) {
+        int color = ElementPalette.color(element);
         graphics.fill(x, y, x + 40, y + 40, PANEL);
-        graphics.outline(x, y, 40, 40, ready ? 0xffffe5a0 : color);
-        // An original, stepped diamond; E/Q labels make the two abilities unambiguous.
+        graphics.outline(x, y, 40, 40, ready ? 0xffffe5a0 : EMPTY);
+        if (ready) graphics.outline(x - 1, y - 1, 42, 42, 0x88ffe5a0);
+        // Original diamond fills bottom-up; an independent ring makes partial burst energy readable.
+        int energyThreshold = 8 - (int) Math.ceil(15 * energyFraction);
         for (int offset = -7; offset <= 7; offset++) {
             int halfWidth = 7 - Math.abs(offset);
-            graphics.horizontalLine(x + 20 - halfWidth, x + 20 + halfWidth, y + 12 + offset, color);
+            int tint = offset >= energyThreshold ? color : 0xff89929f;
+            graphics.horizontalLine(x + 20 - halfWidth, x + 20 + halfWidth, y + 20 + offset, tint);
         }
-        graphics.centeredText(font, key, x + 20, y + 23, 0xfff5f2e9);
-        if (!cooldown.isEmpty()) {
-            graphics.fill(x + 1, y + 1, x + 39, y + 20, 0xbb222833);
-            graphics.centeredText(font, cooldown, x + 20, y + 8, 0xfff5f2e9);
+        if (intent == Intent.BURST_PRESS) {
+            int filled = (int) Math.floor(STAMINA_SEGMENTS * energyFraction);
+            for (int index = 0; index < STAMINA_SEGMENTS; index++) {
+                int px = x + 20 + RING_X[index], py = y + 20 + RING_Y[index];
+                graphics.fill(px - 1, py - 1, px + 1, py + 1, index < filled ? color : EMPTY);
+            }
         }
-        if (ready) graphics.centeredText(font, "READY", x + 20, y + 44, 0xffffe5a0);
+        if (CombatInput.state().actionBlocked()) graphics.fill(x + 2, y + 2, x + 38, y + 38, 0x6620252d);
+        int step = (int) Math.ceil(SWEEP_STEPS * sweep);
+        int[] runs = SWEEP_RUNS[step];
+        for (int index = 0; index < runs.length; index += 3)
+            graphics.fill(x + 20 + runs[index], y + 20 + runs[index + 1],
+                    x + 20 + runs[index + 2], y + 21 + runs[index + 1], 0xbb20252d);
+        if (!cooldown.isEmpty()) graphics.centeredText(font, cooldown, x + 20, y + 16, 0xfff5f2e9);
+        graphics.centeredText(font, key, x + 20, y + 43, 0xfff5f2e9);
+        if (feedbackTicks > 0 && flashIntent == intent.ordinal() + 1)
+            graphics.outline(x, y, 40, 40, 0xfff5f2e9);
     }
 }

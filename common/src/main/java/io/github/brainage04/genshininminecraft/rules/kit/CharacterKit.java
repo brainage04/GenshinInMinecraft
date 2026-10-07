@@ -26,6 +26,8 @@ public interface CharacterKit {
     void advanceTo(long frame);
     boolean intent(Intent intent, long frame);
     boolean canSwitch(long frame);
+    long switchRemaining(long frame);
+    default boolean actionBlocked() { return frame() < state().actionReadyFrame(); }
     void leaveField(long frame);
     /** Cancel every queued action and persistent field without resetting party resources. */
     default void cancelCasts(long frame) { leaveField(frame); }

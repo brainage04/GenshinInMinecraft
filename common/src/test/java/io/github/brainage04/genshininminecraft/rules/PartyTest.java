@@ -19,6 +19,56 @@ class PartyTest {
         assertFalse(party.switchTo(2, 120)); // Selecting active slot isn't a new switch.
         assertTrue(party.switchTo(3, 120));
     }
+    @Test void hudActionLocksAndCooldownSpansMatchActualKitWindows() {
+        var party = party();
+        var traveler = party.activeKit();
+        assertTrue(traveler.intent(Intent.SKILL_PRESS, 0));
+        assertFalse(traveler.canSwitch(0));
+        assertTrue(traveler.actionBlocked());
+        assertEquals(0, traveler.skillRemaining(), "A held skill has not started its cooldown");
+        assertTrue(traveler.intent(Intent.SKILL_RELEASE, 0));
+        assertEquals(300, traveler.state().skillCooldownFrames());
+        assertEquals(66, traveler.switchRemaining(0));
+        party.advanceTo(66);
+        assertEquals(0, traveler.switchRemaining(66));
+        assertTrue(traveler.canSwitch(66));
+        assertTrue(party.switchTo(1, 66));
+        var amber = party.activeKit();
+        assertTrue(amber.intent(Intent.ATTACK_PRESS, 66));
+        party.advanceTo(75);
+        assertFalse(amber.canSwitch(75), "KQM: bow aiming grays out party slots");
+        assertFalse(party.switchTo(2, 126), "Even after the party cooldown, aiming blocks switching");
+        assertTrue(amber.intent(Intent.ATTACK_RELEASE, 126));
+        assertTrue(party.switchTo(2, 136));
+        var kaeya = party.activeKit();
+        assertTrue(kaeya.intent(Intent.SKILL_PRESS, 136));
+        assertEquals(360, kaeya.state().skillCooldownFrames());
+        assertEquals(49, kaeya.switchRemaining(136));
+    }
+    @Test void variableHoldCooldownsRetainTheirActualSpanWhileCountingDownOffField() {
+        var party = party();
+        var traveler = party.activeKit();
+        traveler.intent(Intent.SKILL_PRESS, 0);
+        traveler.intent(Intent.SKILL_RELEASE, 30);
+        assertEquals(480, traveler.state().skillCooldownFrames());
+        assertTrue(party.switchTo(3, 69));
+        var lisa = party.activeKit();
+        lisa.intent(Intent.SKILL_PRESS, 69);
+        assertEquals(0, lisa.switchRemaining(69), "Held release time must not pretend to be a countdown");
+        assertFalse(lisa.canSwitch(69));
+        lisa.intent(Intent.SKILL_RELEASE, 69);
+        assertEquals(60, lisa.state().skillCooldownFrames());
+        party.advanceTo(146); // Tap launch69+17 and one-second cooldown.
+        assertEquals(0, lisa.skillRemaining());
+        assertTrue(lisa.intent(Intent.SKILL_PRESS, 146));
+        lisa.intent(Intent.SKILL_RELEASE, 260); // Sourced approximate114-frame hold.
+        assertEquals(960, lisa.state().skillCooldownFrames());
+        assertTrue(party.switchTo(0, 264));
+        party.advanceTo(320);
+        assertEquals(900, lisa.skillRemaining());
+        assertEquals(960, lisa.state().skillCooldownFrames(), "Off-field countdown must not redefine its full span");
+        assertEquals(190, traveler.skillRemaining());
+    }
     @Test void fallenSelectionIsRejectedAndHpEnergyAndStaminaBelongToTheirCorrectOwners() {
         var party = party();
         var traveler = party.activeMember();

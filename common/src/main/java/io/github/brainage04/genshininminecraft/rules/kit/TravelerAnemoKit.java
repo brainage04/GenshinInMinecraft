@@ -50,13 +50,14 @@ public final class TravelerAnemoKit implements CharacterKit {
     @Override public Stamina stamina() { return stamina; }
     @Override public Weapon weapon() { return Weapon.SWORD; }
     @Override public long frame() { return timeline.frame(); }
-    @Override public long skillRemaining() { return skillHeld ? 480 : CharacterKit.super.skillRemaining(); }
     public boolean skillHeld() { return skillHeld; }
     public void grantParticles(int count) {
         grantEnergy(count * Energy.received(Energy.Item.PARTICLE, Element.ANEMO, Element.ANEMO, true, 1, 1));
     }
     @Override public void advanceTo(long frame) { timeline.advanceTo(frame); stamina.advanceTo(frame); }
     @Override public boolean canSwitch(long frame) { return !skillHeld && frame >= switchReady; }
+    @Override public long switchRemaining(long frame) { return Math.max(0, switchReady - frame); }
+    @Override public boolean actionBlocked() { return skillHeld || CharacterKit.super.actionBlocked(); }
     @Override public void leaveField(long frame) {
         attackHeld = false;
         skillHeld = false;
@@ -140,7 +141,7 @@ public final class TravelerAnemoKit implements CharacterKit {
         boolean tap = duration < CUTTING_FRAMES[0];
         long storm = tap ? Math.max(skillStart + 32, frame) : frame + 5;
         long cooldownStart = tap ? skillStart + 27 : frame;
-        state.skillReady = cooldownStart + (strong ? 480 : 300);
+        state.skillCooldown(cooldownStart, strong ? 480 : 300);
         state.actionReady = tap ? skillStart + 74 : frame + 48;
         switchReady = tap ? skillStart + TAP_SWITCH_FRAME : frame + ADAPTED_HOLD_RELEASE_SWITCH_FRAMES;
         emit(storm, Kind.STORM, strong ? 1.92 : 1.76, Element.ANEMO, 1,
@@ -149,7 +150,7 @@ public final class TravelerAnemoKit implements CharacterKit {
     private boolean burst(long frame) {
         if (skillHeld || frame < state.burstReady || state.energy < BURST_COST || frame < state.actionReady) return false;
         state.energy -= BURST_COST;
-        state.burstReady = frame + 900;
+        state.burstCooldown(frame, 900);
         state.actionReady = frame + 111;
         switchReady = frame + BURST_SWITCH_FRAME;
         attackHeld = false;

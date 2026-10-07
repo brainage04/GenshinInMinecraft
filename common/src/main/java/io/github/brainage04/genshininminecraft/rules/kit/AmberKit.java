@@ -53,6 +53,7 @@ public final class AmberKit extends NormalAttackKit {
     public boolean fullyCharged() { return aiming && frame() - attackStart >= FULL_CHARGE_FRAME; }
     public double puppetHp() { return puppetHp; }
     public boolean puppetAlive() { return puppetCast >= 0 && puppetHp > 0; }
+    @Override public boolean canSwitch(long frame) { return !aiming && super.canSwitch(frame); }
     @Override public boolean intent(Intent intent, long frame) {
         advanceTo(frame);
         if (intent == Intent.ATTACK_RELEASE) {
@@ -87,7 +88,7 @@ public final class AmberKit extends NormalAttackKit {
         if (intent == Intent.SKILL_PRESS) {
             if (frame < state.skillReady) return false;
             startTalent(frame, SKILL_RECOVERY_FRAME, SKILL_SWITCH_FRAME);
-            state.skillReady = frame + SKILL_COOLDOWN_START_FRAME + SKILL_COOLDOWN_FRAMES;
+            state.skillCooldown(frame + SKILL_COOLDOWN_START_FRAME, SKILL_COOLDOWN_FRAMES);
             long cast = puppetCast = frame;
             timeline.schedule(frame + ADAPTED_PUPPET_LANDING_FRAME, at -> {
                 if (puppetCast != cast || !state.alive()) return;
@@ -101,7 +102,7 @@ public final class AmberKit extends NormalAttackKit {
             if (frame < state.burstReady || state.energy < BURST_COST) return false;
             startTalent(frame, BURST_RECOVERY_FRAME, BURST_SWITCH_FRAME);
             state.energy -= BURST_COST; // Reserve at authoritative acceptance, not original frame59.
-            state.burstReady = frame + BURST_COOLDOWN_START_FRAME + BURST_COOLDOWN_FRAMES;
+            state.burstCooldown(frame + BURST_COOLDOWN_START_FRAME, BURST_COOLDOWN_FRAMES);
             rainCast = frame;
             for (int wave = 0; wave < ADAPTED_RAIN_WAVE_OFFSETS.length; wave++) {
                 Kind kind = (wave & 1) == 0 ? Kind.RAIN_INNER : Kind.RAIN_OUTER;

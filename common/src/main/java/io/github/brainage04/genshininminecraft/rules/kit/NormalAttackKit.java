@@ -75,7 +75,8 @@ abstract class NormalAttackKit implements CharacterKit {
             action.accept(frame);
         });
     }
-    @Override public final boolean canSwitch(long frame) { return frame >= switchReady; }
+    @Override public boolean canSwitch(long frame) { return frame >= switchReady; }
+    @Override public long switchRemaining(long frame) { return Math.max(0, switchReady - frame); }
     @Override public void leaveField(long frame) {
         held = false;
         ++generation;

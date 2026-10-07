@@ -20,6 +20,8 @@ public final class CharacterState {
     double energy;
     long skillReady;
     long burstReady;
+    int skillCooldownFrames;
+    int burstCooldownFrames;
     long actionReady;
     long comboReset;
     int combo;
@@ -66,6 +68,11 @@ public final class CharacterState {
     public double burstCost() { return burstCost; }
     public long skillReadyFrame() { return skillReady; }
     public long burstReadyFrame() { return burstReady; }
+    public int skillCooldownFrames() { return skillCooldownFrames; }
+    public int burstCooldownFrames() { return burstCooldownFrames; }
+    public long actionReadyFrame() { return actionReady; }
+    void skillCooldown(long start, int duration) { skillReady = start + duration; skillCooldownFrames = duration; }
+    void burstCooldown(long start, int duration) { burstReady = start + duration; burstCooldownFrames = duration; }
     public int comboIndex() { return combo; }
     public long comboResetFrame() { return comboReset; }
     public boolean alive() { return hp > 0; }

@@ -220,6 +220,20 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                     throw new AssertionError("HUD must show four element-coloured rows and highlight active Amber");
             });
             screenshot(context, "genshin-party-four");
+            context.runOnClient(client -> {
+                if (CombatInput.state().switchRemainingFrames() <= 0 || !GenshinHud.partyUnavailable(0)
+                        || GenshinHud.partyUnavailable(1))
+                    throw new AssertionError("After real key2, living off-field rows must dim/sweep while active Amber stays readable");
+            });
+            screenshot(context, "genshin-switch-cooldown");
+            int switchRejection = context.computeOnClient(client -> CombatInput.state().rejectionSerial());
+            context.getInput().pressKey(GLFW.GLFW_KEY_1);
+            context.waitFor(client -> CombatInput.state().rejectionSerial() != switchRejection);
+            context.runOnClient(client -> {
+                if (CombatInput.state().activeSlot() != 1 || !GenshinHud.rejectionVisible()
+                        || !GenshinHud.rejectionText().equals("Character-switching in cooldown"))
+                    throw new AssertionError("Rejected cooldown switch must stay on Amber and show the sourced brief overlay");
+            });
             float ordinaryFov = context.computeOnClient(client -> client.gameRenderer.mainCamera().getFov());
             context.getInput().holdKey(options -> options.keyAttack);
             context.waitFor(client -> CombatInput.aiming() && client.gameRenderer.mainCamera().getFov() < ordinaryFov * .85F);
@@ -228,6 +242,20 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                 return ((AmberKit) CombatRuntime.get(minecraftServer).session(player).kit()).fullyCharged();
             });
             context.waitFor(client -> CombatInput.fullyChargedAim());
+            context.waitFor(client -> CombatInput.state().switchBlocked() && CombatInput.state().switchRemainingFrames() == 0);
+            context.runOnClient(client -> {
+                if (!GenshinHud.partyUnavailable(0) || !CombatInput.state().actionBlocked())
+                    throw new AssertionError("Held bow aim must dim party/E/Q without inventing a release countdown");
+            });
+            int aimRejection = context.computeOnClient(client -> CombatInput.state().rejectionSerial());
+            context.getInput().pressKey(GLFW.GLFW_KEY_1);
+            context.waitFor(client -> CombatInput.state().rejectionSerial() != aimRejection);
+            context.runOnClient(client -> {
+                if (!CombatInput.aiming() || CombatInput.state().activeSlot() != 1
+                        || !GenshinHud.rejectionText().equals("Cannot switch character now"))
+                    throw new AssertionError("Rejected switch during aim must keep Amber's held shot and report the action lock");
+            });
+            screenshot(context, "genshin-party-action-locked");
             context.runOnClient(client -> ManagedCamera.setAngles(90, 0));
             context.waitTicks(2);
             context.runOnClient(client -> {
@@ -345,6 +373,29 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                     throw new AssertionError("Kaeya E must show authoritative cooldown, Cryo damage/aura and9 skill energy, not SOON/inventory");
             });
             screenshot(context, "genshin-kaeya-frostgnaw");
+            context.runOnClient(client -> {
+                if (GenshinHud.skillSweepFraction() <= 0 || GenshinHud.skillSweepFraction() >= 1)
+                    throw new AssertionError("Frostgnaw sweep must reflect a partially elapsed six-second cooldown");
+            });
+            screenshot(context, "genshin-skill-cooldown-sweep");
+            long skillReady = server.computeOnServer(minecraftServer -> CombatRuntime.get(minecraftServer)
+                    .session(minecraftServer.getPlayerList().getPlayers().getFirst()).kit().skillReadyFrame());
+            int skillRejection = context.computeOnClient(client -> CombatInput.state().rejectionSerial());
+            context.getInput().pressKey(GLFW.GLFW_KEY_E);
+            context.waitFor(client -> CombatInput.state().rejectionSerial() != skillRejection);
+            context.runOnClient(client -> {
+                if (!GenshinHud.rejectionVisible() || !GenshinHud.rejectionText().equals("Elemental Skill is on cooldown"))
+                    throw new AssertionError("Server-rejected E must briefly flash its icon and explain the cooldown");
+            });
+            server.runOnServer(minecraftServer -> {
+                var kit = CombatRuntime.get(minecraftServer).session(minecraftServer.getPlayerList().getPlayers().getFirst()).kit();
+                if (kit.skillReadyFrame() != skillReady || kit.energy() != 9)
+                    throw new AssertionError("Rejected E must neither restart Frostgnaw cooldown nor grant energy");
+            });
+            server.runOnServer(minecraftServer -> CombatRuntime.get(minecraftServer)
+                    .session(minecraftServer.getPlayerList().getPlayers().getFirst()).kit().grantEnergy(21));
+            context.waitFor(client -> CombatInput.state().energy() == 30);
+            screenshot(context, "genshin-burst-half-energy");
             server.runOnServer(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
                 player.level().getEntity(cryoMobId).discard();
@@ -507,6 +558,21 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             });
             context.runOnClient(client -> client.gui.hud.getChat().clearMessages(true));
             screenshot(context, "genshin-hilichurl-camp");
+            server.runOnServer(minecraftServer -> CombatRuntime.get(minecraftServer)
+                    .session(minecraftServer.getPlayerList().getPlayers().getFirst()).party().kit(1).setHp(0));
+            context.waitFor(client -> CombatInput.state().members().get(1).hpFraction() == 0);
+            context.runOnClient(client -> {
+                if (!GenshinHud.partyUnavailable(1) || GenshinHud.party().get(1).hp() != 0)
+                    throw new AssertionError("Fallen Amber must have an empty HP bar and grey unavailable row");
+            });
+            screenshot(context, "genshin-party-dead-member");
+            int fallenRejection = context.computeOnClient(client -> CombatInput.state().rejectionSerial());
+            context.getInput().pressKey(GLFW.GLFW_KEY_2);
+            context.waitFor(client -> CombatInput.state().rejectionSerial() != fallenRejection);
+            context.runOnClient(client -> {
+                if (CombatInput.state().activeSlot() != 0 || !GenshinHud.rejectionText().equals("Character is down"))
+                    throw new AssertionError("Selecting a fallen member must preserve active Traveler and explain rejection");
+            });
             server.runCommand("gamemode adventure @a");
             context.waitFor(client -> !client.player.isCreative());
             server.runCommand("genshin managed off");

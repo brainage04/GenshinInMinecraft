@@ -48,7 +48,7 @@ public final class KaeyaKit extends NormalAttackKit {
         if (intent == Intent.SKILL_PRESS) {
             if (frame < state.skillReady) return false;
             startTalent(frame, SKILL_RECOVERY_FRAME, SKILL_SWITCH_FRAME);
-            state.skillReady = frame + SKILL_COOLDOWN_START_FRAME + SKILL_COOLDOWN_FRAMES;
+            state.skillCooldown(frame + SKILL_COOLDOWN_START_FRAME, SKILL_COOLDOWN_FRAMES);
             hit(frame + SKILL_HIT_FRAME, Kind.FROSTGNAW, SKILL_MULTIPLIER, Element.CRYO,
                     SKILL_GAUGE, null, ADAPTED_SKILL_PARTICLES, frame);
         } else {
@@ -56,7 +56,7 @@ public final class KaeyaKit extends NormalAttackKit {
             startTalent(frame, BURST_RECOVERY_FRAME, BURST_SWITCH_FRAME);
             // Reserve at acceptance, like Traveler, instead of the measured frame51 drain.
             state.energy -= BURST_COST;
-            state.burstReady = frame + BURST_COOLDOWN_START_FRAME + BURST_COOLDOWN_FRAMES;
+            state.burstCooldown(frame + BURST_COOLDOWN_START_FRAME, BURST_COOLDOWN_FRAMES);
             burstCast = frame;
             java.util.Arrays.fill(icicleReady, frame + BURST_FIRST_CONTACT_FRAME);
             sampleIcicles(frame + BURST_FIRST_CONTACT_FRAME, frame);

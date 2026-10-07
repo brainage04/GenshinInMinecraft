@@ -74,6 +74,7 @@ public final class CombatInput {
     }
     public static void tick(Minecraft client) {
         CombatFeedback.tick(client);
+        GenshinHud.tick();
         if (attackHeld) aimTicks++;
         else { aimTicks = 0; aimCancelled = false; }
         if (aiming() && (client.options.keySprint.isDown() || client.options.keyJump.isDown())) aimCancelled = true;
