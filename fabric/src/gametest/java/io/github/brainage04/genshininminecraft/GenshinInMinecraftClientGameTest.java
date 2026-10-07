@@ -21,7 +21,7 @@ import io.github.brainage04.genshininminecraft.client.GenshinHud;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Frames;
 import io.github.brainage04.genshininminecraft.rules.kit.AmberKit;
-import net.minecraft.world.entity.animal.rabbit.Rabbit;
+import io.github.brainage04.genshininminecraft.enemy.BaronBunny;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
@@ -78,6 +78,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.waitFor(client -> ManagedCamera.decoupled() && client.gameRenderer.mainCamera().isDetached());
             CharacterRenderingChecks.characters(context, server);
             CharacterRenderingChecks.dash(context, server);
+            EnemyRenderingChecks.enemies(context, server);
             spectatorExitResendsCameraYaw(context, server);
             context.runOnClient(client -> {
                 ManagedCamera.setAngles(90, 15);
@@ -289,17 +290,17 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.getInput().pressKey(GLFW.GLFW_KEY_E);
             server.waitFor(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
-                return !player.level().getEntitiesOfClass(Rabbit.class, new AABB(player.position(), player.position()).inflate(8)).isEmpty();
+                return !player.level().getEntitiesOfClass(BaronBunny.class, new AABB(player.position(), player.position()).inflate(8)).isEmpty();
             });
             context.waitFor(client -> {
                 for (var entity : client.level.entitiesForRendering())
-                    if (entity instanceof Rabbit && entity.getCustomName() != null
+                    if (entity instanceof BaronBunny && entity.getCustomName() != null
                             && entity.getCustomName().getString().equals("Baron Bunny")) return true;
                 return false;
             });
             int bunnyId = server.computeOnServer(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
-                return player.level().getEntitiesOfClass(Rabbit.class,
+                return player.level().getEntitiesOfClass(BaronBunny.class,
                         new AABB(player.position(), player.position()).inflate(8)).getFirst().getId();
             });
             context.waitFor(client -> CombatInput.state().skillRemainingFrames() > 0);
@@ -333,7 +334,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             screenshot(context, "genshin-amber-fiery-rain");
             server.runOnServer(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
-                var bunny = (Rabbit) player.level().getEntity(bunnyId);
+                var bunny = (BaronBunny) player.level().getEntity(bunnyId);
                 if (bunny.getHealth() != bunny.getMaxHealth()
                         || ((AmberKit) CombatRuntime.get(minecraftServer).session(player).kit()).puppetHp() != 2037.88 * .4136)
                     throw new AssertionError("Fiery Rain must leave the source-scaled Bunny HP full");
@@ -343,7 +344,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             context.waitTicks(40);
             server.runOnServer(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
-                var bunny = (Rabbit) player.level().getEntity(bunnyId);
+                var bunny = (BaronBunny) player.level().getEntity(bunnyId);
                 if (bunny.getHealth() != bunny.getMaxHealth())
                     throw new AssertionError("All Fiery Rain waves must leave Bunny HP full");
             });

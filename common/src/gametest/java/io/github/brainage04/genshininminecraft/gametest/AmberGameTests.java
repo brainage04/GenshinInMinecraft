@@ -12,7 +12,7 @@ import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.animal.rabbit.Rabbit;
+import io.github.brainage04.genshininminecraft.enemy.BaronBunny;
 import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -101,7 +101,7 @@ public final class AmberGameTests {
             session.advanceTo(start + 44);
             context.assertTrue(bunnies(context, player.position()).isEmpty(), "No entity before adapted original landing45");
             session.advanceTo(start + 45);
-            Rabbit bunny = bunnies(context, player.position()).getFirst();
+            BaronBunny bunny = bunnies(context, player.position()).getFirst();
             close(context, bunny.getMaxHealth(), 2037.88 * .4136, "Bunny HP snapshots sourced41.36% Amber maxHP");
             close(context, session.kit().energy(), 0, "Placement generates no particles");
             HilichurlGameTests.tick(context, enemy);
@@ -133,7 +133,7 @@ public final class AmberGameTests {
             runtime.receive(player, Intent.SWITCH_2);
             runtime.receive(player, Intent.SKILL_PRESS);
             session.advanceTo(start + 45);
-            Rabbit bunny = bunnies(context, player.position()).getFirst();
+            BaronBunny bunny = bunnies(context, player.position()).getFirst();
             bunny.hurtServer(context.getLevel(), context.getLevel().damageSources().genericKill(), Float.MAX_VALUE);
             session.advanceTo(start + 46);
             close(context, runtime.target(enemy).hp(), 885.200 - talent(1.232), "World destruction detonates immediately");
@@ -275,8 +275,8 @@ public final class AmberGameTests {
         context.assertTrue(context.getLevel().addFreshEntity(enemy), "Amber test hilichurl spawned");
         return enemy;
     }
-    private static java.util.List<Rabbit> bunnies(GameTestHelper context, Vec3 point) {
-        return context.getLevel().getEntitiesOfClass(Rabbit.class, new AABB(point, point).inflate(10), entity -> !entity.isRemoved());
+    private static java.util.List<BaronBunny> bunnies(GameTestHelper context, Vec3 point) {
+        return context.getLevel().getEntitiesOfClass(BaronBunny.class, new AABB(point, point).inflate(10), entity -> !entity.isRemoved());
     }
     private static Map<BlockPos, BlockState> snapshot(GameTestHelper context, BlockPos center) {
         var result = new HashMap<BlockPos, BlockState>();

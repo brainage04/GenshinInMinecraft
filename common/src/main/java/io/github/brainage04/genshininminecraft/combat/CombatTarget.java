@@ -92,6 +92,7 @@ public final class CombatTarget {
         mirroredHealth = (float) (entity.getMaxHealth() * hp / maxHp);
         entity.setHealth(mirroredHealth);
         level.broadcastDamageEvent(entity, source);
+        if (hp > 0 && entity instanceof Hilichurl hilichurl) hilichurl.combatHurtSound();
         if (hp == 0) entity.die(source);
         return true;
     }

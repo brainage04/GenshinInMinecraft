@@ -128,11 +128,12 @@ final class CharacterRenderingChecks {
                 context.getInput().pressKey(options -> options.keyToggleGui);
                 context.waitFor(client -> client.gui.hud.isHidden());
                 actionCapture(context, server, selected, CharacterKit.Intent.ATTACK_PRESS, CombatVisual.Action.N1,
-                        "genshin-combat-" + names[slot] + "-n1");
+                        "genshin-combat-" + names[slot] + "-n1", fov);
                 actionCapture(context, server, selected, CharacterKit.Intent.SKILL_PRESS, CombatVisual.Action.SKILL_TAP,
-                        "genshin-combat-" + names[slot] + "-skill");
+                        "genshin-combat-" + names[slot] + "-skill", fov);
                 actionCapture(context, server, selected, CharacterKit.Intent.BURST_PRESS, CombatVisual.Action.BURST,
-                        "genshin-combat-" + names[slot] + "-burst");
+                        "genshin-combat-" + names[slot] + "-burst", fov);
+                if (slot == 0 || slot == 3) channelCaptures(context, server, slot, names[slot], fov);
                 context.getInput().pressKey(options -> options.keyToggleGui);
                 context.waitFor(client -> !client.gui.hud.isHidden());
                 server.runCommand("tick unfreeze");
@@ -148,7 +149,7 @@ final class CharacterRenderingChecks {
         }
     }
     private static void actionCapture(ClientGameTestContext context, TestDedicatedServerContext server, int slot,
-            CharacterKit.Intent intent, CombatVisual.Action action, String name) {
+            CharacterKit.Intent intent, CombatVisual.Action action, String name, int defaultFov) {
         var timing = CombatAnimations.timing(slot, action);
         // Place the accepted action inside the current 60-fps tick interval so its sourced hitmark
         // falls exactly on a server tick. No visual packet/pose is invented; the real kit drains it.
@@ -162,20 +163,15 @@ final class CharacterRenderingChecks {
             if (intent == CharacterKit.Intent.ATTACK_PRESS) session.intent(CharacterKit.Intent.ATTACK_RELEASE, frame);
             if (intent == CharacterKit.Intent.SKILL_PRESS && (slot == 0 || slot == 3))
                 session.intent(CharacterKit.Intent.SKILL_RELEASE, frame);
-            try {
-                var field = CombatRuntime.class.getDeclaredField("timeline");
-                field.setAccessible(true);
-                var timeline = (io.github.brainage04.genshininminecraft.rules.EventTimeline) field.get(CombatRuntime.get(minecraftServer));
-                timeline.schedule(frame + timing.strike(), at -> {
-                    var snapshot = session.visualSnapshot(slot);
-                    if (snapshot.sampleFrame() != at || snapshot.action() != action)
-                        throw new AssertionError("Capture must publish the actual kit at the exact hitmark: " + snapshot);
-                    minecraftServer.tickRateManager().setTickRate(1);
-                    minecraftServer.tickRateManager().setFrozen(true);
-                    player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTimePacket(snapshot.sampleGameTime(), java.util.Map.of()));
-                    player.connection.send(new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(snapshot));
-                });
-            } catch (ReflectiveOperationException ex) { throw new AssertionError("Cannot install test-only timeline observation", ex); }
+            timeline(minecraftServer).schedule(frame + timing.strike(), at -> {
+                var snapshot = session.visualSnapshot(slot);
+                if (snapshot.sampleFrame() != at || snapshot.action() != action)
+                    throw new AssertionError("Capture must publish the actual kit at the exact hitmark: " + snapshot);
+                minecraftServer.tickRateManager().setTickRate(1);
+                minecraftServer.tickRateManager().setFrozen(true);
+                player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTimePacket(snapshot.sampleGameTime(), java.util.Map.of()));
+                player.connection.send(new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(snapshot));
+            });
             return frame;
         });
         long hit = start + timing.strike();
@@ -196,11 +192,115 @@ final class CharacterRenderingChecks {
             client.particleEngine.clearParticles(); // Keep this pose evidence readable; field gameplay is untouched.
         });
         screenshot(context, name);
+        if (intent != CharacterKit.Intent.ATTACK_PRESS) {
+            float yaw = context.computeOnClient(client -> ManagedCamera.yaw());
+            context.runOnClient(client -> {
+                var avatar = (net.minecraft.client.renderer.entity.state.AvatarRenderState)
+                        client.getEntityRenderDispatcher().getRenderer(client.player).createRenderState(client.player, 0);
+                ManagedCamera.setAngles(avatar.bodyRot, 0);
+                client.options.fov().set(defaultFov);
+            });
+            context.waitTicks(2);
+            screenshot(context, name.replace("genshin-combat-", "genshin-pose-") + "-orbit");
+            context.runOnClient(client -> { ManagedCamera.setAngles(yaw, 10); client.options.fov().set(55); });
+        }
         server.runCommand("tick unfreeze");
         server.runCommand("tick rate 20");
         context.waitFor(client -> PlayerVisuals.snapshot(client.player.getId()).action() == CombatVisual.Action.NONE);
     }
 
+    private static void channelCaptures(ClientGameTestContext context, TestDedicatedServerContext server,
+            int slot, String name, int defaultFov) {
+        server.runCommand("genshin managed off");
+        context.waitFor(client -> !CombatInput.managed());
+        server.runCommand("genshin managed on");
+        context.waitFor(client -> PlayerVisuals.usesCharacter(client.player));
+        server.runOnServer(minecraftServer -> {
+            var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+            var session = CombatRuntime.get(minecraftServer).session(player);
+            if (slot != 0 && !session.intent(CharacterKit.Intent.SWITCH_4, Frames.atServerTick(minecraftServer.getTickCount())))
+                throw new AssertionError("Channel capture switch rejected");
+        });
+        context.waitFor(client -> PlayerVisuals.snapshot(client.player.getId()).slot() == slot);
+        context.waitTicks(20);
+        long start = server.computeOnServer(minecraftServer -> {
+            var session = CombatRuntime.get(minecraftServer).session(minecraftServer.getPlayerList().getPlayers().getFirst());
+            long frame = Frames.atServerTick(minecraftServer.getTickCount());
+            if (!session.intent(CharacterKit.Intent.SKILL_PRESS, frame)) throw new AssertionError("Channel press rejected");
+            return frame;
+        });
+        channelPose(context, server, slot, CombatVisual.Action.SKILL_START, start + 12,
+                "genshin-combat-" + name + "-skill-start", defaultFov);
+        channelPose(context, server, slot, CombatVisual.Action.SKILL_HOLD, start + (slot == 0 ? 36 : 120),
+                "genshin-combat-" + name + "-skill-hold", defaultFov);
+        // Release before Traveler's auto-release, but after Lisa's sourced full-charge threshold.
+        long release = server.computeOnServer(minecraftServer -> {
+            var session = CombatRuntime.get(minecraftServer).session(minecraftServer.getPlayerList().getPlayers().getFirst());
+            int hit = CombatAnimations.timing(slot, CombatVisual.Action.SKILL_RELEASE).strike();
+            long frame = Frames.atServerTick(minecraftServer.getTickCount()) + (3 - hit % 3) % 3;
+            if (!session.intent(CharacterKit.Intent.SKILL_RELEASE, frame)) throw new AssertionError("Channel release rejected");
+            return frame;
+        });
+        channelPose(context, server, slot, CombatVisual.Action.SKILL_RELEASE,
+                release + CombatAnimations.timing(slot, CombatVisual.Action.SKILL_RELEASE).strike(),
+                "genshin-combat-" + name + "-skill-release", defaultFov);
+        server.runCommand("tick unfreeze");
+        server.runCommand("tick rate 20");
+        context.waitFor(client -> PlayerVisuals.snapshot(client.player.getId()).action() == CombatVisual.Action.NONE);
+    }
+    private static io.github.brainage04.genshininminecraft.rules.EventTimeline timeline(net.minecraft.server.MinecraftServer server) {
+        try {
+            var field = CombatRuntime.class.getDeclaredField("timeline");
+            field.setAccessible(true);
+            return (io.github.brainage04.genshininminecraft.rules.EventTimeline) field.get(CombatRuntime.get(server));
+        } catch (ReflectiveOperationException ex) { throw new AssertionError("Cannot observe test-only timeline", ex); }
+    }
+    private static void channelPose(ClientGameTestContext context, TestDedicatedServerContext server,
+            int slot, CombatVisual.Action action, long frame, String name, int defaultFov) {
+        server.runOnServer(minecraftServer -> {
+            var player = minecraftServer.getPlayerList().getPlayers().getFirst();
+            var session = CombatRuntime.get(minecraftServer).session(player);
+            timeline(minecraftServer).schedule(frame, at -> {
+                var snapshot = session.visualSnapshot(slot);
+                if (snapshot.sampleFrame() != at || snapshot.action() != action)
+                    throw new AssertionError("Channel capture must observe actual kit phase: " + snapshot);
+                minecraftServer.tickRateManager().setTickRate(1);
+                minecraftServer.tickRateManager().setFrozen(true);
+                player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTimePacket(snapshot.sampleGameTime(), java.util.Map.of()));
+                player.connection.send(new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(snapshot));
+            });
+        });
+        server.runCommand("tick unfreeze");
+        server.runCommand("tick rate 20");
+        context.waitFor(client -> {
+            var snapshot = PlayerVisuals.snapshot(client.player.getId());
+            return snapshot != null && snapshot.action() == action && snapshot.sampleFrame() == frame
+                    && client.level.getGameTime() == snapshot.sampleGameTime() && client.level.tickRateManager().isFrozen();
+        });
+        context.runOnClient(client -> {
+            var state = (CharacterAvatarState) client.getEntityRenderDispatcher().getRenderer(client.player).createRenderState(client.player, 0);
+            var input = state.genshin$characterState().input();
+            var controller = state.genshin$characterState().getGeckolibData(DataTickets.ANIMATION_CONTROLLER_STATES)[1];
+            if (input.action() != action || Math.abs(controller.animationPoint().animTime() - input.actionSeconds()) > .000001)
+                throw new AssertionError("Channel controller must seek the actual start/hold/release pose");
+            client.particleEngine.clearParticles();
+            var avatar = (net.minecraft.client.renderer.entity.state.AvatarRenderState) state;
+            ManagedCamera.setAngles(avatar.bodyRot + 150, 10); client.options.fov().set(55);
+        });
+        screenshot(context, name);
+        context.runOnClient(client -> {
+            var avatar = (net.minecraft.client.renderer.entity.state.AvatarRenderState)
+                    client.getEntityRenderDispatcher().getRenderer(client.player).createRenderState(client.player, 0);
+            ManagedCamera.setAngles(avatar.bodyRot, 0); client.options.fov().set(defaultFov);
+        });
+        context.waitTicks(2);
+        screenshot(context, name.replace("genshin-combat-", "genshin-pose-") + "-orbit");
+        context.runOnClient(client -> {
+            var avatar = (net.minecraft.client.renderer.entity.state.AvatarRenderState)
+                    client.getEntityRenderDispatcher().getRenderer(client.player).createRenderState(client.player, 0);
+            ManagedCamera.setAngles(avatar.bodyRot + 150, 10); client.options.fov().set(55);
+        });
+    }
     static void dash(ClientGameTestContext context, TestDedicatedServerContext server) {
         // Slow real server ticks only for capture; no injected visual phase or invented movement.
         int fov = context.computeOnClient(client -> client.options.fov().get());

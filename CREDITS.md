@@ -13,27 +13,31 @@ This is a private-use project for the owner and friends. Code licensing does not
 | Existing project icon | A live Minecraft screenshot of Dragonspine and the Skyfrost Nail in the owner-supplied Blocky Teyvat map, rendered with Iris, Sodium and Complementary Reimagined. Full capture/tool provenance: [docs/icon/README.md](docs/icon/README.md). | The existing screenshot is used as the project/mod icon. It is map-derived imagery, not a shipped map, model or shader pack; permissions must be reviewed before any public release. |
 | Gameplay mechanics reference | Genshin Impact by HoYoverse; public research such as the [KQM Theorycrafting Library](https://library.keqingmains.com/) and owner observations. | Source links and pinned-version notes belong beside each researched value in `spec/mechanics/`. No extracted game assets, leaked code, or HoYoverse account/service access. |
 | Starter weapons and encounter reference data | Public [Paimon.moe Harbinger](https://paimon.moe/weapons/harbinger_of_dawn), [Slingshot](https://paimon.moe/weapons/slingshot), [Thrilling Tales](https://paimon.moe/weapons/thrilling_tales_of_dragon_slayers) tables/passives; [public Type1 Hilichurl HP table](https://wiki3.jp/genshin_impact/page/2093), existing KQM/wiki DEF/RES research. | Published rounded numbers only, transcribed into the named starter loadout/level-indexed enemy profile; no datamine, extracted game assets or weapon artwork. Level8 default is our recorded adaptation, not sourced camp configuration. |
-| Hilichurl placeholder texture | Original 64×64 RGBA procedural pixel drawing made for this repository: tan skin, dark leather wraps/sash and a bone-coloured mask with dark eye slots. | Shipped at `common/src/main/resources/assets/genshininminecraft/textures/entity/hilichurl.png`; no game artwork, downloaded texture or extracted Genshin asset used. Renderer reuses built-in Minecraft zombie humanoid geometry and a built-in wooden shovel as the placeholder club, not copied model/texture files. |
-| Baron Bunny and Pyro placeholders | Built-in Minecraft rabbit model/texture (scaled at runtime), flame/explosion/dust particles, and original aim-reticle rectangles. | No texture/model files imported or copied into the mod; vanilla resources are referenced at runtime. No extracted Genshin art. |
+| Hilichurl and Baron Bunny models, textures and animation | Original deterministic cuboid/pixel/keyframe art authored in `tools/models/generate.py`; public visual references are listed below. | GeoEntity rendering replaces the retired vanilla zombie/shovel and rabbit renderer stand-ins. No imported or copied art; committed runtime assets live under `geckolib/{models,animations}/enemy` and `textures/entity/enemy`. |
+| Combat particles and sounds | Built-in Minecraft particles and sound events, plus original aim-reticle rectangles. | Runtime references only, no copied audio/texture files. Enemy/Bunny sounds map to piglin grunt/hurt/death, player sweep/strong impact, wool landing and generic explosion. |
 
 **No imported third-party gameplay assets or character models yet.** The existing map-derived icon above is explicitly recorded rather than treating it as original artwork. Add every non-original asset or data source here when introduced; do not assume purchase grants redistribution rights.
 
 <!-- character-assets:start -->
 
-## Original generated character assets (20a/20b)
+## Original generated character and enemy assets (20a/20b/20c)
 
 `tools/models/generate.py` authors the Aether, Amber, Kaeya and Lisa cuboid geometry,
 128×128 per-face shaded/pixel-painted textures, articulated weapons and original wind gliders,
-and all locomotion/combat key poses. Authored for this repository, 2026-10-08; no extracted game assets,
+and all locomotion/combat key poses. It also authors the hunched masked club Hilichurl and red/brown
+button-eyed plush Baron Bunny geometry, atlases and phase/throw/explode clips.
+Authored for this repository, 2026-10-08; no extracted game assets,
 downloaded fan meshes, traced textures, YiFang content or copied sound files. Outputs under
-`assets/genshininminecraft/geckolib/{models,animations}/character` and
-`textures/entity/character` are reproducible with Python 3 (stdlib only); `--check` compares bytes.
+`assets/genshininminecraft/geckolib/{models,animations}/{character,enemy}` and
+`textures/entity/{character,enemy}` are reproducible with Python 3 (stdlib only); `--check` compares bytes.
 
 Public visual references (silhouette/colour/signature features only):
 - [Traveler](https://genshin-impact.fandom.com/wiki/Traveler)
 - [Amber](https://genshin-impact.fandom.com/wiki/Amber)
 - [Kaeya](https://genshin-impact.fandom.com/wiki/Kaeya)
 - [Lisa](https://genshin-impact.fandom.com/wiki/Lisa)
+- [Hilichurl](https://genshin-impact.fandom.com/wiki/Hilichurl)
+- [Explosive Puppet / Baron Bunny](https://genshin-impact.fandom.com/wiki/Explosive_Puppet)
 
 These are placeholder-quality original adaptations, not faithful source-game meshes/poses.
 All locomotion/combat sounds refer to built-in Minecraft events; no new audio assets.

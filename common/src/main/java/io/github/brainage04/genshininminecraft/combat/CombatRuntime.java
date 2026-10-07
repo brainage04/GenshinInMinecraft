@@ -4,6 +4,7 @@ import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
 import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
 import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
+import io.github.brainage04.genshininminecraft.network.BunnyVisualPayload;
 import io.github.brainage04.genshininminecraft.rules.*;
 import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit;
@@ -12,7 +13,7 @@ import io.github.brainage04.genshininminecraft.rules.kit.AmberKit;
 import io.github.brainage04.genshininminecraft.rules.kit.LisaKit;
 import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
 import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
-import net.minecraft.world.entity.animal.rabbit.Rabbit;
+import io.github.brainage04.genshininminecraft.enemy.BaronBunny;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.resources.Identifier;
@@ -146,10 +147,10 @@ public final class CombatRuntime {
     }
     /** Nearest live puppet has priority over players; it cannot lure a camp past its leash. */
     public LivingEntity tauntTarget(Hilichurl enemy) {
-        Rabbit nearest = null;
+        BaronBunny nearest = null;
         double distance = ADAPTED_BUNNY_TAUNT_RADIUS * ADAPTED_BUNNY_TAUNT_RADIUS;
         for (Session session : players.values()) {
-            Rabbit bunny = session.bunny;
+            BaronBunny bunny = session.bunny;
             if (bunny == null || !bunny.isAlive() || bunny.isRemoved() || bunny.level() != enemy.level()
                     || !session.valid() || bunny.position().distanceToSqr(enemy.campAnchor()) > Hilichurl.LEASH_RADIUS * Hilichurl.LEASH_RADIUS)
                 continue;
@@ -173,6 +174,7 @@ public final class CombatRuntime {
                     amber.stats().def(), HilichurlProfile.STARTER_PLAYER_RESISTANCE);
             amber.damagePuppet(damage, frame);
             if (session.bunny != null) session.bunny.setHealth((float) amber.puppetHp());
+            if (session.bunny != null) session.bunny.visualHurt();
             return true;
         }
         return false;
@@ -342,7 +344,7 @@ public final class CombatRuntime {
         private ServerLevel icicleLevel;
         private ServerLevel puppetLevel;
         private Vec3 puppetLanding;
-        private Rabbit bunny;
+        private BaronBunny bunny;
         private ServerLevel rainLevel;
         private Vec3 rainOrigin;
         private ServerLevel roseLevel;
@@ -421,6 +423,8 @@ public final class CombatRuntime {
                             throwPoint.add(0, 2, 0), throwPoint.add(0, -16, 0),
                             net.minecraft.world.level.ClipContext.Block.COLLIDER,
                             net.minecraft.world.level.ClipContext.Fluid.NONE, player)).getLocation();
+                    bunnyVisual(BunnyVisualPayload.Kind.THROW, player.position().add(0, .9, 0), puppetLanding,
+                            puppetLevel.getGameTime() * 3 + 5, player.getYRot());
                 }
                 if (intent == Intent.BURST_PRESS) {
                     rainLevel = (ServerLevel) player.level();
@@ -672,6 +676,7 @@ public final class CombatRuntime {
             locomotion.reset(Math.max(party.frame(), timeline.frame()));
         }
         private void clearFieldObjects() {
+            if (puppetLevel != null) bunnyVisual(BunnyVisualPayload.Kind.CANCEL, Vec3.ZERO, Vec3.ZERO, 0, 0);
             endTraversal(Math.max(stamina().frame(), timeline.frame()));
             ++castGeneration;
             for (int slot = 0; slot < Party.SIZE; slot++) party.kit(slot).cancelCasts(timeline.frame());
@@ -1028,10 +1033,18 @@ public final class CombatRuntime {
             for (LivingEntity enemy : nearby(roseLevel, selected.position(), ROSE_IMPACT_RADIUS))
                 deal(lisa, target(enemy), Element.ELECTRO, hit.multiplier(), 1, hit.icdTag(), hit.frame(), false);
         }
+        private void bunnyVisual(BunnyVisualPayload.Kind kind, Vec3 origin, Vec3 destination, long start, float yaw) {
+            var packet = new ClientboundCustomPayloadPacket(new BunnyVisualPayload(player.getUUID(),
+                    puppetLevel.dimension().identifier(), kind, start, origin, destination, yaw));
+            // Throw has no server entity yet. Only nearby players in the owning dimension receive it.
+            for (var viewer : puppetLevel.players())
+                if (kind == BunnyVisualPayload.Kind.CANCEL || viewer.position().distanceToSqr(origin) <= 64 * 64)
+                    if (viewer.connection != null && viewer.connection.isAcceptingMessages()) viewer.connection.send(packet);
+        }
         private void puppet(AmberKit amber, Hit hit) {
             if (hit.kind() == Kind.BUNNY_LAND) {
                 if (player.level() != puppetLevel) return;
-                bunny = new Rabbit(GenshinEntities.BARON_BUNNY, puppetLevel);
+                bunny = new BaronBunny(GenshinEntities.BARON_BUNNY, puppetLevel);
                 bunny.setNoAi(true);
                 bunny.setCustomName(Component.literal("Baron Bunny"));
                 bunny.setCustomNameVisible(true);
@@ -1039,12 +1052,18 @@ public final class CombatRuntime {
                 bunny.getAttribute(Attributes.MAX_HEALTH).setBaseValue(amber.puppetHp());
                 bunny.setHealth((float) amber.puppetHp());
                 bunny.snapTo(puppetLanding);
+                bunny.landed();
                 puppetLevel.addFreshEntity(bunny);
+                bunnyVisual(BunnyVisualPayload.Kind.CANCEL, Vec3.ZERO, Vec3.ZERO, 0, 0);
+                puppetLevel.playSound(null, bunny.getX(), bunny.getY(), bunny.getZ(), SoundEvents.WOOL_FALL, SoundSource.NEUTRAL, .8F, .85F);
                 puppetLevel.sendParticles(PYRO_DUST, bunny.getX(), bunny.getY() + .5, bunny.getZ(), 16, .4, .5, .4, 0);
                 return;
             }
             if (bunny == null) return;
             Vec3 center = bunny.position().add(0, .5, 0);
+            bunnyVisual(BunnyVisualPayload.Kind.EXPLODE, bunny.position(), bunny.position(),
+                    puppetLevel.getGameTime() * 3, bunny.getYRot());
+            puppetLevel.playSound(null, center.x, center.y, center.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.NEUTRAL, .8F, 1.25F);
             bunny.discard();
             bunny = null;
             puppetLevel.sendParticles(ParticleTypes.EXPLOSION, center.x, center.y, center.z, 1, 0, 0, 0, 0);

@@ -4,7 +4,7 @@ import io.github.brainage04.genshininminecraft.command.core.ClientModCommands;
 import io.github.brainage04.genshininminecraft.client.HilichurlRenderer;
 import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.minecraft.client.renderer.entity.RabbitRenderer;
+import io.github.brainage04.genshininminecraft.client.BaronBunnyRenderer;
 import io.github.brainage04.genshininminecraft.config.ModConfig;
 import me.shedaniel.autoconfig.AutoConfigClient;
 import net.minecraft.commands.CommandSourceStack;
@@ -22,6 +22,8 @@ import io.github.brainage04.genshininminecraft.client.GenshinHud;
 import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
 import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
+import io.github.brainage04.genshininminecraft.network.BunnyVisualPayload;
+import io.github.brainage04.genshininminecraft.client.enemy.BunnyVisuals;
 import java.util.List;
 import java.util.Set;
 import net.minecraft.resources.Identifier;
@@ -51,7 +53,7 @@ public final class GenshinInMinecraftNeoForgeClient {
         GenshinInMinecraftClient.initialize();
         modBus.addListener((EntityRenderersEvent.RegisterRenderers event) -> {
             event.registerEntityRenderer(GenshinEntities.HILICHURL, HilichurlRenderer::new);
-            event.registerEntityRenderer(GenshinEntities.BARON_BUNNY, RabbitRenderer::new);
+            event.registerEntityRenderer(GenshinEntities.BARON_BUNNY, BaronBunnyRenderer::new);
         });
         CombatInput.initialize(ClientPacketDistributor::sendToServer);
         ManagedCamera.initialize(ClientPacketDistributor::sendToServer);
@@ -65,6 +67,7 @@ public final class GenshinInMinecraftNeoForgeClient {
             event.register(DamageNumberPayload.TYPE, (packet, context) -> CombatFeedback.accept(packet));
             event.register(TargetAuraPayload.TYPE, (packet, context) -> CombatFeedback.accept(packet));
             event.register(PlayerCharacterPayload.TYPE, (packet, context) -> CombatFeedback.accept(packet));
+            event.register(BunnyVisualPayload.TYPE, (packet, context) -> BunnyVisuals.accept(packet));
         });
         modBus.addListener((RegisterGuiLayersEvent event) ->
                 event.registerAbove(VanillaGuiLayers.HOTBAR, GenshinHud.ID, GenshinHud::render));

@@ -3,7 +3,7 @@ package io.github.brainage04.genshininminecraft;
 import io.github.brainage04.genshininminecraft.command.core.ModCommands;
 import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
 import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
-import net.minecraft.world.entity.animal.rabbit.Rabbit;
+import io.github.brainage04.genshininminecraft.enemy.BaronBunny;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -16,6 +16,7 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
 import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
+import io.github.brainage04.genshininminecraft.network.BunnyVisualPayload;
 import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -34,7 +35,7 @@ public class GenshinInMinecraftFabric implements ModInitializer {
         Registry.register(BuiltInRegistries.ENTITY_TYPE, GenshinEntities.HILICHURL_ID, GenshinEntities.HILICHURL);
         FabricDefaultAttributeRegistry.register(GenshinEntities.HILICHURL, Hilichurl.attributes());
         Registry.register(BuiltInRegistries.ENTITY_TYPE, GenshinEntities.BARON_BUNNY_ID, GenshinEntities.BARON_BUNNY);
-        FabricDefaultAttributeRegistry.register(GenshinEntities.BARON_BUNNY, Rabbit.createAttributes());
+        FabricDefaultAttributeRegistry.register(GenshinEntities.BARON_BUNNY, BaronBunny.createAttributes());
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 ModCommands.register(dispatcher));
         PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) ->
@@ -45,6 +46,7 @@ public class GenshinInMinecraftFabric implements ModInitializer {
         PayloadTypeRegistry.clientboundPlay().register(DamageNumberPayload.TYPE, DamageNumberPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(TargetAuraPayload.TYPE, TargetAuraPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(PlayerCharacterPayload.TYPE, PlayerCharacterPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(BunnyVisualPayload.TYPE, BunnyVisualPayload.CODEC);
         EntityTrackingEvents.START_TRACKING.register((entity, player) ->
                 CombatRuntime.get(player.level().getServer()).startTracking(player, entity));
         ServerPlayNetworking.registerGlobalReceiver(CombatIntentPayload.TYPE, (packet, context) ->

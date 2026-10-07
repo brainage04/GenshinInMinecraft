@@ -18,6 +18,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.animal.rabbit.Rabbit;
+import io.github.brainage04.genshininminecraft.enemy.BaronBunny;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
@@ -38,7 +39,7 @@ public final class CombatLifecycleGameTests {
             context.assertTrue(session.intent(Intent.SWITCH_2, start), "Select Amber");
             context.assertTrue(session.intent(Intent.SKILL_PRESS, start), "Cast Bunny");
             session.advanceTo(start + 45);
-            Rabbit bunny = bunnies(context, origin).getFirst();
+            BaronBunny bunny = bunnies(context, origin).getFirst();
             context.assertTrue(session.intent(Intent.SWITCH_4, start + 60), "Select Lisa while Bunny persists");
             session.kit().grantEnergy(80);
             context.assertTrue(session.intent(Intent.BURST_PRESS, start + 60), "Cast Rose");
@@ -108,14 +109,14 @@ public final class CombatLifecycleGameTests {
             session.intent(Intent.SWITCH_2, start);
             context.assertTrue(session.intent(Intent.SKILL_PRESS, start), "Cast Bunny before party wipe");
             session.advanceTo(start + 45);
-            Rabbit bunny = bunnies(context, player.position()).getFirst();
+            BaronBunny bunny = bunnies(context, player.position()).getFirst();
             for (int member = 0; member < Party.SIZE; member++) {
                 context.assertTrue(runtime.enemyHit(player, enemy, 120, 1000, 20), "Lethal hit falls the next active member");
             }
             context.assertFalse(player.isAlive(), "Precondition: party wiped and owner remains dead");
             session.advanceTo(start + 526);
             context.assertTrue(bunny.isRemoved() && bunnies(context, player.position()).isEmpty(),
-                    "Dead-owner expiry must not leave a landed Rabbit entity behind");
+                    "Dead-owner expiry must not leave a landed Bunny entity behind");
             close(context, target.hp(), target.maxHp(), "Party-wipe cleanup cannot deal explosion damage");
             context.assertFalse(((AmberKit) session.party().kit(1)).puppetAlive(), "Dead party has no live puppet rules state");
         });
@@ -149,7 +150,7 @@ public final class CombatLifecycleGameTests {
             context.assertTrue(session.intent(Intent.SWITCH_2, start), "Select Amber");
             context.assertTrue(session.intent(Intent.SKILL_PRESS, start), "Cast Bunny before save");
             session.advanceTo(start + AmberKit.ADAPTED_PUPPET_LANDING_FRAME);
-            Rabbit bunny = bunnies(context, origin).getFirst();
+            BaronBunny bunny = bunnies(context, origin).getFirst();
             context.assertTrue(bunny.getCustomName() != null
                     && bunny.getCustomName().getString().equals("Baron Bunny"), "A real named Bunny has landed");
             var output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, level.registryAccess());
@@ -160,7 +161,7 @@ public final class CombatLifecycleGameTests {
                 reloaded = EntityType.loadEntityRecursive(
                         TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), output.buildResult()),
                         level, EntitySpawnReason.LOAD, entity -> entity);
-                context.assertTrue(reloaded instanceof Rabbit && level.addFreshEntity(reloaded),
+                context.assertTrue(reloaded instanceof BaronBunny && level.addFreshEntity(reloaded),
                         "A saved Bunny reloads outside the session's cached entity reference");
             }
             try {
@@ -188,8 +189,8 @@ public final class CombatLifecycleGameTests {
         context.assertTrue(context.getLevel().addFreshEntity(enemy), "Lifetime target spawned");
         return enemy;
     }
-    private static java.util.List<Rabbit> bunnies(GameTestHelper context, Vec3 point) {
-        return context.getLevel().getEntitiesOfClass(Rabbit.class, new AABB(point, point).inflate(10), entity -> !entity.isRemoved());
+    private static java.util.List<BaronBunny> bunnies(GameTestHelper context, Vec3 point) {
+        return context.getLevel().getEntitiesOfClass(BaronBunny.class, new AABB(point, point).inflate(10), entity -> !entity.isRemoved());
     }
     private static void close(GameTestHelper context, double actual, double expected, String message) {
         context.assertTrue(Math.abs(actual - expected) < .0001, message + ": expected " + expected + ", actual " + actual);

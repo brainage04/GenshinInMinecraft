@@ -27,7 +27,7 @@ import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.animal.rabbit.Rabbit;
+import io.github.brainage04.genshininminecraft.enemy.BaronBunny;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -165,10 +165,16 @@ public final class HilichurlGameTests {
             tick(context, member);
             context.assertValueEqual(member.getTarget(), player, "Nearby survival player is detected by the entity AI");
             context.assertTrue(member.isWindingUp(), "Visible raised-club telegraph starts before damage");
+            context.assertValueEqual(member.visualPhase(), io.github.brainage04.genshininminecraft.rules.EnemyAnimations.Phase.TELEGRAPH,
+                    "Actual windup publishes its durable geo telegraph phase");
+            int visualOccurrence = member.visualOccurrence();
+            long visualStart = member.visualStartFrame();
             close(context, session.kit().hp(), 2342.39, "Telegraph start must not instantly damage Genshin HP");
             for (int tick = 1; tick < 10; tick++) {
                 tick(context, member);
                 close(context, session.kit().hp(), 2342.39, "No damage during the first nine wind-up ticks");
+                context.assertValueEqual(member.visualOccurrence(), visualOccurrence, "Windup does not restart on each AI tick");
+                context.assertValueEqual(member.visualStartFrame(), visualStart, "Windup keeps its server start frame");
             }
             tick(context, member);
             // Named ATK adaptation120; sourced Fighter100%; incoming damage.md DEF600/(DEF147.01+600), RES0%.
@@ -176,6 +182,8 @@ public final class HilichurlGameTests {
             close(context, session.kit().hp(), 2342.39 - expected, "Club hit damages character Genshin HP after half-second wind-up");
             close(context, player.getHealth(), 20 * (2342.39 - expected) / 2342.39, "Genshin damage mirrors to vanilla health");
             context.assertFalse(member.isWindingUp(), "Wind-up ends when the strike lands");
+            context.assertValueEqual(member.visualPhase(), io.github.brainage04.genshininminecraft.rules.EnemyAnimations.Phase.STRIKE,
+                    "Impact pose publishes exactly on the existing tenth windup tick");
             for (int tick = 0; tick < 29; tick++) tick(context, member);
             close(context, session.kit().hp(), 2342.39 - expected, "Recovery prevents repeated instant melee damage");
         });
@@ -308,12 +316,12 @@ public final class HilichurlGameTests {
             long clubFrame = Frames.atServerTick(context.getLevel().getServer().getTickCount());
             long castFrame = clubFrame - KaeyaKit.SKILL_HIT_FRAME - 2;
             context.assertTrue(castFrame >= (hitPuppet ? 60 : 0), "Server clock permits the preceding casts");
-            Rabbit bunny = null;
+            BaronBunny bunny = null;
             if (hitPuppet) {
                 context.assertTrue(session.intent(Intent.SWITCH_2, castFrame - 60), "Select Amber before strike tick");
                 context.assertTrue(session.intent(Intent.SKILL_PRESS, castFrame - 60), "Cast the real puppet");
                 session.advanceTo(castFrame - 60 + AmberKit.ADAPTED_PUPPET_LANDING_FRAME);
-                bunny = context.getLevel().getEntitiesOfClass(Rabbit.class, player.getBoundingBox().inflate(10),
+                bunny = context.getLevel().getEntitiesOfClass(BaronBunny.class, player.getBoundingBox().inflate(10),
                         entity -> entity.getType() == GenshinEntities.BARON_BUNNY && !entity.isRemoved()).getFirst();
             }
             var member = new Hilichurl(GenshinEntities.HILICHURL, context.getLevel());
@@ -342,6 +350,9 @@ public final class HilichurlGameTests {
             close(context, session.kit().hp(), playerHp, "Puppet-targeted club cannot damage its out-of-range owner");
             if (hitPuppet) close(context, bunny.getHealth(), hp, "Suppressed club leaves the puppet's vanilla mirror unchanged");
             context.assertFalse(member.isWindingUp(), "The due strike is consumed, not queued for thaw");
+            context.assertValueEqual(member.visualPhase(), io.github.brainage04.genshininminecraft.rules.EnemyAnimations.Phase.TELEGRAPH,
+                    "Freeze holds the pre-strike raised club instead of displaying suppressed impact/recovery");
+            context.assertTrue(member.frozenFrame() >= 0, "Earlier same-tick Freeze immediately publishes its stopped visual clock");
             for (int tick = 0; tick < Hilichurl.RECOVERY_TICKS; tick++) tick(context, member);
             close(context, hitPuppet ? amber.puppetHp() : session.kit().hp(), hp, "No club damage while Frozen");
             session.advanceTo(clubFrame + 400);

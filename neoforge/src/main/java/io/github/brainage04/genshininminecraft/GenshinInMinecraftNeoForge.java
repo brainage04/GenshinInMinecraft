@@ -3,7 +3,7 @@ package io.github.brainage04.genshininminecraft;
 import io.github.brainage04.genshininminecraft.command.core.ModCommands;
 import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
 import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
-import net.minecraft.world.entity.animal.rabbit.Rabbit;
+import io.github.brainage04.genshininminecraft.enemy.BaronBunny;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
@@ -20,6 +20,7 @@ import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
 import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
 import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
+import io.github.brainage04.genshininminecraft.network.BunnyVisualPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
@@ -38,7 +39,7 @@ public final class GenshinInMinecraftNeoForge {
         });
         modBus.addListener((EntityAttributeCreationEvent event) -> {
             event.put(GenshinEntities.HILICHURL, Hilichurl.attributes().build());
-            event.put(GenshinEntities.BARON_BUNNY, Rabbit.createAttributes().build());
+            event.put(GenshinEntities.BARON_BUNNY, BaronBunny.createAttributes().build());
         });
         NeoForge.EVENT_BUS.addListener((RegisterCommandsEvent event) -> ModCommands.register(event.getDispatcher()));
         NeoForge.EVENT_BUS.addListener((BreakBlockEvent event) -> {
@@ -62,6 +63,7 @@ public final class GenshinInMinecraftNeoForge {
             registrar.playToClient(DamageNumberPayload.TYPE, DamageNumberPayload.CODEC);
             registrar.playToClient(TargetAuraPayload.TYPE, TargetAuraPayload.CODEC);
             registrar.playToClient(PlayerCharacterPayload.TYPE, PlayerCharacterPayload.CODEC);
+            registrar.playToClient(BunnyVisualPayload.TYPE, BunnyVisualPayload.CODEC);
         });
         CombatRuntime.setSender(PacketDistributor::sendToPlayer);
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> CombatRuntime.get(event.getServer()).tick(event.getServer()));

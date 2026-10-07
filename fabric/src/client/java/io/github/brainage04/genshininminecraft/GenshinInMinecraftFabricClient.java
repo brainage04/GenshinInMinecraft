@@ -4,7 +4,7 @@ import io.github.brainage04.genshininminecraft.command.core.ClientModCommands;
 import io.github.brainage04.genshininminecraft.client.HilichurlRenderer;
 import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
-import net.minecraft.client.renderer.entity.RabbitRenderer;
+import io.github.brainage04.genshininminecraft.client.BaronBunnyRenderer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -16,6 +16,8 @@ import io.github.brainage04.genshininminecraft.client.GenshinHud;
 import io.github.brainage04.genshininminecraft.network.DamageNumberPayload;
 import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
+import io.github.brainage04.genshininminecraft.network.BunnyVisualPayload;
+import io.github.brainage04.genshininminecraft.client.enemy.BunnyVisuals;
 import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.FabricRenderState;
 import net.fabricmc.fabric.api.client.rendering.v1.RenderStateDataKey;
@@ -35,7 +37,7 @@ public class GenshinInMinecraftFabricClient implements ClientModInitializer {
                 ClientModCommands.register(dispatcher, FabricClientCommandSource::sendFeedback));
         GenshinInMinecraftClient.initialize();
         EntityRendererRegistry.register(GenshinEntities.HILICHURL, HilichurlRenderer::new);
-        EntityRendererRegistry.register(GenshinEntities.BARON_BUNNY, RabbitRenderer::new);
+        EntityRendererRegistry.register(GenshinEntities.BARON_BUNNY, BaronBunnyRenderer::new);
         KeyMappingHelper.registerKeyMapping(CombatInput.SKILL);
         KeyMappingHelper.registerKeyMapping(CombatInput.BURST);
         for (var mapping : CombatInput.PARTY) KeyMappingHelper.registerKeyMapping(mapping);
@@ -49,6 +51,8 @@ public class GenshinInMinecraftFabricClient implements ClientModInitializer {
                 (packet, context) -> CombatFeedback.accept(packet));
         ClientPlayNetworking.registerGlobalReceiver(PlayerCharacterPayload.TYPE,
                 (packet, context) -> CombatFeedback.accept(packet));
+        ClientPlayNetworking.registerGlobalReceiver(BunnyVisualPayload.TYPE,
+                (packet, context) -> BunnyVisuals.accept(packet));
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, GenshinHud.ID, GenshinHud::render);
         for (Identifier layer : List.of(VanillaHudElements.HEALTH_BAR, VanillaHudElements.FOOD_BAR,
                 VanillaHudElements.ARMOR_BAR, VanillaHudElements.INFO_BAR, VanillaHudElements.EXPERIENCE_LEVEL)) {

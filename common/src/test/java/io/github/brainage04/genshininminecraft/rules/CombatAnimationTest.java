@@ -144,6 +144,42 @@ class CombatAnimationTest {
             kit.leaveField(4); assertEquals(Action.NONE, kit.visual().action(4));
         }
     }
+    @Test void fieryRainBowCountersTheWholeShoulderRotationAndPointsSkyward() throws Exception {
+        var bones = assets(1).getAsJsonObject("animations").getAsJsonObject("combat.burst").getAsJsonObject("bones");
+        for (String time : new String[]{"0.78", "1.2"}) {
+            var shoulder = bones.getAsJsonObject("left_arm").getAsJsonObject("rotation").getAsJsonArray(time);
+            var bow = bones.getAsJsonObject("weapon").getAsJsonObject("rotation").getAsJsonArray(time);
+            double[] axis = rotate(shoulder, rotate(bow, new double[]{0, 1, 0}));
+            assertArrayEquals(new double[]{0, 1, 0}, axis, .000001, "Bow must point up, not across the head");
+            assertTrue(shoulder.get(2).getAsDouble() >= 40, "Left bow shoulder stays spread outward");
+            var right = bones.getAsJsonObject("right_arm").getAsJsonObject("rotation").getAsJsonArray(time);
+            assertTrue(right.get(2).getAsDouble() <= -40, "Right drawing shoulder stays spread outward");
+        }
+    }
+    @Test void raisedChannelShouldersStayOutwardInsteadOfCrossingTheFaceOrHat() throws Exception {
+        for (int slot : new int[]{0, 3}) for (String action : new String[]{"skill_start", "skill_hold"}) {
+            var clip = assets(slot).getAsJsonObject("animations").getAsJsonObject("combat." + action);
+            var bones = clip.getAsJsonObject("bones");
+            for (String side : new String[]{"left", "right"}) {
+                var keys = bones.getAsJsonObject(side + "_arm").getAsJsonObject("rotation");
+                for (var key : keys.entrySet()) {
+                    if (action.equals("skill_start") && key.getKey().equals("0.0")) continue;
+                    double outward = key.getValue().getAsJsonArray().get(2).getAsDouble();
+                    assertTrue(side.equals("left") ? outward >= 30 : outward <= -25,
+                            NAMES[slot] + " " + action + " " + side + " shoulder must stay outside head silhouette");
+                }
+            }
+        }
+    }
+    private static double[] rotate(com.google.gson.JsonArray angles, double[] vector) {
+        double x = Math.toRadians(angles.get(0).getAsDouble());
+        double y = Math.toRadians(angles.get(1).getAsDouble());
+        double z = Math.toRadians(angles.get(2).getAsDouble());
+        double a = vector[0], b = vector[1] * Math.cos(x) - vector[2] * Math.sin(x),
+                c = vector[1] * Math.sin(x) + vector[2] * Math.cos(x);
+        double d = a * Math.cos(y) + c * Math.sin(y), e = -a * Math.sin(y) + c * Math.cos(y);
+        return new double[]{d * Math.cos(z) - b * Math.sin(z), d * Math.sin(z) + b * Math.cos(z), e};
+    }
     private static void assertTiming(int slot, Action action, int hit, int second, int recovery) {
         assertEquals(new CombatAnimations.Timing(hit, second, recovery, false), CombatAnimations.timing(slot, action));
     }
