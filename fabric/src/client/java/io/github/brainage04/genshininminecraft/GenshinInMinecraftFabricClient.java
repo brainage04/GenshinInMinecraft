@@ -52,6 +52,8 @@ public class GenshinInMinecraftFabricClient implements ClientModInitializer {
         ManagedCamera.initialize(ClientPlayNetworking::send);
         TeleportScreen.initialize(ClientPlayNetworking::send);
         ClientPlayNetworking.registerGlobalReceiver(TeleportListPayload.TYPE, (packet, context) -> TeleportScreen.accept(packet));
+        ClientPlayNetworking.registerGlobalReceiver(io.github.brainage04.genshininminecraft.network.CoopStatePayload.TYPE,
+                (packet, context) -> GenshinHud.accept(packet));
         ClientPlayNetworking.registerGlobalReceiver(CharacterStatePayload.TYPE,
                 (packet, context) -> CombatInput.accept(packet));
         ClientPlayNetworking.registerGlobalReceiver(DamageNumberPayload.TYPE,

@@ -1,6 +1,7 @@
 package io.github.brainage04.genshininminecraft.client;
 
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
+import io.github.brainage04.genshininminecraft.network.CoopStatePayload;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Stamina;
 import io.github.brainage04.genshininminecraft.rules.CharacterBaseStats;
@@ -64,6 +65,15 @@ public final class GenshinHud {
         }
     }
     private static List<PartyMember> party = List.of();
+    private static CoopStatePayload coop = CoopStatePayload.SOLO;
+    private static List<String> teammateNames = List.of();
+    private static List<String> teammateHp = List.of();
+    public static CoopStatePayload coop() { return coop; }
+    public static void accept(CoopStatePayload packet) {
+        coop = packet;
+        teammateNames = packet.teammates().stream().map(member -> member.playerName() + " · " + PARTY_NAMES[member.slot()]).toList();
+        teammateHp = packet.teammates().stream().map(member -> Math.round(member.hp()) + " / " + Math.round(member.maxHp())).toList();
+    }
     private static final String[] PARTY_NAMES = {"Traveler", "Amber", "Kaeya", "Lisa"};
     private static final float[] BURST_COSTS = {60, 40, 60, 80};
     private static String hpText = "";
@@ -84,6 +94,7 @@ public final class GenshinHud {
     public static boolean partyUnavailable(int slot) {
         var member = party.get(slot);
         var state = CombatInput.state();
+        if ((coop.allocatedMask() & 1 << slot) == 0) return true;
         return HudFormatting.partyUnavailable(member.active(), member.hp(), state.switchRemainingFrames(), state.switchBlocked());
     }
     public static double skillSweepFraction() {
@@ -100,6 +111,7 @@ public final class GenshinHud {
     public static void accept(CharacterStatePayload state) {
         if (!state.managed()) {
             party = List.of();
+            accept(CoopStatePayload.SOLO);
             rejectionSerial = 0;
             feedbackTicks = 0;
             rejectionText = "";
@@ -150,10 +162,21 @@ public final class GenshinHud {
         int height = graphics.guiHeight();
         int rowHeight = Math.min(34, Math.max(24, (height - 90) / 4));
         PartyMember active = null;
+        for (int index = 0; index < coop.teammates().size(); index++) {
+            var teammate = coop.teammates().get(index);
+            int y = 18 + index * 32;
+            graphics.fill(10, y, 150, y + 29, PANEL);
+            graphics.text(font, teammateNames.get(index), 15, y + 4,
+                    ElementPalette.color(CharacterBaseStats.at(CharacterStatePayload.ROSTER.get(teammate.slot()), 20).element()));
+            bar(graphics, 15, y + 16, 80, 4, teammate.hp(), teammate.maxHp(), HP);
+            graphics.text(font, teammateHp.get(index), 15, y + 21, BORDER);
+        }
+        int visibleRow = 0;
         for (int index = 0; index < Math.min(4, party.size()); index++) {
+            if ((coop.allocatedMask() & 1 << index) == 0) continue;
             PartyMember member = party.get(index);
             int x = width - 122;
-            int y = 18 + index * rowHeight;
+            int y = 18 + visibleRow++ * rowHeight;
             graphics.fill(x, y, width - 10, y + rowHeight - 3, PANEL);
             if (member.active()) {
                 active = member;

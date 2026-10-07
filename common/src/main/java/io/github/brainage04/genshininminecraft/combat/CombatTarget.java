@@ -18,7 +18,8 @@ public final class CombatTarget {
     public static final double VANILLA_HEALTH_TO_GENSHIN_HP = 100;
     public static final double DEFAULT_RESISTANCE = .10;
     private final LivingEntity entity;
-    private final double maxHp;
+    private final double soloMaxHp;
+    private double maxHp;
     private final int level;
     private final double baseResistance;
     private double hp;
@@ -39,7 +40,8 @@ public final class CombatTarget {
         boolean hilichurl = entity instanceof Hilichurl;
         level = hilichurl ? ((Hilichurl) entity).genshinLevel() : TravelerAnemoKit.STARTER_LEVEL;
         baseResistance = hilichurl ? HilichurlProfile.RESISTANCE : DEFAULT_RESISTANCE;
-        maxHp = hilichurl ? HilichurlProfile.maxHp(level) : entity.getMaxHealth() * VANILLA_HEALTH_TO_GENSHIN_HP;
+        soloMaxHp = hilichurl ? HilichurlProfile.maxHp(level) : entity.getMaxHealth() * VANILLA_HEALTH_TO_GENSHIN_HP;
+        maxHp = soloMaxHp;
         hp = maxHp * entity.getHealth() / entity.getMaxHealth();
         mirroredHealth = entity.getHealth();
     }
@@ -49,6 +51,14 @@ public final class CombatTarget {
     public double endurance() { return entity instanceof Hilichurl ? HilichurlProfile.PLACEHOLDER_ENDURANCE : 0; }
     public double hp() { return hp; }
     public double maxHp() { return maxHp; }
+    /** Named live transition adaptation: preserve HP percentage; never heal/reset aura on membership change. */
+    void scaleHp(int players) {
+        double next = soloMaxHp * io.github.brainage04.genshininminecraft.rules.Coop.enemyHpMultiplier(players);
+        if (next == maxHp) return;
+        reconcileVanillaHealth();
+        hp *= next / maxHp;
+        maxHp = next;
+    }
     public AuraState aura() { return aura; }
     public ConductiveState conductive() { return conductive; }
     public int swirlCount() { return swirlCount; }

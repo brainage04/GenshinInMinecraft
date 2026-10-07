@@ -6,6 +6,7 @@
 	"icon": "assets/genshininminecraft/icon.png",
 	"environment": "*",
 	"entrypoints": {
+		"main": ["io.github.brainage04.genshininminecraft.CoopSmokeServer"],
 		"fabric-client-gametest": [
 			"io.github.brainage04.genshininminecraft.GenshinInMinecraftClientGameTest"
 		],

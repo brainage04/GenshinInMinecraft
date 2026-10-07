@@ -1,0 +1,7 @@
+{
+  "environment": "minecraft:default",
+  "structure": "fabricmoddingconventions:empty",
+  "max_ticks": 40,
+  "type": "minecraft:function",
+  "function": "genshininminecraft:coop_energy_routing_and_reaction_ownership"
+}

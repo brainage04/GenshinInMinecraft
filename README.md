@@ -28,6 +28,17 @@ Accept the disposable copy's experimental-world prompts. Right-click the origina
 
 Landmark coordinates/screenshots and exact behavior: [docs/map-landmarks.md](docs/map-landmarks.md). Fresh-copy safety checks, names/options and mandatory private-display launch for agents: [scripts/map-port/README.md](scripts/map-port/README.md#managed-mondstadt-playtest).
 
+# Two-player co-op
+
+Run the matching Fabric or NeoForge jar/dependencies on a dedicated server and both clients, enable `/genshin managed on` (or use a disposable arena/map overlay), and join the same world. The group is all connected managed-world players, across dimensions, maximum4. Two players each control2 of their own4 characters;3 players get2/1/1 (earliest connected player gets2),4 players get1 each. Overworld duplicates across players are allowed. FirstN slots are kept by default; outside combat, actions and traversal use `/genshin coop pick 1 3` (or `1,3`) to choose exactly your allocation. Leaving restores the full owned party without resetting dormant HP, energy or cooldowns.
+
+The small top-left co-op list shows teammate names, active characters and HP; each real remote player uses their active-character model/nameplate. Both players attack the same enemies and can react on each other's auras; damage belongs to the trigger character. No direct player/puppet friendly fire or Thrilling Tales transfer occurs. Skill particles credit nearby living same-dimension partners using each own roster and Energy Recharge. Enemy HP scales×1.5 with2 players (×2/×2.5 with3/4); current overworld ATK is unchanged. Statues spend one shared reserve but unlocks stay per-player. A wipe/35% respawn affects only that player's allocated characters; teammates continue. Resonance is not implemented. Routing32-block range, live HP-percentage rescaling, join-order host and roster choices are explicit [adaptations](docs/decisions.md), not invented pinned-release measurements.
+
+Repeatable private dedicated-server proof: `python3 scripts/coop-smoke/run.py` **after** the Gradle gate, never alongside it. It runs two separate headless development clients and saves their remote-model screenshots plus combat/reaction/independent-respawn assertions under ignored `run/coop-smoke/<timestamp>/`; requirements and isolation are in [AGENTS.md](AGENTS.md#dedicated-two-client-co-op-smoke). The driver is test-only, absent from release jars.
+
+Verified2026-10-08: full gate passes with86 server tests per loader/mode plus the connected Fabric client suite; separate two-client smoke passes. Inspected proof: `run/coop-smoke/20261008-091603/screenshots/coop-host-sees-lisa.png`, `coop-guest-sees-kaeya.png` and `coop-guest-wiped.png`; exact run/assertions are recorded in [decisions](docs/decisions.md#2026-10-08---dedicated-server-co-op-allocation-and-combat-24).
+
+
 # Development
 
 `./gradlew --no-daemon build` produces two jars in `build/libs`: `genshininminecraft-<version>.jar` (Fabric, requires Fabric API, Cloth Config and **GeckoLib Fabric 26.2 5.5.5**) and `genshininminecraft-neoforge-<version>.jar` (NeoForge, requires Cloth Config and **GeckoLib NeoForge 26.2 5.5.6**). Install exactly one loader jar plus the matching external GeckoLib jar on clients **and dedicated servers**; do not install the common API jar or both loader builds. Development and production GameTests provision GeckoLib automatically.

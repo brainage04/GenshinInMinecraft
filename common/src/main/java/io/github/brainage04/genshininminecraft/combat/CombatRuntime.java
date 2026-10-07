@@ -6,6 +6,7 @@ import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import io.github.brainage04.genshininminecraft.network.BunnyVisualPayload;
 import io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload;
+import io.github.brainage04.genshininminecraft.network.CoopStatePayload;
 import io.github.brainage04.genshininminecraft.rules.*;
 import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit;
@@ -106,8 +107,86 @@ public final class CombatRuntime {
     private static final Element[] ABSORPTION_PRIORITY = {Element.CRYO, Element.PYRO, Element.HYDRO, Element.ELECTRO};
     private static final Map<MinecraftServer, CombatRuntime> SERVERS = new HashMap<>();
     private static BiConsumer<ServerPlayer, CharacterStatePayload> sender;
-    private final Map<UUID, Session> players = new HashMap<>();
+    private final Map<UUID, Session> players = new java.util.LinkedHashMap<>();
     private final Map<UUID, CombatTarget> targets = new HashMap<>();
+    private final java.util.ArrayList<Session> coop = new java.util.ArrayList<>(Coop.MAX_PLAYERS);
+    public int coopCount() { return Math.max(1, coop.size()); }
+    /** All players in this managed saved world, across dimensions; earliest connected participant is host. */
+    public void reconcileCoop(MinecraftServer server) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) session(player);
+        for (ServerLevel level : server.getAllLevels()) for (ServerPlayer player : level.players())
+            if (!player.isRemoved()) session(player);
+        coop.clear();
+        for (Session state : players.values()) if (participating(state.player)) {
+            if (coop.size() == Coop.MAX_PLAYERS) {
+                if (state.player.connection != null && state.player.connection.isAcceptingMessages())
+                    state.player.connection.disconnect(Component.literal("Genshin co-op supports at most four players."));
+                continue;
+            }
+            coop.add(state);
+        }
+        int count = coopCount();
+        long frame = Math.max(timeline.frame(), Frames.atServerTick(server.getTickCount()));
+        for (int index = 0; index < coop.size(); index++) {
+            Session state = coop.get(index);
+            int mask = Coop.select(state.preferredRoster, Coop.capacity(count, index));
+            if (mask != state.party.allocatedMask()) {
+                state.reconcileHealth();
+                state.party.allocate(mask, frame);
+                state.mirrorHealth();
+                state.lastSync = null;
+                state.sync();
+            }
+        }
+        for (CombatTarget target : targets.values()) target.scaleHp(count);
+    }
+    /** Vanilla removes a dead body from the level before its connected client requests respawn. */
+    private static boolean participating(ServerPlayer player) {
+        return player.level().getServer().getPlayerList().getPlayers().contains(player)
+                || !player.isRemoved() && player.level().players().contains(player);
+    }
+    public boolean pickRoster(ServerPlayer player, int mask) {
+        if (!ManagedWorld.isManaged(player.level())) return false;
+        reconcileCoop(player.level().getServer());
+        Session state = session(player);
+        if ((mask & ~Coop.FULL_ROSTER) != 0 || Integer.bitCount(mask) != state.party.allocatedCount()
+                || state.inOverworldCombat() || !player.isAlive() || state.kit().actionBlocked()
+                || state.traversal.active()) return false;
+        state.preferredRoster = mask;
+        state.reconcileHealth();
+        state.party.allocate(mask, Math.max(timeline.frame(), Frames.atServerTick(player.level().getServer().getTickCount())));
+        state.mirrorHealth();
+        state.lastSync = null;
+        state.sync();
+        syncCoop();
+        return true;
+    }
+    private void syncCoop() {
+        for (Session owner : coop) {
+            if (owner.player.connection == null || !owner.player.connection.isAcceptingMessages()) continue;
+            var previous = owner.lastCoopSync;
+            boolean changed = previous == null || previous.allocatedMask() != owner.party.allocatedMask()
+                    || previous.teammates().size() != coop.size() - 1;
+            int index = 0;
+            if (!changed) for (Session other : coop) if (other != owner) {
+                var teammate = previous.teammates().get(index++);
+                if (!teammate.uuid().equals(other.player.getUUID()) || !teammate.playerName().equals(other.player.getGameProfile().name())
+                        || teammate.slot() != other.party.activeSlot() || teammate.hp() != (float) other.kit().hp()
+                        || teammate.maxHp() != (float) other.kit().maxHp()) {
+                    changed = true;
+                    break;
+                }
+            }
+            if (!changed) continue;
+            var teammates = new java.util.ArrayList<CoopStatePayload.Teammate>(Math.max(0, coop.size() - 1));
+            for (Session other : coop) if (other != owner) teammates.add(new CoopStatePayload.Teammate(
+                    other.player.getUUID(), other.player.getGameProfile().name(), other.party.activeSlot(),
+                    (float) other.kit().hp(), (float) other.kit().maxHp()));
+            var packet = new CoopStatePayload(owner.party.allocatedMask(), teammates);
+            owner.player.connection.send(new ClientboundCustomPayloadPacket(packet));
+            owner.lastCoopSync = packet;
+        }
+    }
 
     private CombatRuntime() {}
     private final EventTimeline timeline = new EventTimeline();
@@ -144,7 +223,7 @@ public final class CombatRuntime {
     public void respawn(ServerPlayer player) {
         if (!ManagedWorld.isManaged(player.level())) return;
         Session state = session(player);
-        for (var member : state.party.members()) if (member.alive()) return;
+        if (!state.party.wiped()) return;
         OverlayRuntime.respawn(player);
         state.party.reviveAfterWipe();
         state.mirrorHealth();
@@ -153,15 +232,23 @@ public final class CombatRuntime {
     }
     public static boolean cancelsVanillaMelee(Player player) { return ManagedWorld.isManaged(player.level()); }
     public Session session(ServerPlayer player) {
-        Session previous = players.get(player.getUUID());
-        if (previous != null && previous.player != player) forget(player.getUUID());
-        Session state = players.computeIfAbsent(player.getUUID(), ignored -> new Session(player));
+        Session state = players.get(player.getUUID());
+        if (state == null || state.player != player) {
+            int preferred = state == null ? Coop.FULL_ROSTER : state.preferredRoster;
+            int allocation = state == null ? Coop.FULL_ROSTER : state.party.allocatedMask();
+            if (state != null) finishSession(state);
+            state = new Session(player, preferred, allocation);
+            // Replacing an existing LinkedHashMap value retains this connection's join-order host role.
+            players.put(player.getUUID(), state);
+        }
         state.reconcileDimension();
         return state;
     }
     public CombatTarget target(LivingEntity entity) {
-        if (entity instanceof Player) throw new IllegalArgumentException("Players are not kit targets");
-        return targets.computeIfAbsent(entity.getUUID(), ignored -> new CombatTarget(entity));
+        if (entity instanceof Player || entity instanceof BaronBunny) throw new IllegalArgumentException("Allies are not kit targets");
+        CombatTarget target = targets.computeIfAbsent(entity.getUUID(), ignored -> new CombatTarget(entity));
+        target.scaleHp(coopCount());
+        return target;
     }
     /** Lookup only: vanilla movement must not create combat profiles or advance reaction timelines. */
     public static boolean isFrozen(LivingEntity entity) {
@@ -172,14 +259,15 @@ public final class CombatRuntime {
     }
     public void forget(UUID uuid) {
         Session removedPlayer = players.remove(uuid);
-        if (removedPlayer != null) {
-            removedPlayer.clearFieldObjects();
-            removedPlayer.stamina().stopSprint(Math.max(removedPlayer.party.frame(),
-                    Frames.atServerTick(removedPlayer.player.level().getServer().getTickCount())));
-            removedPlayer.saveResources();
-        }
+        if (removedPlayer != null) finishSession(removedPlayer);
         CombatTarget removed = targets.remove(uuid);
         if (removed != null) broadcast(removed, new TargetAuraPayload(removed.entity().getId(), 0, 0));
+    }
+    private void finishSession(Session state) {
+        state.clearFieldObjects();
+        state.stamina().stopSprint(Math.max(state.party.frame(),
+                Frames.atServerTick(state.player.level().getServer().getTickCount())));
+        state.saveResources();
     }
     /** Replacing the profile invalidates queued EC callbacks as well as aura/ICD state. */
     public void resetTarget(LivingEntity entity) {
@@ -222,6 +310,7 @@ public final class CombatRuntime {
         return false;
     }
     private boolean isPuppet(LivingEntity entity) {
+        if (entity instanceof BaronBunny) return true;
         for (Session session : players.values()) if (session.bunny == entity) return true;
         return false;
     }
@@ -229,7 +318,7 @@ public final class CombatRuntime {
         if (!ManagedWorld.isManaged(player.level())) return false;
         long frame = Math.max(timeline.frame(), Frames.atServerTick(player.level().getServer().getTickCount()));
         advanceTimeline(frame);
-        if (!enemy.isAlive() || enemy.isRemoved() || isFrozen(enemy) || enemy.level() != player.level()
+        if (enemy instanceof Player || enemy instanceof BaronBunny || !enemy.isAlive() || enemy.isRemoved() || isFrozen(enemy) || enemy.level() != player.level()
                 || player.isCreative() || player.isSpectator() || !player.isAlive() || player.isRemoved()) return false;
         Session state = session(player);
         if (state.stamina().dashInvulnerable(frame)) return false;
@@ -240,6 +329,7 @@ public final class CombatRuntime {
         ServerLevel level = (ServerLevel) player.level();
         var source = level.damageSources().mobAttack(enemy);
         if (player.isInvulnerableTo(level, source)) return false;
+        state.lastCombatFrame = frame;
         applyCharacterLoss(state, amount, source, frame);
         // Incoming combat damage uses the attack's element too, not a red damage-taken override.
         var number = new ClientboundCustomPayloadPacket(new DamageNumberPayload(player.getId(),
@@ -316,6 +406,7 @@ public final class CombatRuntime {
     }
     public boolean receive(ServerPlayer player, Intent intent) {
         if (!ManagedWorld.isManaged(player.level()) || !player.isAlive() || player.isSpectator()) return false;
+        reconcileCoop(player.level().getServer());
         var state = session(player);
         state.reconcileHealth();
         return state.intent(intent, Frames.atServerTick(player.level().getServer().getTickCount()));
@@ -332,6 +423,7 @@ public final class CombatRuntime {
         timeline.advanceTo(frame);
     }
     public void tick(MinecraftServer server) {
+        if (ManagedWorld.isManaged(server.overworld())) reconcileCoop(server);
         OverlayRuntime.tick(server);
         long frame = Frames.atServerTick(server.getTickCount());
         boolean managed = ManagedWorld.isManaged(server.overworld());
@@ -353,8 +445,9 @@ public final class CombatRuntime {
             state.tickMovement(frame);
             state.sync();
         }
+        if (managed) syncCoop();
         players.values().removeIf(state -> {
-            if (!state.player.isRemoved()) return false;
+            if (participating(state.player)) return false;
             state.clearFieldObjects();
             state.saveResources();
             return true;
@@ -375,6 +468,9 @@ public final class CombatRuntime {
         private ServerLevel sessionLevel;
         private long castGeneration;
         private final Party party;
+        private int preferredRoster = Coop.FULL_ROSTER;
+        private CoopStatePayload lastCoopSync;
+        private long lastCombatFrame = -300;
         private final Random random;
         private final Random roseTargets;
         private final UUID[] combatOwners = new UUID[Party.SIZE];
@@ -431,12 +527,14 @@ public final class CombatRuntime {
         private final boolean[] burstWasReady = new boolean[Party.SIZE];
         private final boolean[] skillWasCooling = new boolean[Party.SIZE];
 
-        private Session(ServerPlayer player) {
+        private Session(ServerPlayer player, int preferred, int allocation) {
             this.player = player;
             sessionLevel = player.level();
             random = new Random(player.getUUID().getLeastSignificantBits());
             roseTargets = new Random(player.getUUID().getMostSignificantBits());
             party = new Party(timeline, this::hit);
+            preferredRoster = preferred;
+            party.allocate(allocation, timeline.frame());
             traversal = new Traversal(party.stamina());
             // ICD belongs to a character+player, not to the shared Minecraft player entity.
             ByteBuffer identity = ByteBuffer.allocate(2 * Long.BYTES + Integer.BYTES);
@@ -458,6 +556,12 @@ public final class CombatRuntime {
         }
         public CharacterKit kit() { return party.activeKit(); }
         public Party party() { return party; }
+        public boolean inOverworldCombat() {
+            return Math.max(party.frame(), Frames.atServerTick(player.level().getServer().getTickCount())) - lastCombatFrame < 300
+                    || !player.level().getEntitiesOfClass(Hilichurl.class,
+                    player.getBoundingBox().inflate(Hilichurl.LEASH_RADIUS),
+                    enemy -> enemy.isAlive() && (enemy.getTarget() == player || bunny != null && enemy.getTarget() == bunny)).isEmpty();
+        }
         public Stamina stamina() { return party.stamina(); }
         /** Authoritative recovery mutations must update the vanilla mirror before resource reconciliation. */
         public void resourcesChanged() { mirrorHealth(); saveResources(); sync(); }
@@ -1060,9 +1164,15 @@ public final class CombatRuntime {
             return presentations.values().stream().map(Presentation::packet).toList();
         }
         private void collect(Element element, int count) {
-            party.collect(Energy.Item.PARTICLE, element, count);
-            motionSound(SoundEvents.EXPERIENCE_ORB_PICKUP, .35F, 1.25F);
-            resourceSounds();
+            // Immediate collection remains the existing adaptation; nearby batteries now credit each own allocation.
+            if (coop.isEmpty()) party.collect(Energy.Item.PARTICLE, element, count);
+            else for (Session recipient : coop)
+                if (recipient.valid() && recipient.player.level() == player.level()
+                        && recipient.player.position().distanceToSqr(player.position()) <= Coop.ADAPTED_ENERGY_RADIUS * Coop.ADAPTED_ENERGY_RADIUS) {
+                    recipient.party.collect(Energy.Item.PARTICLE, element, count);
+                    recipient.motionSound(SoundEvents.EXPERIENCE_ORB_PICKUP, .35F, 1.25F);
+                    recipient.resourceSounds();
+                }
         }
         private void rainVisuals(long frame) {
             long generation = castGeneration;
@@ -1394,6 +1504,7 @@ public final class CombatRuntime {
                     target.resistance(element), amplification, 0, critical ? Damage.CritMode.CRIT : Damage.CritMode.NON_CRIT, null);
             boolean applied = target.damage(player, amount);
             if (applied) {
+                lastCombatFrame = frame;
                 feedback(target, amount, element, amplification == null ? null : amplification.type(), critical);
                 soundBudget.play((ServerLevel) target.entity().level(), target.entity().position(), CombatSounds.element(element), frame);
                 if (critical) soundBudget.play((ServerLevel) target.entity().level(), target.entity().position(), CombatSounds.Cue.CRIT, frame);

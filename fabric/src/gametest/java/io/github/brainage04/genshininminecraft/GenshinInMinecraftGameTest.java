@@ -17,6 +17,12 @@ import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 
 public class GenshinInMinecraftGameTest {
+    @GameTest public void coopRosterMembershipAndHpScaling(GameTestHelper context) { io.github.brainage04.genshininminecraft.gametest.CoopGameTests.rosterMembershipRestoresSavedResourcesAndScalesExistingHp(context); }
+    @GameTest public void coopEnergyRoutingAndReactionOwnership(GameTestHelper context) { io.github.brainage04.genshininminecraft.gametest.CoopGameTests.particlesRouteNearbyOwnAllocationsAndReactionUsesTriggerOwner(context); }
+    @GameTest public void coopEveryDamagePathExcludesAllies(GameTestHelper context) { io.github.brainage04.genshininminecraft.gametest.CoopGameTests.everyStarterDamagePathExcludesTeammateAndPuppet(context); }
+    @GameTest public void coopAggroAndIndependentWipe(GameTestHelper context) { io.github.brainage04.genshininminecraft.gametest.CoopGameTests.aggroTransfersWithoutLeashResetAndLocalWipeDoesNotKillGuest(context); }
+    @GameTest public void coopSharedStatueReserve(GameTestHelper context) { io.github.brainage04.genshininminecraft.gametest.CoopGameTests.statuesSpendOneHostReserveForBothAllocatedRosters(context); }
+    @GameTest public void coopConnectedCorpseNativeRespawn(GameTestHelper context) { io.github.brainage04.genshininminecraft.gametest.CoopGameTests.connectedRemovedCorpseKeepsAllocationUntilNativeRespawn(context); }
     @GameTest public void overlayApplyIsIdempotentAndPreservesBlocks(GameTestHelper context) { OverlayGameTests.overlayApplyIsIdempotentAndPreservesBlocks(context); }
     @GameTest public void overlayActivationPersistsPerPlayerAndTeleportMoves(GameTestHelper context) { OverlayGameTests.overlayActivationPersistsPerPlayerAndTeleportMoves(context); }
     @GameTest public void overlayWipeUsesNearestActivatedPointAt35Percent(GameTestHelper context) { OverlayGameTests.overlayWipeUsesNearestActivatedPointAt35Percent(context); }

@@ -12,6 +12,7 @@
 		"ServerSaveMixin",
 		"PlayerFallDamageMixin",
 		"FrozenLivingEntityMixin",
+		"CoopFriendlyFireMixin",
 		"FrozenEntityMovementMixin"
 	],
 	"injectors": {

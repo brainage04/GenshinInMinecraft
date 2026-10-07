@@ -49,6 +49,8 @@ public class GenshinInMinecraftFabric implements ModInitializer {
         PayloadTypeRegistry.serverboundPlay().register(CameraYawPayload.TYPE, CameraYawPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(TeleportRequestPayload.TYPE, TeleportRequestPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(CharacterStatePayload.TYPE, CharacterStatePayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(io.github.brainage04.genshininminecraft.network.CoopStatePayload.TYPE,
+                io.github.brainage04.genshininminecraft.network.CoopStatePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(DamageNumberPayload.TYPE, DamageNumberPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(TargetAuraPayload.TYPE, TargetAuraPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(PlayerCharacterPayload.TYPE, PlayerCharacterPayload.CODEC);

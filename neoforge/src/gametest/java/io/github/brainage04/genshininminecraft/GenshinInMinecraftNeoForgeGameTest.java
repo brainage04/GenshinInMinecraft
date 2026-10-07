@@ -26,6 +26,12 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 @EventBusSubscriber(modid = GenshinInMinecraft.MOD_ID)
 public final class GenshinInMinecraftNeoForgeGameTest {
     private static final Map<String, Consumer<GameTestHelper>> TESTS = Map.ofEntries(
+            Map.entry("coop_roster_membership_and_hp_scaling", io.github.brainage04.genshininminecraft.gametest.CoopGameTests::rosterMembershipRestoresSavedResourcesAndScalesExistingHp),
+            Map.entry("coop_energy_routing_and_reaction_ownership", io.github.brainage04.genshininminecraft.gametest.CoopGameTests::particlesRouteNearbyOwnAllocationsAndReactionUsesTriggerOwner),
+            Map.entry("coop_every_damage_path_excludes_allies", io.github.brainage04.genshininminecraft.gametest.CoopGameTests::everyStarterDamagePathExcludesTeammateAndPuppet),
+            Map.entry("coop_aggro_and_independent_wipe", io.github.brainage04.genshininminecraft.gametest.CoopGameTests::aggroTransfersWithoutLeashResetAndLocalWipeDoesNotKillGuest),
+            Map.entry("coop_shared_statue_reserve", io.github.brainage04.genshininminecraft.gametest.CoopGameTests::statuesSpendOneHostReserveForBothAllocatedRosters),
+            Map.entry("coop_connected_corpse_native_respawn", io.github.brainage04.genshininminecraft.gametest.CoopGameTests::connectedRemovedCorpseKeepsAllocationUntilNativeRespawn),
             Map.entry("overlay_apply_is_idempotent_and_preserves_blocks", OverlayGameTests::overlayApplyIsIdempotentAndPreservesBlocks),
             Map.entry("overlay_activation_persists_per_player_and_teleport_moves", OverlayGameTests::overlayActivationPersistsPerPlayerAndTeleportMoves),
             Map.entry("overlay_wipe_uses_nearest_activated_point_at_35_percent", OverlayGameTests::overlayWipeUsesNearestActivatedPointAt35Percent),

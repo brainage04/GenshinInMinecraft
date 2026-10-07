@@ -1,0 +1,7 @@
+{
+  "environment": "minecraft:default",
+  "structure": "fabricmoddingconventions:empty",
+  "max_ticks": 40,
+  "type": "minecraft:function",
+  "function": "genshininminecraft:coop_every_damage_path_excludes_allies"
+}

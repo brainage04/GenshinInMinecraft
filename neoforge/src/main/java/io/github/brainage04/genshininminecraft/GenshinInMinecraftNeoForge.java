@@ -72,6 +72,8 @@ public final class GenshinInMinecraftNeoForge {
             });
             registrar.playToClient(TeleportListPayload.TYPE, TeleportListPayload.CODEC);
             registrar.playToClient(CharacterStatePayload.TYPE, CharacterStatePayload.CODEC);
+            registrar.playToClient(io.github.brainage04.genshininminecraft.network.CoopStatePayload.TYPE,
+                    io.github.brainage04.genshininminecraft.network.CoopStatePayload.CODEC);
             registrar.playToClient(DamageNumberPayload.TYPE, DamageNumberPayload.CODEC);
             registrar.playToClient(TargetAuraPayload.TYPE, TargetAuraPayload.CODEC);
             registrar.playToClient(PlayerCharacterPayload.TYPE, PlayerCharacterPayload.CODEC);

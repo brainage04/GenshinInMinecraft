@@ -152,26 +152,27 @@ public final class Hilichurl extends PathfinderMob implements GeoEntity {
             return;
         }
         LivingEntity target = getTarget();
-        if (target instanceof ServerPlayer player && (!eligible(player) || player.position().distanceToSqr(campAnchor) > LEASH_RADIUS * LEASH_RADIUS)
-                || target != null && distanceToSqr(campAnchor) > LEASH_RADIUS * LEASH_RADIUS) {
+        if (distanceToSqr(campAnchor) > LEASH_RADIUS * LEASH_RADIUS) {
             resetEncounter(level);
             returnHome();
             return;
         }
         LivingEntity puppet = CombatRuntime.get(level.getServer()).tauntTarget(this);
-        if (puppet != null && puppet != target) { cancelSwing(); target = puppet; }
-        if (target != null && (!target.isAlive() || target.isRemoved()
-                || !(target instanceof ServerPlayer) && target != puppet)) { cancelSwing(); target = null; }
-        if (target == null) {
-            double closest = AGGRO_RADIUS * AGGRO_RADIUS;
-            for (ServerPlayer candidate : level.players()) {
-                double distance = distanceToSqr(candidate);
-                if (eligible(candidate) && candidate.position().distanceToSqr(campAnchor) <= LEASH_RADIUS * LEASH_RADIUS
-                        && distance < closest && hasLineOfSight(candidate)) {
-                    target = candidate;
-                    closest = distance;
-                }
-            }
+        LivingEntity nearest = null;
+        double closest = target == null ? AGGRO_RADIUS * AGGRO_RADIUS : LEASH_RADIUS * LEASH_RADIUS;
+        for (ServerPlayer candidate : level.players()) {
+            if (!eligible(candidate) || candidate.position().distanceToSqr(campAnchor) > LEASH_RADIUS * LEASH_RADIUS
+                    || !hasLineOfSight(candidate)) continue;
+            double distance = distanceToSqr(candidate);
+            // An already engaged player may stay beyond acquisition range, but cannot monopolize a closer guest.
+            if (nearest == null && candidate == target || distance < closest) { nearest = candidate; closest = distance; }
+        }
+        LivingEntity selected = puppet != null ? puppet : nearest;
+        if (selected != target) { cancelSwing(); target = selected; }
+        if (target == null && getTarget() != null) {
+            resetEncounter(level);
+            returnHome();
+            return;
         }
         if (getTarget() == null && target != null) playSound(SoundEvents.PIGLIN_ANGRY, .45F, .95F);
         setTarget(target);

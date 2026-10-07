@@ -245,7 +245,9 @@ public final class OverlayRuntime {
         var data = OverlaySavedData.get(player.level().getServer());
         var session = CombatRuntime.get(player.level().getServer()).session(player);
         boolean changed = false;
-        for (var member : session.party().members()) {
+        for (int slot = 0; slot < io.github.brainage04.genshininminecraft.rules.Party.SIZE; slot++) {
+            if (!session.party().allocated(slot)) continue;
+            var member = session.party().members().get(slot);
             if (!member.alive()) { member.setHp(Math.round(member.maxHp() * PartySave.WIPE_REVIVE_HP_FRACTION)); changed = true; }
             if (healFromReserve) {
                 double amount = data.spend(member.maxHp() - member.hp());

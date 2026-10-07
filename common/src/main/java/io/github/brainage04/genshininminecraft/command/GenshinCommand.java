@@ -3,6 +3,7 @@ package io.github.brainage04.genshininminecraft.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
 import io.github.brainage04.genshininminecraft.rules.Element;
@@ -37,6 +38,27 @@ public final class GenshinCommand {
         dispatcher.register(Commands.literal(COMMAND_NAME)
                 .executes(context -> execute(context.getSource()))
                 .then(auraCommand())
+                .then(Commands.literal("coop").then(Commands.literal("pick")
+                        .then(Commands.argument("slots", StringArgumentType.greedyString()).executes(context -> {
+                            int mask = 0;
+                            try {
+                                for (String value : StringArgumentType.getString(context, "slots").split("[,\\s]+")) {
+                                    int slot = Integer.parseInt(value) - 1;
+                                    if (slot < 0 || slot >= 4 || (mask & 1 << slot) != 0) throw new IllegalArgumentException();
+                                    mask |= 1 << slot;
+                                }
+                            } catch (IllegalArgumentException exception) {
+                                context.getSource().sendFailure(Component.literal("Choose distinct slots 1–4, separated by spaces or commas."));
+                                return 0;
+                            }
+                            var player = context.getSource().getPlayerOrException();
+                            if (!CombatRuntime.get(context.getSource().getServer()).pickRoster(player, mask)) {
+                                context.getSource().sendFailure(Component.literal("Choose exactly your allocated number of characters, outside combat/actions."));
+                                return 0;
+                            }
+                            context.getSource().sendSuccess(() -> Component.literal("Co-op roster selected."), false);
+                            return 1;
+                        }))))
                 .then(Commands.literal("overlay")
                         .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.literal("apply").executes(context -> {

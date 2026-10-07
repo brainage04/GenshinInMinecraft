@@ -4,7 +4,7 @@ import io.github.brainage04.genshininminecraft.rules.kit.*;
 import java.util.List;
 import java.util.function.BiConsumer;
 
-/** Starter solo roster and its one shared stamina pool; the server adapter owns this party. */
+/** Owned starter roster and shared stamina; allocation never deletes persisted character resources. */
 public final class Party {
     public static final int SIZE = 4;
     public static final long SWITCH_COOLDOWN_FRAMES = 60; // party.md: one second.
@@ -14,6 +14,24 @@ public final class Party {
     private final List<CharacterState> members;
     private int active;
     private long switchReady;
+    private int allocated = Coop.FULL_ROSTER;
+    public int allocatedMask() { return allocated; }
+    public int allocatedCount() { return Integer.bitCount(allocated); }
+    public boolean allocated(int slot) { return slot >= 0 && slot < SIZE && (allocated & 1 << slot) != 0; }
+    public boolean wiped() {
+        for (int slot = 0; slot < SIZE; slot++) if (allocated(slot) && members.get(slot).alive()) return false;
+        return true;
+    }
+    /** Membership changes cancel the removed body's action, without a weapon-switch buff trigger. */
+    public void allocate(int mask, long frame) {
+        if (mask == 0 || (mask & ~Coop.FULL_ROSTER) != 0) throw new IllegalArgumentException("Invalid allocation");
+        if (mask == allocated) return;
+        allocated = mask;
+        if (allocated(active) && activeMember().alive()) return;
+        activeKit().leaveField(frame);
+        for (int slot = 0; slot < SIZE; slot++) if (allocated(slot) && members.get(slot).alive()) { active = slot; return; }
+        active = Integer.numberOfTrailingZeros(mask);
+    }
 
     public Party(EventTimeline timeline, BiConsumer<CharacterKit, CharacterKit.Hit> hits) {
         this.timeline = timeline;
@@ -42,22 +60,25 @@ public final class Party {
     public void restore(PartySave save) {
         for (int slot = 0; slot < SIZE; slot++) members.get(slot).restore(save.members().get(slot), frame());
         active = save.activeSlot();
-        if (!activeMember().alive()) {
+        if (!allocated(active) || !activeMember().alive()) {
             for (int offset = 1; offset < SIZE; offset++) {
                 int next = (active + offset) % SIZE;
-                if (members.get(next).alive()) { active = next; break; }
+                if (allocated(next) && members.get(next).alive()) { active = next; break; }
             }
         }
         switchReady = frame() + save.switchRemaining();
         stamina.restore(save.stamina(), save.staminaRegenRemaining(), save.staminaExhausted(), frame());
     }
     public void reviveAfterWipe() {
-        for (CharacterState member : members) if (member.alive()) return;
-        for (CharacterState member : members) member.setHp(Math.round(member.maxHp() * PartySave.WIPE_REVIVE_HP_FRACTION));
+        if (!wiped()) return;
+        for (int slot = 0; slot < SIZE; slot++) if (allocated(slot)) {
+            CharacterState member = members.get(slot);
+            member.setHp(Math.round(member.maxHp() * PartySave.WIPE_REVIVE_HP_FRACTION));
+        }
     }
     public boolean switchTo(int slot, long frame) {
         advanceTo(frame);
-        if (slot < 0 || slot >= SIZE || slot == active || !members.get(slot).alive()
+        if (!allocated(slot) || slot == active || !members.get(slot).alive()
                 || !activeMember().alive() || frame < switchReady || !activeKit().canSwitch(frame)) return false;
         activate(slot, frame);
         return true;
@@ -67,7 +88,7 @@ public final class Party {
         if (activeMember().alive()) return false;
         for (int offset = 1; offset < SIZE; offset++) {
             int next = (active + offset) % SIZE;
-            if (members.get(next).alive()) { activate(next, frame); return true; }
+            if (allocated(next) && members.get(next).alive()) { activate(next, frame); return true; }
         }
         activeKit().leaveField(frame);
         return false;
@@ -81,9 +102,10 @@ public final class Party {
     public void collect(Energy.Item item, Element element, int count) {
         if (count < 0) throw new IllegalArgumentException("Negative item count");
         for (int index = 0; index < SIZE; index++) {
+            if (!allocated(index)) continue;
             var member = members.get(index);
             member.grantEnergy(count * Energy.received(item, element, member.element(), index == active,
-                    SIZE, member.energyRecharge()));
+                    allocatedCount(), member.energyRecharge()));
         }
     }
 }

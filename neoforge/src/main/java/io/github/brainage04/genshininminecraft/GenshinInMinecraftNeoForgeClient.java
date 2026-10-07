@@ -72,6 +72,8 @@ public final class GenshinInMinecraftNeoForgeClient {
         });
         modBus.addListener((RegisterClientPayloadHandlersEvent event) -> {
             event.register(CharacterStatePayload.TYPE, (packet, context) -> CombatInput.accept(packet));
+            event.register(io.github.brainage04.genshininminecraft.network.CoopStatePayload.TYPE,
+                    (packet, context) -> GenshinHud.accept(packet));
             event.register(DamageNumberPayload.TYPE, (packet, context) -> CombatFeedback.accept(packet));
             event.register(TargetAuraPayload.TYPE, (packet, context) -> CombatFeedback.accept(packet));
             event.register(PlayerCharacterPayload.TYPE, (packet, context) -> CombatFeedback.accept(packet));

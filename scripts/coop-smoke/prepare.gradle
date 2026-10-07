@@ -1,0 +1,24 @@
+// Development-only launches reuse Loom's configured classpaths, injector properties and downloaded assets.
+import groovy.json.JsonOutput
+
+gradle.projectsEvaluated {
+    def project = gradle.rootProject.project(':fabric')
+    def client = project.tasks.named('runClient').get()
+    def server = project.tasks.named('runServer').get()
+    project.tasks.register('prepareCoopSmoke') {
+        dependsOn client.taskDependencies.getDependencies(client)
+        dependsOn server.taskDependencies.getDependencies(server)
+        dependsOn project.tasks.named('gametestClasses')
+        doLast {
+            def output = new File(project.rootDir, 'run/coop-smoke/launch.json')
+            output.parentFile.mkdirs()
+            def launch = { task ->
+                def cp = (task.classpath + project.sourceSets.gametest.runtimeClasspath + project.sourceSets.gametest.output).asPath
+                [java: task.javaLauncher.get().executablePath.asFile.absolutePath,
+                 jvm: task.allJvmArgs.findAll { !it.startsWith('-Xmx') && !it.startsWith('-Xms') },
+                 classpath: cp, main: task.mainClass.get(), args: task.args]
+            }
+            output.text = JsonOutput.prettyPrint(JsonOutput.toJson([client: launch(client), server: launch(server)]))
+        }
+    }
+}
