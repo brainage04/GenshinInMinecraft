@@ -12,6 +12,7 @@ import io.github.brainage04.genshininminecraft.gametest.AmberGameTests;
 import io.github.brainage04.genshininminecraft.gametest.LisaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.CombatLifecycleGameTests;
 import io.github.brainage04.genshininminecraft.gametest.PersistenceGameTests;
+import io.github.brainage04.genshininminecraft.gametest.OverlayGameTests;
 import java.util.Map;
 import java.util.function.Consumer;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -25,6 +26,11 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 @EventBusSubscriber(modid = GenshinInMinecraft.MOD_ID)
 public final class GenshinInMinecraftNeoForgeGameTest {
     private static final Map<String, Consumer<GameTestHelper>> TESTS = Map.ofEntries(
+            Map.entry("overlay_apply_is_idempotent_and_preserves_blocks", OverlayGameTests::overlayApplyIsIdempotentAndPreservesBlocks),
+            Map.entry("overlay_activation_persists_per_player_and_teleport_moves", OverlayGameTests::overlayActivationPersistsPerPlayerAndTeleportMoves),
+            Map.entry("overlay_wipe_uses_nearest_activated_point_at_35_percent", OverlayGameTests::overlayWipeUsesNearestActivatedPointAt35Percent),
+            Map.entry("overlay_statue_revives_and_heals_from_shared_reserve", OverlayGameTests::overlayStatueRevivesAndHealsFromSharedReserve),
+            Map.entry("overlay_camp_respawns_only_after_persistent_timer", OverlayGameTests::overlayCampRespawnsOnlyAfterPersistentTimer),
             Map.entry("logout_and_saved_data_restart_restore_resources_not_fields", PersistenceGameTests::logoutAndSavedDataRestartRestoreResourcesNotFields),
             Map.entry("managed_off_suspends_resources_and_cancels_queued_landing", PersistenceGameTests::managedOffSuspendsResourcesAndCancelsQueuedLanding),
             Map.entry("wiped_party_respawn_revives_35_percent_and_retains_cooldown", PersistenceGameTests::wipedPartyRespawnRevives35PercentAndRetainsCooldown),

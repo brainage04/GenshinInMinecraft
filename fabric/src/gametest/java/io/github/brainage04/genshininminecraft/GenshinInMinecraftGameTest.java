@@ -12,10 +12,16 @@ import io.github.brainage04.genshininminecraft.gametest.AmberGameTests;
 import io.github.brainage04.genshininminecraft.gametest.LisaGameTests;
 import io.github.brainage04.genshininminecraft.gametest.CombatLifecycleGameTests;
 import io.github.brainage04.genshininminecraft.gametest.PersistenceGameTests;
+import io.github.brainage04.genshininminecraft.gametest.OverlayGameTests;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 
 public class GenshinInMinecraftGameTest {
+    @GameTest public void overlayApplyIsIdempotentAndPreservesBlocks(GameTestHelper context) { OverlayGameTests.overlayApplyIsIdempotentAndPreservesBlocks(context); }
+    @GameTest public void overlayActivationPersistsPerPlayerAndTeleportMoves(GameTestHelper context) { OverlayGameTests.overlayActivationPersistsPerPlayerAndTeleportMoves(context); }
+    @GameTest public void overlayWipeUsesNearestActivatedPointAt35Percent(GameTestHelper context) { OverlayGameTests.overlayWipeUsesNearestActivatedPointAt35Percent(context); }
+    @GameTest public void overlayStatueRevivesAndHealsFromSharedReserve(GameTestHelper context) { OverlayGameTests.overlayStatueRevivesAndHealsFromSharedReserve(context); }
+    @GameTest public void overlayCampRespawnsOnlyAfterPersistentTimer(GameTestHelper context) { OverlayGameTests.overlayCampRespawnsOnlyAfterPersistentTimer(context); }
     @GameTest public void logoutAndSavedDataRestartRestoreResourcesNotFields(GameTestHelper context) {
         PersistenceGameTests.logoutAndSavedDataRestartRestoreResourcesNotFields(context);
     }

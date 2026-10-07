@@ -1,0 +1,7 @@
+{
+  "environment": "minecraft:default",
+  "structure": "fabricmoddingconventions:empty",
+  "max_ticks": 40,
+  "type": "minecraft:function",
+  "function": "genshininminecraft:overlay_activation_persists_per_player_and_teleport_moves"
+}

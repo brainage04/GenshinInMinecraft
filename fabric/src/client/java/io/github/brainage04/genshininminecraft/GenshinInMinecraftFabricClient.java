@@ -20,6 +20,9 @@ import io.github.brainage04.genshininminecraft.network.BunnyVisualPayload;
 import io.github.brainage04.genshininminecraft.client.enemy.BunnyVisuals;
 import io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload;
 import io.github.brainage04.genshininminecraft.client.ProjectileVisuals;
+import io.github.brainage04.genshininminecraft.client.TeleportScreen;
+import io.github.brainage04.genshininminecraft.client.OverlayMarkerRenderer;
+import io.github.brainage04.genshininminecraft.network.TeleportListPayload;
 import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.FabricRenderState;
 import net.fabricmc.fabric.api.client.rendering.v1.RenderStateDataKey;
@@ -40,11 +43,15 @@ public class GenshinInMinecraftFabricClient implements ClientModInitializer {
         GenshinInMinecraftClient.initialize();
         EntityRendererRegistry.register(GenshinEntities.HILICHURL, HilichurlRenderer::new);
         EntityRendererRegistry.register(GenshinEntities.BARON_BUNNY, BaronBunnyRenderer::new);
+        EntityRendererRegistry.register(GenshinEntities.OVERLAY_MARKER, OverlayMarkerRenderer::new);
         KeyMappingHelper.registerKeyMapping(CombatInput.SKILL);
         KeyMappingHelper.registerKeyMapping(CombatInput.BURST);
+        KeyMappingHelper.registerKeyMapping(CombatInput.MAP);
         for (var mapping : CombatInput.PARTY) KeyMappingHelper.registerKeyMapping(mapping);
         CombatInput.initialize(ClientPlayNetworking::send);
         ManagedCamera.initialize(ClientPlayNetworking::send);
+        TeleportScreen.initialize(ClientPlayNetworking::send);
+        ClientPlayNetworking.registerGlobalReceiver(TeleportListPayload.TYPE, (packet, context) -> TeleportScreen.accept(packet));
         ClientPlayNetworking.registerGlobalReceiver(CharacterStatePayload.TYPE,
                 (packet, context) -> CombatInput.accept(packet));
         ClientPlayNetworking.registerGlobalReceiver(DamageNumberPayload.TYPE,

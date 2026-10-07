@@ -1,0 +1,7 @@
+{
+  "environment": "minecraft:default",
+  "structure": "fabricmoddingconventions:empty",
+  "max_ticks": 40,
+  "type": "minecraft:function",
+  "function": "genshininminecraft:overlay_wipe_uses_nearest_activated_point_at_35_percent"
+}

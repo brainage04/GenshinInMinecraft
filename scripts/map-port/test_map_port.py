@@ -195,6 +195,42 @@ class MapPortTests(unittest.TestCase):
         self.assertEqual(scanner.read_nbt(gzip.decompress(path.read_bytes()))["DataVersion"], 4903)
         self.assertEqual(port.repair_gamerules(self.root)["status"], "already_repaired")
 
+    def test_make_playtest_is_fresh_managed_and_preserves_source_and_terrain(self):
+        raw = named(10, "", compound(named(10, "Data", compound(
+            named(3, "DataVersion", struct.pack(">i", 4903)),
+            named(3, "GameType", struct.pack(">i", 0)),
+            named(1, "allowCommands", b"\0"),
+            named(10, "spawn", compound(
+                named(11, "pos", struct.pack(">iiii", 3, 3458, 63, -4002)),
+                named(5, "yaw", struct.pack(">f", 0))))))))
+        original = gzip.compress(raw)
+        (self.world / "level.dat").write_bytes(original)
+        (self.world / "session.lock").write_bytes(b"lock")
+        terrain = self.write_region("dimensions/minecraft/overworld/region/r.0.0.mca", entity_region())
+        source_player = self.world / "players/data/copied-player.dat"
+        source_player.parent.mkdir(parents=True)
+        source_player.write_bytes(b"source player")
+        destination = self.root / "fresh-world"
+        report = port.make_playtest(self.world, destination)
+        self.assertTrue(report["managed_on_first_load"])
+        self.assertEqual(json.loads((destination / ".genshin-playtest.json").read_text()),
+                         {"version": 1, "overlay": "mondstadt"})
+        data = scanner.read_nbt(gzip.decompress((destination / "level.dat").read_bytes()))["Data"]
+        self.assertEqual(data["GameType"], 2)
+        self.assertTrue(data["allowCommands"])
+        self.assertEqual(struct.unpack(">iii", data["spawn"]["pos"]), (2938, -206, -3635))
+        self.assertEqual(data["spawn"]["yaw"], 90)
+        self.assertEqual((destination / terrain.relative_to(self.world)).read_bytes(), terrain.read_bytes())
+        self.assertEqual((self.world / "level.dat").read_bytes(), original)
+        self.assertTrue(source_player.exists())
+        self.assertFalse((destination / "players").exists())
+        self.assertIn("maxHeapSize = '2G'", Path(report["init_script"]).read_text())
+        self.assertIn("simulationDistance:5", destination.with_name(destination.name + "-client").joinpath("options.txt").read_text())
+        with self.assertRaisesRegex(ValueError, "already exist"):
+            port.make_playtest(self.world, destination)
+        with self.assertRaisesRegex(ValueError, "strictly inside"):
+            port.make_playtest(self.world, self.root.parent.parent / "outside")
+
     def test_modified_utf8_patch_preserves_unrelated_bytes(self):
         text = "方块\0\U0001f30d"
         raw = named(10, "", compound(named(8, "text", port.nbt_string(text)),

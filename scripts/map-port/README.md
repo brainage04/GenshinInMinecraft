@@ -129,9 +129,47 @@ nice -n 19 ionice -c3 env ALSOFT_DRIVERS=null LIBGL_ALWAYS_SOFTWARE=1 LP_NUM_THR
   --init-script run/map-port/client.init.gradle :fabric:runClient
 ```
 
-The custom-height world shows an experimental-settings confirmation; accept it **only on the independent playtest copy**. Use ordinary spectator/teleport controls to inspect spawn **(3458, 63, −4002)** and nearby terrain, with an elevated overview. **Do not enable managed mode or use `/genshin arena` on this map.** Minecraft's F2 screenshots work on the private display; keep selected evidence under `run/map-port/screenshots/`. Software rendering has finite view distance: visible fog/chunk boundaries alone are not evidence of missing purchased geometry.
+The custom-height world shows an experimental-settings confirmation; accept it **only on the independent playtest copy**. Use ordinary spectator/teleport controls to inspect spawn **(3458,63,−4002)** and nearby terrain, with an elevated overview. For a geometry-only port check leave managed mode off; for gameplay use the separate managed-overlay workflow below. **Never use `/genshin arena` on the purchased map**: it edits blocks. Minecraft's F2 screenshots work on the private display; keep evidence under `run/map-port/`. Software rendering has finite view distance: visible fog/chunk boundaries alone are not evidence of missing purchased geometry.
 
 The completed captures and their camera coordinates are listed in [docs/map-port.md](../../docs/map-port.md). The saved spawn is far above its local sandy terrain; look downward or descend in spectator mode before interpreting sky/fog as void. Read-only `/execute if block 3458 -2032 -4002 minecraft:air ...` and the corresponding Y **2031** query exercised the loaded custom-height endpoints. Save and quit the playtest world before stopping the client.
+
+## Managed Mondstadt playtest
+
+Stop clients/servers using the upgrade evidence world. Create a **fresh** gameplay copy (the command refuses an existing world or sidecars and never replaces them):
+
+```sh
+python3 scripts/map-port/port-map.py make-playtest
+# Optional fresh name / source:
+# python3 scripts/map-port/port-map.py make-playtest \
+#   --source-world run/map-port/blocky-teyvat-26.2/world \
+#   --world-dir run/map-port/my-mondstadt-world
+```
+
+This uses `cp -a --reflink=auto` from the completed26.2 world, checks its DataVersion/session lock/symlinks/free space, drops **only copied player saves/stats/advancements** for fresh arrival, and patches only clone `level.dat` spawn/game-mode/cheats metadata. Terrain and decorative entity-region bytes are copied unchanged. Source ZIP, upgrade evidence, and its player files are untouched. Default output:
+
+- `run/map-port/mondstadt-playtest-world/` — disposable custom-height world, Adventure mode, spawn metadata at `(2938,−206,−3635)`; first overlay entry uses exact feet `(2938.5,−206,−3634.5)`, clear of the travel obelisk.
+- `.genshin-playtest.json` inside it — enables managed mode/applies `mondstadt` on first load, then persistent SavedData owns the binding.
+- `run/map-port/mondstadt-playtest-world-client/` — separate client game directory/options/screenshots.
+- `run/map-port/mondstadt-playtest-world.init.gradle` — `runClient` with quick-play world, ≤2GiB heap, two JVM CPUs, modest rendering/simulation distances.
+- `run/map-port/mondstadt-playtest-world.json` — creation report.
+
+The owner opens that world in the Fabric dev client with:
+
+```sh
+./gradlew --no-daemon --no-configuration-cache \
+  --init-script run/map-port/mondstadt-playtest-world.init.gradle :fabric:runClient
+```
+
+Agents must instead use a private display, never the owner's session/audio:
+
+```sh
+ALSOFT_DRIVERS=null LIBGL_ALWAYS_SOFTWARE=1 LP_NUM_THREADS=2 \
+xvfb-run -a --server-args="-screen 0 1280x720x24 -nolisten tcp" \
+./gradlew --no-daemon --no-configuration-cache \
+  --init-script run/map-port/mondstadt-playtest-world.init.gradle :fabric:runClient
+```
+
+Accept the clone's experimental-world prompts. Right-click Statues/Waypoints to activate for your player; **M** or `/genshin teleport` lists unlocked points. Statue recovery and sourced/adapted camp timers are described with confirmed coordinates in [docs/map-landmarks.md](../../docs/map-landmarks.md). On another **disposable** map copy use `/genshin managed on` followed by `/genshin overlay apply`; reapplying is idempotent and changes no blocks. Never run the gate concurrently with this client. Save and quit to title before stopping it.
 
 ## Regression checks
 

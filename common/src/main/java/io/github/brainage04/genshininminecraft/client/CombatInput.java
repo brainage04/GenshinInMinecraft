@@ -15,6 +15,7 @@ public final class CombatInput {
     public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("genshininminecraft", "genshin"));
     public static final KeyMapping SKILL = new KeyMapping("key.genshininminecraft.skill", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_E, CATEGORY);
     public static final KeyMapping BURST = new KeyMapping("key.genshininminecraft.burst", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Q, CATEGORY);
+    public static final KeyMapping MAP = new KeyMapping("key.genshininminecraft.teleport", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_M, CATEGORY);
     public static final KeyMapping[] PARTY = {
         new KeyMapping("key.genshininminecraft.party1", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_1, CATEGORY),
         new KeyMapping("key.genshininminecraft.party2", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_2, CATEGORY),
@@ -41,6 +42,7 @@ public final class CombatInput {
             drain(SKILL);
             drain(BURST);
             for (var mapping : PARTY) drain(mapping);
+            drain(MAP);
         }
         state = payload;
         ManagedCamera.tick(Minecraft.getInstance());
@@ -82,6 +84,7 @@ public final class CombatInput {
         if (!managed()) {
             drain(SKILL);
             drain(BURST);
+            drain(MAP);
             for (var mapping : PARTY) drain(mapping);
             attackHeld = false;
             skillHeld = false;
@@ -97,6 +100,7 @@ public final class CombatInput {
     /** Runs before vanilla inventory/drop/attack handling, on both loaders. */
     public static void beforeKeybinds(Minecraft client) {
         if (!managed() || client.player == null || client.gui.screen() != null) return;
+        if (drain(MAP)) TeleportScreen.requestList();
         boolean jumpDown = client.options.keyJump.isDown();
         boolean jumpClick = drain(client.options.keyJump);
         if (!jumpHeld && (jumpDown || jumpClick)

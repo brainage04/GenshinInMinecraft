@@ -1,0 +1,7 @@
+{
+  "environment": "minecraft:default",
+  "structure": "fabricmoddingconventions:empty",
+  "max_ticks": 40,
+  "type": "minecraft:function",
+  "function": "genshininminecraft:overlay_apply_is_idempotent_and_preserves_blocks"
+}

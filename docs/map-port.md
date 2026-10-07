@@ -233,7 +233,7 @@ Returning to the menu logged X11 `Standard cursor shape unavailable`. After the 
 
 ## Open questions and later sign-off
 
-- Where is **Mondstadt** in Minecraft coordinates? Spawn is a useful starting point, not an identified Mondstadt landmark. Establish at least two known landmarks, local scale and orientation on the upgraded copy before placing content.
+- **Mondstadt/Starfell/Windrise located,2026-10-08:** the owner's1.21.10 camera coordinates match the26.2 copy directly. Private screenshots, read-only beacon/item-display inspections, precise local anchors and the entity-only gameplay binding are in [map-landmarks.md](map-landmarks.md). This is local landmark confirmation, not a globally calibrated Genshin-metres transform or full-world visual sign-off.
 - The copied 107.1 WorldPainter height pack loaded under the official server and Fabric dev client without a datapack/registry fallback. The runtime boundary reads and nearby screenshots above cover its custom Y extent; full-world visual fidelity remains a separate sign-off.
 - Are there non-vanilla block/block-entity IDs outside the deterministic terrain sample? Sampling cannot rule these out globally. Full entity-region coverage is separate from terrain coverage.
 - Block IDs/counts changed only for the confirmed grass rename in the sampled comparison; states/properties and placed voxels were not compared. Identify actual landmarks before asserting visual fidelity to Genshin.

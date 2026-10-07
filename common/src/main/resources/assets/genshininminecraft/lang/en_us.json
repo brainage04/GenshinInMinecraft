@@ -1,6 +1,11 @@
 {
   "entity.genshininminecraft.hilichurl": "Hilichurl",
   "entity.genshininminecraft.baron_bunny": "Baron Bunny",
+  "entity.genshininminecraft.overlay_marker": "Travel obelisk",
+  "key.genshininminecraft.teleport": "Teleport destinations",
+  "screen.genshininminecraft.teleport": "Activated destinations",
+  "screen.genshininminecraft.teleport.empty": "Interact with a Statue or Waypoint to activate it.",
+  "screen.genshininminecraft.teleport.hint": "Select a destination to teleport. Travel does not heal.",
   "key.category.genshininminecraft.genshin": "Genshin",
   "key.genshininminecraft.skill": "Elemental Skill",
   "key.genshininminecraft.burst": "Elemental Burst",

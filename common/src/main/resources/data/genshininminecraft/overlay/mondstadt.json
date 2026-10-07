@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "id": "mondstadt",
+  "dimension": "minecraft:overworld",
+  "arrival": {"x": 2938.5, "y": -206, "z": -3634.5, "yaw": 90},
+  "points": [
+    {"id": "starfell.statue", "name": "Starfell Lake · Statue of The Seven", "kind": "statue",
+      "position": {"x": 3087.5, "y": -217, "z": -3831.5, "yaw": 180},
+      "arrival": {"x": 3095.5, "y": -219, "z": -3837.5, "yaw": 90}},
+    {"id": "windrise.statue", "name": "Windrise · Statue of The Seven", "kind": "statue",
+      "position": {"x": 3027.5, "y": -236, "z": -3199.5, "yaw": 90},
+      "arrival": {"x": 3018.5, "y": -236, "z": -3199.5, "yaw": -90}},
+    {"id": "mondstadt.city", "name": "Mondstadt City", "kind": "waypoint",
+      "position": {"x": 2669.5, "y": -212, "z": -3683.5, "yaw": 0},
+      "arrival": {"x": 2670.5, "y": -212, "z": -3683.5, "yaw": 90}},
+    {"id": "mondstadt.gate", "name": "Mondstadt · mainland gate approach", "kind": "waypoint",
+      "position": {"x": 2938.5, "y": -206, "z": -3638.5, "yaw": 90},
+      "arrival": {"x": 2938.5, "y": -206, "z": -3634.5, "yaw": 90}},
+    {"id": "starfell.north", "name": "Starfell Valley · northern rise", "kind": "waypoint",
+      "position": {"x": 3042.5, "y": -179, "z": -3992.5, "yaw": 0},
+      "arrival": {"x": 3045.5, "y": -179, "z": -3992.5, "yaw": 0}},
+    {"id": "windrise.east", "name": "Windrise · eastern coastal rise", "kind": "waypoint",
+      "position": {"x": 3296.5, "y": -196, "z": -3248.5, "yaw": 90},
+      "arrival": {"x": 3296.5, "y": -196, "z": -3246.5, "yaw": 90}}
+  ],
+  "camps": [
+    {"id": "starfell.intro-camp", "name": "Starfell Valley · introductory-roster camp",
+      "position": {"x": 2891.5, "y": -229, "z": -3786.5, "yaw": 0}, "respawnMillis": 43200000,
+      "members": [
+        {"position": {"x": 2888.5, "y": -229, "z": -3786.5, "yaw": 0}, "level": 8, "role": "basic"},
+        {"position": {"x": 2894.5, "y": -229, "z": -3786.5, "yaw": 0}, "level": 8, "role": "basic"},
+        {"position": {"x": 2891.5, "y": -229, "z": -3783.5, "yaw": 180}, "level": 8, "role": "shooter-substituted-by-basic"}
+      ]},
+    {"id": "windrise.camp", "name": "Windrise · path-side camp",
+      "position": {"x": 2950.5, "y": -236, "z": -3229.5, "yaw": -90}, "respawnMillis": 43200000,
+      "members": [
+        {"position": {"x": 2950.5, "y": -237, "z": -3226.5, "yaw": 180}, "level": 8, "role": "adapted-basic"},
+        {"position": {"x": 2947.5, "y": -236, "z": -3231.5, "yaw": -90}, "level": 8, "role": "adapted-basic"},
+        {"position": {"x": 2953.5, "y": -237, "z": -3231.5, "yaw": 90}, "level": 8, "role": "adapted-basic"}
+      ]}
+  ]
+}

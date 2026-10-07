@@ -22,6 +22,9 @@ import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import io.github.brainage04.genshininminecraft.network.BunnyVisualPayload;
 import io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload;
+import io.github.brainage04.genshininminecraft.network.TeleportRequestPayload;
+import io.github.brainage04.genshininminecraft.network.TeleportListPayload;
+import io.github.brainage04.genshininminecraft.world.OverlayRuntime;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
@@ -37,6 +40,7 @@ public final class GenshinInMinecraftNeoForge {
         modBus.addListener((RegisterEvent event) -> {
             event.register(BuiltInRegistries.ENTITY_TYPE.key(), GenshinEntities.HILICHURL_ID, () -> GenshinEntities.HILICHURL);
             event.register(BuiltInRegistries.ENTITY_TYPE.key(), GenshinEntities.BARON_BUNNY_ID, () -> GenshinEntities.BARON_BUNNY);
+            event.register(BuiltInRegistries.ENTITY_TYPE.key(), GenshinEntities.OVERLAY_MARKER_ID, () -> GenshinEntities.OVERLAY_MARKER);
         });
         modBus.addListener((EntityAttributeCreationEvent event) -> {
             event.put(GenshinEntities.HILICHURL, Hilichurl.attributes().build());
@@ -60,6 +64,13 @@ public final class GenshinInMinecraftNeoForge {
                 if (context.player() instanceof ServerPlayer player)
                     CombatRuntime.get(player.level().getServer()).receiveCameraYaw(player, packet.yaw());
             });
+            registrar.playToServer(TeleportRequestPayload.TYPE, TeleportRequestPayload.CODEC, (packet, context) -> {
+                if (context.player() instanceof ServerPlayer player) {
+                    if (packet.destination().isEmpty()) OverlayRuntime.openList(player);
+                    else OverlayRuntime.teleport(player, packet.destination());
+                }
+            });
+            registrar.playToClient(TeleportListPayload.TYPE, TeleportListPayload.CODEC);
             registrar.playToClient(CharacterStatePayload.TYPE, CharacterStatePayload.CODEC);
             registrar.playToClient(DamageNumberPayload.TYPE, DamageNumberPayload.CODEC);
             registrar.playToClient(TargetAuraPayload.TYPE, TargetAuraPayload.CODEC);

@@ -579,6 +579,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                     throw new AssertionError("Selecting a fallen member must preserve active Traveler and explain rejection");
             });
             PersistenceChecks.reconnect(context, server);
+            OverlayChecks.teleportList(context, server);
             server.runCommand("gamemode adventure @a");
             context.waitFor(client -> !client.player.isCreative());
             server.runCommand("genshin managed off");

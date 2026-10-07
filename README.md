@@ -15,6 +15,19 @@ The fixed starter weapons are **level20/20, R1 Harbinger of Dawn** (Traveler/Kae
 
 Full controls, numbers and adaptations: [AGENTS.md](AGENTS.md#in-game-development-commands), [docs/decisions.md](docs/decisions.md), [spec/fidelity.md](spec/fidelity.md).
 
+# Playing on Blocky Teyvat
+
+`python3 scripts/map-port/port-map.py make-playtest` creates a **fresh disposable copy** of the completed26.2 map upgrade with an arrival outside Mondstadt, managed mode and the versioned overlay applied on first load. It never edits the purchased ZIP or upgrade evidence world. Open it with:
+
+```sh
+./gradlew --no-daemon --no-configuration-cache \
+  --init-script run/map-port/mondstadt-playtest-world.init.gradle :fabric:runClient
+```
+
+Accept the disposable copy's experimental-world prompts. Right-click the original mod Statues/Waypoints to activate per-player; **M** or `/genshin teleport` shows unlocked destinations. Statues recover the party from a shared finite reserve; a full wipe's Revive returns to the nearest player-unlocked point at35% HP. Starfell/Windrise each have a Lv8 three-member camp with persistent12-hour death timers (documented adaptations, not a claimed quest recreation). On another disposable map copy, operators use `/genshin managed on` and `/genshin overlay apply`. **Never run `/genshin arena` on this map**; the overlay itself places only entities and edits no blocks.
+
+Landmark coordinates/screenshots and exact behavior: [docs/map-landmarks.md](docs/map-landmarks.md). Fresh-copy safety checks, names/options and mandatory private-display launch for agents: [scripts/map-port/README.md](scripts/map-port/README.md#managed-mondstadt-playtest).
+
 # Development
 
 `./gradlew --no-daemon build` produces two jars in `build/libs`: `genshininminecraft-<version>.jar` (Fabric, requires Fabric API, Cloth Config and **GeckoLib Fabric 26.2 5.5.5**) and `genshininminecraft-neoforge-<version>.jar` (NeoForge, requires Cloth Config and **GeckoLib NeoForge 26.2 5.5.6**). Install exactly one loader jar plus the matching external GeckoLib jar on clients **and dedicated servers**; do not install the common API jar or both loader builds. Development and production GameTests provision GeckoLib automatically.

@@ -26,6 +26,9 @@ import io.github.brainage04.genshininminecraft.network.BunnyVisualPayload;
 import io.github.brainage04.genshininminecraft.client.enemy.BunnyVisuals;
 import io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload;
 import io.github.brainage04.genshininminecraft.client.ProjectileVisuals;
+import io.github.brainage04.genshininminecraft.client.TeleportScreen;
+import io.github.brainage04.genshininminecraft.client.OverlayMarkerRenderer;
+import io.github.brainage04.genshininminecraft.network.TeleportListPayload;
 import java.util.List;
 import java.util.Set;
 import net.minecraft.resources.Identifier;
@@ -56,12 +59,15 @@ public final class GenshinInMinecraftNeoForgeClient {
         modBus.addListener((EntityRenderersEvent.RegisterRenderers event) -> {
             event.registerEntityRenderer(GenshinEntities.HILICHURL, HilichurlRenderer::new);
             event.registerEntityRenderer(GenshinEntities.BARON_BUNNY, BaronBunnyRenderer::new);
+            event.registerEntityRenderer(GenshinEntities.OVERLAY_MARKER, OverlayMarkerRenderer::new);
         });
         CombatInput.initialize(ClientPacketDistributor::sendToServer);
         ManagedCamera.initialize(ClientPacketDistributor::sendToServer);
+        TeleportScreen.initialize(ClientPacketDistributor::sendToServer);
         modBus.addListener((RegisterKeyMappingsEvent event) -> {
             event.register(CombatInput.SKILL);
             event.register(CombatInput.BURST);
+            event.register(CombatInput.MAP);
             for (var mapping : CombatInput.PARTY) event.register(mapping);
         });
         modBus.addListener((RegisterClientPayloadHandlersEvent event) -> {
@@ -71,6 +77,7 @@ public final class GenshinInMinecraftNeoForgeClient {
             event.register(PlayerCharacterPayload.TYPE, (packet, context) -> CombatFeedback.accept(packet));
             event.register(BunnyVisualPayload.TYPE, (packet, context) -> BunnyVisuals.accept(packet));
             event.register(ProjectileVisualPayload.TYPE, (packet, context) -> ProjectileVisuals.accept(packet));
+            event.register(TeleportListPayload.TYPE, (packet, context) -> TeleportScreen.accept(packet));
         });
         modBus.addListener((RegisterGuiLayersEvent event) ->
                 event.registerAbove(VanillaGuiLayers.HOTBAR, GenshinHud.ID, GenshinHud::render));

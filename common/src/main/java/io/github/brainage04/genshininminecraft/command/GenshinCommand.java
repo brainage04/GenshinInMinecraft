@@ -13,6 +13,8 @@ import io.github.brainage04.genshininminecraft.GenshinInMinecraft;
 import io.github.brainage04.genshininminecraft.world.ManagedWorldData;
 import io.github.brainage04.genshininminecraft.world.TestArena;
 import io.github.brainage04.genshininminecraft.world.HilichurlCamp;
+import io.github.brainage04.genshininminecraft.world.OverlayDefinition;
+import io.github.brainage04.genshininminecraft.world.OverlayRuntime;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -35,6 +37,21 @@ public final class GenshinCommand {
         dispatcher.register(Commands.literal(COMMAND_NAME)
                 .executes(context -> execute(context.getSource()))
                 .then(auraCommand())
+                .then(Commands.literal("overlay")
+                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                        .then(Commands.literal("apply").executes(context -> {
+                            var source = context.getSource();
+                            if (!OverlayRuntime.apply(source.getServer(), OverlayDefinition.mondstadt())) {
+                                source.sendFailure(Component.literal("Enable managed mode before applying the overlay."));
+                                return 0;
+                            }
+                            source.sendSuccess(() -> Component.literal("Mondstadt overlay installed; loaded anchors reconcile without editing blocks."), true);
+                            return 1;
+                        })))
+                .then(Commands.literal("teleport").executes(context -> {
+                    OverlayRuntime.openList(context.getSource().getPlayerOrException());
+                    return 1;
+                }))
                 .then(Commands.literal("managed")
                         .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.literal("on").executes(context -> setManaged(context.getSource(), true)))

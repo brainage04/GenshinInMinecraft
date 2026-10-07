@@ -18,6 +18,9 @@ import io.github.brainage04.genshininminecraft.network.TargetAuraPayload;
 import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import io.github.brainage04.genshininminecraft.network.BunnyVisualPayload;
 import io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload;
+import io.github.brainage04.genshininminecraft.network.TeleportRequestPayload;
+import io.github.brainage04.genshininminecraft.network.TeleportListPayload;
+import io.github.brainage04.genshininminecraft.world.OverlayRuntime;
 import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -37,18 +40,25 @@ public class GenshinInMinecraftFabric implements ModInitializer {
         FabricDefaultAttributeRegistry.register(GenshinEntities.HILICHURL, Hilichurl.attributes());
         Registry.register(BuiltInRegistries.ENTITY_TYPE, GenshinEntities.BARON_BUNNY_ID, GenshinEntities.BARON_BUNNY);
         FabricDefaultAttributeRegistry.register(GenshinEntities.BARON_BUNNY, BaronBunny.createAttributes());
+        Registry.register(BuiltInRegistries.ENTITY_TYPE, GenshinEntities.OVERLAY_MARKER_ID, GenshinEntities.OVERLAY_MARKER);
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 ModCommands.register(dispatcher));
         PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) ->
                 !ManagedWorld.preventsBlockModification(level, player));
         PayloadTypeRegistry.serverboundPlay().register(CombatIntentPayload.TYPE, CombatIntentPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(CameraYawPayload.TYPE, CameraYawPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(TeleportRequestPayload.TYPE, TeleportRequestPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(CharacterStatePayload.TYPE, CharacterStatePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(DamageNumberPayload.TYPE, DamageNumberPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(TargetAuraPayload.TYPE, TargetAuraPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(PlayerCharacterPayload.TYPE, PlayerCharacterPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(BunnyVisualPayload.TYPE, BunnyVisualPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(ProjectileVisualPayload.TYPE, ProjectileVisualPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(TeleportListPayload.TYPE, TeleportListPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(TeleportRequestPayload.TYPE, (packet, context) -> {
+            if (packet.destination().isEmpty()) OverlayRuntime.openList(context.player());
+            else OverlayRuntime.teleport(context.player(), packet.destination());
+        });
         EntityTrackingEvents.START_TRACKING.register((entity, player) ->
                 CombatRuntime.get(player.level().getServer()).startTracking(player, entity));
         ServerPlayNetworking.registerGlobalReceiver(CombatIntentPayload.TYPE, (packet, context) ->

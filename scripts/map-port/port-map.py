@@ -446,6 +446,61 @@ def upgrade(args, source, root):
     print(json.dumps({"work_dir": str(root), "timings": marker, "ID_changes": changes["changes"]}, indent=2))
 
 
+def make_playtest(source_world, destination):
+    source_world = work_path(source_world)
+    destination = work_path(destination)
+    client = destination.with_name(destination.name + "-client")
+    init = destination.with_name(destination.name + ".init.gradle")
+    report_path = destination.with_name(destination.name + ".json")
+    if any(path.exists() for path in (client, init, report_path)):
+        raise ValueError("playtest sidecars already exist; choose a fresh playtest name")
+    if destination.exists() or destination.is_relative_to(source_world) or source_world.is_relative_to(destination):
+        raise ValueError("choose a fresh, separate playtest directory; existing worlds are never replaced")
+    if any(item.is_symlink() for item in source_world.rglob("*")):
+        raise ValueError("playtest source must not contain symlinks")
+    raw = gzip.decompress((source_world / "level.dat").read_bytes())
+    if read_nbt(raw)["Data"]["DataVersion"] != DATA_VERSION:
+        raise ValueError("make-playtest requires the already-upgraded 26.2 world")
+    overlay = json.loads((REPO / "common/src/main/resources/data/genshininminecraft/overlay/mondstadt.json").read_text())
+    arrival = overlay["arrival"]
+    raw = replace_payload(raw, ["Data", "spawn", "pos"], 11,
+                          struct.pack(">iiii", 3, *(int(arrival[axis] // 1) for axis in ("x", "y", "z"))))
+    raw = replace_payload(raw, ["Data", "spawn", "yaw"], 5, struct.pack(">f", arrival["yaw"]))
+    raw = replace_payload(raw, ["Data", "GameType"], 3, struct.pack(">i", 2))  # Adventure, never arena editing.
+    raw = replace_payload(raw, ["Data", "allowCommands"], 1, b"\1")
+    size = sum(item.stat().st_size for item in source_world.rglob("*") if item.is_file())
+    if shutil.disk_usage(WORK_BASE).free < size + 1024 ** 3:
+        raise ValueError("insufficient space for a full disposable playtest plus 1 GiB reserve")
+    # Read-lock the source session file; a live Minecraft writer makes the copy fail.
+    with (source_world / "session.lock").open("rb") as lock:
+        fcntl.lockf(lock, fcntl.LOCK_SH | fcntl.LOCK_NB)
+        subprocess.run(["cp", "-a", "--reflink=auto", str(source_world), str(destination)], check=True)
+    # A fresh playtest starts every account at the arrival, not a copied author's saved location.
+    for name in ("players", "playerdata", "stats", "advancements"):
+        path = destination / name
+        if path.exists():
+            shutil.rmtree(path)
+    (destination / "level.dat").write_bytes(gzip.compress(raw, mtime=0))
+    (destination / ".genshin-playtest.json").write_text(json.dumps({"version": 1, "overlay": "mondstadt"}) + "\n")
+    client.mkdir(exist_ok=False)
+    (client / "options.txt").write_text("version:4903\nrenderDistance:8\nsimulationDistance:5\nmaxFps:30\n"
+                                      "guiScale:3\ntutorialStep:none\nonboardAccessibility:false\n")
+    # JSON quoting is also valid for these Groovy string literals; no user-shell interpolation.
+    init.write_text("gradle.projectsEvaluated {\n"
+                    "    gradle.rootProject.project(':fabric').tasks.named('runClient').configure {\n"
+                    "        useXvfb = false\n"
+                    "        maxHeapSize = '2G'\n"
+                    "        jvmArgs '-XX:ActiveProcessorCount=2', '-XX:+UseSerialGC'\n"
+                    f"        workingDir = new File({json.dumps(str(client))})\n"
+                    f"        args '--gameDir', {json.dumps(str(client))}, '--quickPlaySingleplayer', {json.dumps(str(destination))},\n"
+                    "             '--offlineDeveloperMode', '--width', '1280', '--height', '720'\n"
+                    "    }\n}\n")
+    report = {"world": str(destination), "source": str(source_world), "init_script": str(init),
+              "arrival": arrival, "managed_on_first_load": True, "overlay": "mondstadt", "bytes": size}
+    save_json(report_path, report)
+    return report
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -465,6 +520,9 @@ def main():
             sub.add_argument("--spawn-radius", type=int, default=2048)
     repair = commands.add_parser("repair-gamerules", help="restore original vanilla rules in a stopped upgraded copy")
     repair.add_argument("--work-dir", type=Path, default=DEFAULT_WORK)
+    playtest = commands.add_parser("make-playtest", help="fresh disposable managed Mondstadt playtest from the upgraded copy")
+    playtest.add_argument("--source-world", type=Path, default=DEFAULT_WORK / "world")
+    playtest.add_argument("--world-dir", type=Path, default=WORK_BASE / "mondstadt-playtest-world")
     args = parser.parse_args()
     if args.command == "upgrade" and (args.stride < 1 or args.spawn_radius < 0):
         parser.error("stride must be >= 1 and spawn radius >= 0")
@@ -472,6 +530,9 @@ def main():
     # direct script invocations that omitted the documented nice/ionice wrapper.
     os.nice(19)
     subprocess.run(["ionice", "-c3", "-p", str(os.getpid())], check=True)
+    if args.command == "make-playtest":
+        print(json.dumps(make_playtest(args.source_world, args.world_dir), ensure_ascii=False, indent=2))
+        return
     root = work_path(args.work_dir)
     if args.command == "repair-gamerules":
         print(json.dumps(repair_gamerules(root), ensure_ascii=False, indent=2))

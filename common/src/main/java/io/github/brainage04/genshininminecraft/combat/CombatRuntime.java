@@ -23,6 +23,7 @@ import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Kind;
 import io.github.brainage04.genshininminecraft.world.ManagedWorld;
 import io.github.brainage04.genshininminecraft.world.PartySavedData;
+import io.github.brainage04.genshininminecraft.world.OverlayRuntime;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
@@ -113,6 +114,7 @@ public final class CombatRuntime {
     public static CombatRuntime get(MinecraftServer server) { return SERVERS.computeIfAbsent(server, ignored -> new CombatRuntime()); }
     public static void setSender(BiConsumer<ServerPlayer, CharacterStatePayload> value) { sender = value; }
     public static void stop(MinecraftServer server) {
+        OverlayRuntime.stop(server);
         CombatRuntime runtime = SERVERS.remove(server);
         if (runtime != null) for (Session state : runtime.players.values()) state.clearFieldObjects();
     }
@@ -142,6 +144,8 @@ public final class CombatRuntime {
     public void respawn(ServerPlayer player) {
         if (!ManagedWorld.isManaged(player.level())) return;
         Session state = session(player);
+        for (var member : state.party.members()) if (member.alive()) return;
+        OverlayRuntime.respawn(player);
         state.party.reviveAfterWipe();
         state.mirrorHealth();
         state.saveResources();
@@ -282,6 +286,7 @@ public final class CombatRuntime {
         boolean replaced = state.forceSwitch(Math.max(state.party.frame(),
                 Frames.atServerTick(player.level().getServer().getTickCount())));
         state.mirrorHealth();
+        if (!replaced) OverlayRuntime.rememberWipe(player);
         state.sync();
         return replaced;
     }
@@ -327,6 +332,7 @@ public final class CombatRuntime {
         timeline.advanceTo(frame);
     }
     public void tick(MinecraftServer server) {
+        OverlayRuntime.tick(server);
         long frame = Frames.atServerTick(server.getTickCount());
         boolean managed = ManagedWorld.isManaged(server.overworld());
         // EC must drain before natural decay even when its owner has no ticking session.
@@ -453,6 +459,10 @@ public final class CombatRuntime {
         public CharacterKit kit() { return party.activeKit(); }
         public Party party() { return party; }
         public Stamina stamina() { return party.stamina(); }
+        /** Authoritative recovery mutations must update the vanilla mirror before resource reconciliation. */
+        public void resourcesChanged() { mirrorHealth(); saveResources(); sync(); }
+        /** Teleport cancels casts/traversal, not HP, energy, cooldowns or stamina. */
+        public void endForTeleport() { clearFieldObjects(); locomotion.reset(party.frame()); }
         private void saveResources() {
             if (ManagedWorld.isManaged(player.level())) reconcileHealth();
             party.advanceTo(Math.max(party.frame(), Frames.atServerTick(player.level().getServer().getTickCount())));

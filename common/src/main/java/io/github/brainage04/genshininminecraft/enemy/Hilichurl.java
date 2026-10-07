@@ -270,6 +270,7 @@ public final class Hilichurl extends PathfinderMob implements GeoEntity {
     }
     @Override public void die(DamageSource source) {
         if (level() instanceof ServerLevel) {
+            if (!dead) io.github.brainage04.genshininminecraft.world.OverlayRuntime.memberDied(this);
             if (!dead) playSound(SoundEvents.PIGLIN_DEATH, .8F, .8F);
             phase(Phase.DEATH);
             entityData.set(FROZEN_FRAME, -1L);

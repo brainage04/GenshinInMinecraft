@@ -29,7 +29,9 @@ PALETTES = {
     'kaeya': {'skin': 'b87d5f', 'hair': '233f8a', 'cloth': 'e5e9ed', 'dark': '15294a', 'accent': '367cbc', 'eye': '75bbd5'},
     'lisa': {'skin': 'f1c8ab', 'hair': '724527', 'cloth': '754a95', 'dark': '35243f', 'accent': 'd5b666', 'eye': '78a34c'},
     'hilichurl': {'skin': 'bd966c', 'hair': '695744', 'cloth': '767a40', 'dark': '4c3623', 'accent': 'd6c596', 'eye': '31291f'},
-    'baron_bunny': {'skin': 'aa7154', 'hair': '583627', 'cloth': 'b72f36', 'dark': '39251e', 'accent': 'e5c697', 'eye': '261c19'}}
+    'baron_bunny': {'skin': 'aa7154', 'hair': '583627', 'cloth': 'b72f36', 'dark': '39251e', 'accent': 'e5c697', 'eye': '261c19'},
+    'statue': {'skin': 'b6c4c4', 'hair': '879c9b', 'cloth': 'a4b6b7', 'dark': '3d555c', 'accent': '66e8cd', 'eye': 'b9fff0'},
+    'waypoint': {'skin': '9aafb7', 'hair': '748e99', 'cloth': 'aac2c9', 'dark': '344c5b', 'accent': '65dff2', 'eye': 'c5f8ff'}}
 
 
 def png(pixels, width=128, height=128):
@@ -64,6 +66,9 @@ class Model:
             self.uvs[material] = faces
         self.bones = []
         self.add('root', None, [0, 0, 0])
+        if name in ('statue', 'waypoint'):
+            self.world_object()
+            return
         if name in ('hilichurl', 'baron_bunny'):
             self.enemy()
             return
@@ -218,6 +223,26 @@ class Model:
             c('weapon', [2.25, 12.35, -1.65], [3.1, .6, 3.9], 'white')
             c('weapon', [2.1, 12.9, -1.8], [3.4, .3, 4.2], 'cloth')
             c('weapon', [3.25, 13.21, -.5], [1.1, .12, 1.6], 'accent')
+
+    def world_object(self):
+        c = self.cube
+        c('root', [-7, 0, -7], [14, 3, 14], 'dark')
+        c('root', [-6, 3, -6], [12, 2, 12], 'skin')
+        c('root', [-3, 5, -3], [6, 22 if self.name == 'statue' else 14, 6], 'cloth')
+        c('root', [-3.2, 7, -3.2], [6.4, 1, 6.4], 'accent')
+        c('root', [-.8, 9, -3.3], [1.6, 10, .4], 'accent')
+        if self.name == 'statue':
+            c('root', [-5, 27, -5], [10, 2, 10], 'dark')
+            c('root', [-3, 29, -2], [6, 10, 4], 'skin')
+            c('root', [-2.5, 39, -2.5], [5, 5, 5], 'hair')
+            c('root', [-1.8, 40, -2.7], [3.6, 2.5, .4], 'eye')
+            for sign in (-1, 1):
+                c('root', [sign * 5 - 2, 32, -1], [4, 11, 2], 'cloth', rotation=[0, 0, sign * 40])
+            c('root', [-2, 29, -4], [4, 4, 4], 'accent', rotation=[0, 0, 45])
+        else:
+            c('root', [-4, 19, -4], [8, 2, 8], 'dark')
+            c('root', [-3, 23, -1.5], [6, 6, 3], 'accent', rotation=[0, 0, 45])
+            c('root', [-1.5, 24.5, -1.7], [3, 3, .3], 'eye', rotation=[0, 0, 45])
 
     def enemy(self):
         c = self.cube
@@ -679,19 +704,28 @@ def outputs():
         files[ASSETS / f'geckolib/models/enemy/{name}.geo.json'] = json_bytes(model.geometry())
         files[ASSETS / f'geckolib/animations/enemy/{name}.animation.json'] = json_bytes(enemy_animations(model))
         files[ASSETS / f'textures/entity/enemy/{name}.png'] = png(model.pixels)
+    for name in ('statue', 'waypoint'):
+        model = Model(name)
+        files[ASSETS / f'geckolib/models/world/{name}.geo.json'] = json_bytes(model.geometry())
+        files[ASSETS / f'textures/entity/world/{name}.png'] = png(model.pixels)
+    files[ASSETS / 'geckolib/animations/world/obelisk.animation.json'] = json_bytes({
+        'format_version': '1.8.0', 'animations': {'overlay.idle': {
+            'loop': True, 'animation_length': 2, 'bones': {'root': {'rotation': [0, 0, 0]}}}}})
     # This block is generated, so provenance is checked alongside the actual art.
     credits = ROOT / 'CREDITS.md'
     start, end = '<!-- character-assets:start -->', '<!-- character-assets:end -->'
     text = credits.read_text()
-    block = '\n'.join([start, '', '## Original generated character and enemy assets (20a/20b/20c)', '',
+    block = '\n'.join([start, '', '## Original generated character, enemy and world-object assets (20a/20b/20c/23)', '',
         '`tools/models/generate.py` authors the Aether, Amber, Kaeya and Lisa cuboid geometry,',
         '128×128 per-face shaded/pixel-painted textures, articulated weapons and original wind gliders,',
         'and all locomotion/combat key poses. It also authors the hunched masked club Hilichurl and red/brown',
         'button-eyed plush Baron Bunny geometry, atlases and phase/throw/explode clips.',
+        'The Starfell/Windrise Statues and ordinary Waypoints use original faceted travel-obelisk',
+        'cuboids and shaded atlases authored here, not copied Genshin or purchased-map models.',
         'Authored for this repository, 2026-10-08; no extracted game assets,',
         'downloaded fan meshes, traced textures, YiFang content or copied sound files. Outputs under',
-        '`assets/genshininminecraft/geckolib/{models,animations}/{character,enemy}` and',
-        '`textures/entity/{character,enemy}` are reproducible with Python 3 (stdlib only); `--check` compares bytes.',
+        '`assets/genshininminecraft/geckolib/{models,animations}/{character,enemy,world}` and',
+        '`textures/entity/{character,enemy,world}` are reproducible with Python 3 (stdlib only); `--check` compares bytes.',
         '', 'Public visual references (silhouette/colour/signature features only):',
         '- [Traveler](https://genshin-impact.fandom.com/wiki/Traveler)',
         '- [Amber](https://genshin-impact.fandom.com/wiki/Amber)',
@@ -725,7 +759,7 @@ def main():
             path.write_bytes(data)
     if mismatches:
         parser.exit(1, 'Generated files differ:\n' + '\n'.join(mismatches) + '\n')
-    print('Character/enemy assets ' + ('match byte-for-byte' if args.check else 'generated') + ' (6 models, 6 animation sets, 6 textures, provenance).')
+    print('Character/enemy/world assets ' + ('match byte-for-byte' if args.check else 'generated') + ' (8 models, 7 animation sets, 8 textures, provenance).')
 
 
 if __name__ == '__main__':
