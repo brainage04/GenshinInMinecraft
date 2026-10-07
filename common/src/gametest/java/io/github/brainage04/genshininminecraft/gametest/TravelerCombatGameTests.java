@@ -34,9 +34,9 @@ public final class TravelerCombatGameTests {
             session.advanceTo(start + 31);
             close(context, mob.getHealth(), 20, "Storm cannot land before source frame 32");
             session.advanceTo(start + 32);
-            // damage.md Lv20/20 ATK45.75 + temporary training sword23; equal-level DEF=.5, RES10%;
+            // damage.md Lv20/20 ATK45.75 + Harbinger94; equal-level DEF=.5, RES10%;
             // traveler-anemo.md Initial Storm176%. UUID seed0's first crit roll is noncritical.
-            double expected = (45.75 + 23) * 1.76 * ((20.0 + 100) / (20 + 100 + 20 + 100)) * (1 - .10);
+            double expected = (45.75 + 94) * 1.76 * ((20.0 + 100) / (20 + 100 + 20 + 100)) * (1 - .10);
             close(context, runtime.target(mob).hp(), 20 * 100 - expected, "Sourced Initial Storm Genshin damage");
             close(context, mob.getHealth(), 20 - expected / 100, "Vanilla health mirrors target fraction");
             close(context, session.kit().energy(), 2 * 3, "Two same-element particles grant six energy directly");
@@ -59,7 +59,7 @@ public final class TravelerCombatGameTests {
             close(context, session.kit().energy(), 0, "Burst drains the complete 60 cost");
             context.assertValueEqual(session.kit().burstReadyFrame(), start + 900, "Fifteen-second burst cooldown");
             session.advanceTo(start + 96);
-            double expected = (45.75 + 23) * .808 * .5 * .9;
+            double expected = (45.75 + 94) * .808 * .5 * .9;
             close(context, runtime.target(mob).hp(), 2000 - expected, "First sourced Aether tornado hit at96");
             context.assertTrue(mob.getDeltaMovement().lengthSqr() > 0, "Small mob pulled by the moving tornado");
             Vec3 pulledVelocity = mob.getDeltaMovement();
@@ -81,7 +81,7 @@ public final class TravelerCombatGameTests {
             runtime.receive(player, Intent.SKILL_RELEASE);
             session.advanceTo(start + 32);
             // Separate absorbed storm=25% Anemo scaling and Swirl=.6*K(20)*Pyro RES, not ATK damage.
-            double stormAndAbsorbed = (45.75 + 23) * (1.76 + 1.76 * .25) * .5 * .9;
+            double stormAndAbsorbed = (45.75 + 94) * (1.76 + 1.76 * .25) * .5 * .9;
             double swirl = .6 * 80.584775 * .9;
             close(context, target.hp(), 2000 - stormAndAbsorbed - swirl, "Talent, absorbed Pyro and transformative Swirl instances");
             context.assertValueEqual(target.swirlCount(), 1, "One Swirl reaction");

@@ -7,6 +7,8 @@ import io.github.brainage04.genshininminecraft.network.PlayerCharacterPayload;
 import io.github.brainage04.genshininminecraft.network.CharacterStatePayload;
 import io.github.brainage04.genshininminecraft.rules.CharacterBaseStats;
 import io.github.brainage04.genshininminecraft.rules.Element;
+import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
+import io.github.brainage04.genshininminecraft.rules.HilichurlProfile;
 import java.util.ArrayList;
 import io.github.brainage04.genshininminecraft.ui.HudFormatting;
 import java.util.HashMap;
@@ -27,7 +29,10 @@ public final class CombatFeedback {
     public static final int LIFETIME_TICKS = 20;
     private static final Element[] ELEMENTS = Element.values();
     private static final FormattedCharSequence[] AURA_TEXT = new FormattedCharSequence[ELEMENTS.length];
+    private static final FormattedCharSequence[] ENEMY_LEVEL_TEXT = new FormattedCharSequence[HilichurlProfile.MAX_LEVEL + 1];
     static {
+        for (int enemyLevel = HilichurlProfile.MIN_LEVEL; enemyLevel <= HilichurlProfile.MAX_LEVEL; enemyLevel++)
+            ENEMY_LEVEL_TEXT[enemyLevel] = Component.literal("Lv. " + enemyLevel + " · Hilichurl").getVisualOrderText();
         for (Element element : ELEMENTS) AURA_TEXT[element.ordinal()] =
                 Component.literal("[" + ElementPalette.symbol(element) + "]").getVisualOrderText();
     }
@@ -102,9 +107,14 @@ public final class CombatFeedback {
     public static List<WorldText> extract(float partialTick) {
         Minecraft client = Minecraft.getInstance();
         if (!CombatInput.managed() || client.gui.hud.isHidden() || level == null) return List.of();
-        if (numbers.isEmpty() && auras.isEmpty() && conductive.isEmpty() && playerCharacters.isEmpty()) return List.of();
         List<WorldText> texts = new ArrayList<>();
         Font font = client.font;
+        for (Entity entity : level.entitiesForRendering()) {
+            if (!(entity instanceof Hilichurl hilichurl) || !entity.isAlive() || entity.isInvisible()) continue;
+            var text = ENEMY_LEVEL_TEXT[hilichurl.genshinLevel()];
+            texts.add(new WorldText(entity.getPosition(partialTick).add(0, entity.getBbHeight() + .2, 0),
+                    text, font.width(text) / 2F, 0xffeeeeee, .025F));
+        }
         for (NumberEntry number : numbers) {
             double progress = Math.clamp((tick - number.bornTick() + partialTick) / LIFETIME_TICKS, 0, 1);
             int alpha = (int) Math.round(255 * (1 - progress));

@@ -42,6 +42,7 @@ public final class StaminaGameTests {
     public static void dashCostsStaminaAndDodgesClub(GameTestHelper context) {
         HilichurlGameTests.withManaged(context, (runtime, player) -> {
             var member = new Hilichurl(GenshinEntities.HILICHURL, context.getLevel());
+            member.setGenshinLevel(20);
             member.snapTo(player.position().add(0, 0, 1.5));
             member.setCamp(member.position(), member.position());
             context.assertTrue(context.getLevel().addFreshEntity(member), "Hilichurl spawned for a real swing");
@@ -107,7 +108,7 @@ public final class StaminaGameTests {
             try {
                 context.assertTrue(runtime.receive(player, Intent.ATTACK_PRESS), "Normal attacks remain free at zero stamina");
                 session.advanceTo(start + 49); // N1 at13; held charge would have landed at38 and49.
-                double normalDamage = (45.75 + 23) * .445 * .5 * .9;
+                double normalDamage = (45.75 + 94) * .445 * .5 * .9;
                 close(context, runtime.target(target).hp(), 2000 - normalDamage,
                         "Zero-stamina hold deals only sourced N1 damage, neither charged hit");
                 close(context, session.stamina().current(), 0, "Rejected charge cannot overdraft or reset recovery");

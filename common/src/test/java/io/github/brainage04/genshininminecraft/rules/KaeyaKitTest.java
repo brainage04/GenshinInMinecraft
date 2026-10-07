@@ -121,7 +121,7 @@ class KaeyaKitTest {
         party.advanceTo(100);
         assertTrue(hits.stream().anyMatch(hit -> hit.frame() > 76));
         assertTrue(owners.stream().allMatch(owner -> owner == kaeya));
-        assertEquals(48.04 + 23, owners.getLast().stats().atk(), 1e-12);
+        assertEquals(48.04 + 94, owners.getLast().stats().atk(), 1e-12);
         assertEquals(948 - 100, kaeya.burstRemaining());
         party.advanceTo(532);
         assertEquals(Kind.ICICLES_END, hits.getLast().kind());

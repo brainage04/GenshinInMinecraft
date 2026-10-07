@@ -3,16 +3,18 @@ package io.github.brainage04.genshininminecraft.rules.kit;
 import io.github.brainage04.genshininminecraft.rules.CharacterBaseStats;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Stats;
+import io.github.brainage04.genshininminecraft.rules.StarterLoadout;
 
 /** Mutable server-owned member state; switching never reconstructs this object. */
 public final class CharacterState {
-    public static final int STARTER_LEVEL = 20;
+    public static final int STARTER_LEVEL = StarterLoadout.LEVEL;
     public static final double STARTER_ENERGY_RECHARGE = 1;
-    public static final double TRAINING_SWORD_BASE_ATK = 23;
-    public static final double TRAINING_BOW_BASE_ATK = 23;
-    public static final double TRAINING_CATALYST_BASE_ATK = 23;
     private final CharacterBaseStats.Character character;
-    private final Stats stats;
+    private final Stats[] stats;
+    private final Stats[] closeArrowStats;
+    private final Stats[] distantArrowStats;
+    private long switchBuffExpires;
+    private long switchPassiveReady;
     private final double burstCost;
     double hp;
     double energy;
@@ -22,19 +24,43 @@ public final class CharacterState {
     long comboReset;
     int combo;
 
-    public CharacterState(CharacterBaseStats.Character character, double weaponAttack, double burstCost) {
+    public CharacterState(CharacterBaseStats.Character character, double burstCost) {
         this.character = character;
         this.burstCost = burstCost;
-        var base = CharacterBaseStats.at(character, STARTER_LEVEL);
-        stats = new Stats(STARTER_LEVEL, base.hp(), base.atk(), base.def(), weaponAttack,
-                0, 0, 0, 0, 0, 0, .05, .5, 0, 0, java.util.Map.of());
-        hp = stats.hp();
+        stats = variants(0);
+        boolean bow = StarterLoadout.weapon(character) == StarterLoadout.SLINGSHOT;
+        closeArrowStats = bow ? variants(StarterLoadout.SLINGSHOT_CLOSE_BONUS) : stats;
+        distantArrowStats = bow ? variants(StarterLoadout.SLINGSHOT_DISTANT_BONUS) : stats;
+        hp = maxHp();
     }
     public CharacterBaseStats.Character character() { return character; }
     public Element element() { return CharacterBaseStats.at(character, STARTER_LEVEL).element(); }
-    public Stats stats() { return stats; }
+    private Stats[] variants(double attackBonus) {
+        double buff = StarterLoadout.THRILLING_TALES.switchAtkPercent();
+        // Cache the small set of equipment conditions once, never allocate stats per landed hit.
+        Stats base = StarterLoadout.stats(character, false, 0, attackBonus);
+        Stats buffed = StarterLoadout.stats(character, false, buff, attackBonus);
+        boolean harbinger = StarterLoadout.weapon(character) == StarterLoadout.HARBINGER_OF_DAWN;
+        return new Stats[]{base, harbinger ? StarterLoadout.stats(character, true, 0, attackBonus) : base,
+                buffed, harbinger ? StarterLoadout.stats(character, true, buff, attackBonus) : buffed};
+    }
+    private int statIndex(long frame) {
+        return (hp > maxHp() * StarterLoadout.HARBINGER_HP_THRESHOLD ? 1 : 0)
+                + (frame < switchBuffExpires ? 2 : 0);
+    }
+    public Stats stats(long frame) { return stats[statIndex(frame)]; }
+    public Stats normalChargedStats(long frame, long flightFrames) {
+        double bonus = StarterLoadout.normalChargedBonus(character, flightFrames);
+        return (bonus > 0 ? closeArrowStats : bonus < 0 ? distantArrowStats : stats)[statIndex(frame)];
+    }
+    public void switchTo(CharacterState incoming, long frame) {
+        var weapon = StarterLoadout.weapon(character);
+        if (weapon.switchAtkPercent() == 0 || frame < switchPassiveReady) return;
+        incoming.switchBuffExpires = frame + StarterLoadout.THRILLING_TALES_DURATION_FRAMES;
+        switchPassiveReady = frame + StarterLoadout.THRILLING_TALES_COOLDOWN_FRAMES;
+    }
     public double hp() { return hp; }
-    public double maxHp() { return stats.hp(); }
+    public double maxHp() { return stats[0].hp(); }
     public double energy() { return energy; }
     public double energyRecharge() { return STARTER_ENERGY_RECHARGE; }
     public double burstCost() { return burstCost; }

@@ -36,14 +36,14 @@ public final class AmberGameTests {
             close(context, player.getAttributeValue(Attributes.MOVEMENT_SPEED), speed * .5, "Server aim slows movement by named adaptation");
             context.assertTrue(session.intent(Intent.ATTACK_RELEASE, start + 86), "Release sourced full-charge86");
             session.advanceTo(start + 86);
-            close(context, target.hp(), 885.200 - talent(1.24), "Talent1 124% ATK Pyro uses equal-level DEF and10% RES");
+            close(context, target.hp(), 885.200 - arrow(1.24), "Talent1 124% ATK Pyro uses equal-level DEF and10% RES plus Slingshot");
             close(context, target.aura().gauge(Element.PYRO), 2 * .8, "Fully charged shot applies sourced2U with aura tax");
             close(context, session.stamina().current(), 100, "Ground bow aim costs zero stamina");
             close(context, player.getAttributeValue(Attributes.MOVEMENT_SPEED), speed, "Release removes server aim slowdown");
             context.assertTrue(session.intent(Intent.ATTACK_PRESS, start + 96), "Second bow hold");
             session.intent(Intent.ATTACK_RELEASE, start + 111);
             session.advanceTo(start + 111);
-            close(context, target.hp(), 885.200 - talent(1.24) - talent(.4386), "Uncharged aimed shot is43.86% Physical, not Pyro");
+            close(context, target.hp(), 885.200 - arrow(1.24) - arrow(.4386), "Uncharged aimed shot is43.86% Physical, not Pyro");
         });
         context.succeed();
     }
@@ -87,7 +87,7 @@ public final class AmberGameTests {
             context.assertTrue(session.intent(Intent.ATTACK_PRESS, start + 102), "A fresh attack remains available after cancellation");
             session.intent(Intent.ATTACK_RELEASE, start + 102);
             session.advanceTo(start + 116);
-            close(context, target.hp(), 885.200 - talent(.3612), "Fresh tap launches the sourced free normal, not the cancelled charge");
+            close(context, target.hp(), 885.200 - arrow(.3612), "Fresh tap launches the sourced free normal, not the cancelled charge");
         });
         context.succeed();
     }
@@ -171,10 +171,10 @@ public final class AmberGameTests {
             close(context, first, 885.200 - talent(.2808), "First inner wave deals talent1 28.08%");
             session.advanceTo(start + 192);
             context.assertTrue(runtime.target(inner).hp() < first, "Rain keeps dealing damage over time");
-            var crits = new java.util.Random(0); // Fixture's UUID0; spec base5% crit/50% crit damage.
+            var crits = new java.util.Random(0); // UUID0; base5% + Slingshot12% CR, base50% CD.
             double innerDamage = 0, outerDamage = 0;
             for (int wave = 0; wave < 18; wave++) {
-                double damage = talent(.2808) * (crits.nextDouble() < .05 ? 1.5 : 1);
+                double damage = talent(.2808) * (crits.nextDouble() < .17 ? 1.5 : 1);
                 if ((wave & 1) == 0) innerDamage += damage;
                 else outerDamage += damage;
             }
@@ -203,7 +203,8 @@ public final class AmberGameTests {
             session.intent(Intent.SWITCH_2, start + 60);
             shoot(session, start + 60);
             double overloaded = 2.75 * 80.584775 * .9; // damage.md current coefficient, no DEF/crit.
-            close(context, target.hp(), 885.200 - (49.87 + 23) * .396 * .5 * .9 - talent(1.24) - overloaded,
+            // Lisa→Amber grants R1 Thrilling Tales24% ATK; only the arrow receives Slingshot36%.
+            close(context, target.hp(), 885.200 - (49.87 + 94) * .396 * .5 * .9 - arrow(1.24) * 1.24 - overloaded,
                     "Pyro on Lisa Electro triggers separate current Overloaded damage");
             close(context, runtime.target(neighbor).hp(), 885.200 - overloaded, "Overloaded has zero-gauge Pyro AoE");
             close(context, runtime.target(neighbor).aura().gauge(Element.PYRO), 0, "Reaction explosion does not seed Pyro aura");
@@ -223,7 +224,8 @@ public final class AmberGameTests {
             session.advanceTo(start + 28);
             session.intent(Intent.SWITCH_2, start + 60);
             shoot(session, start + 60);
-            close(context, runtime.target(enemy).hp(), 885.200 - talent(1.912) - 2 * talent(1.24),
+            // Kaeya: Harbinger94; Amber: Slingshot86, instant-arrow36%; forward Melt2×.
+            close(context, runtime.target(enemy).hp(), 885.200 - (48.04 + 94) * 1.912 * .5 * .9 - 2 * arrow(1.24),
                     "Forward Melt doubles Amber shot on actual Kaeya Cryo at0 EM");
             close(context, runtime.target(enemy).aura().gauge(Element.CRYO), 0, "Forward Melt consumes Cryo");
         });
@@ -240,8 +242,8 @@ public final class AmberGameTests {
             session.intent(Intent.SKILL_PRESS, start + 96);
             session.intent(Intent.SKILL_RELEASE, start + 96);
             session.advanceTo(start + 128);
-            double storm = (45.75 + 23) * 1.76 * .5 * .9;
-            close(context, runtime.target(enemy).hp(), 885.200 - talent(1.24) - storm - .6 * 80.584775 * .9 - storm * .25,
+            double storm = (45.75 + 94) * 1.76 * .5 * .9;
+            close(context, runtime.target(enemy).hp(), 885.200 - arrow(1.24) - storm - .6 * 80.584775 * .9 - storm * .25,
                     "Traveler deals Pyro Swirl and absorption from actual aimed Pyro");
             context.assertValueEqual(runtime.target(enemy).swirlCount(), 1, "Actual Pyro aura swirls");
             context.assertValueEqual(session.skillAbsorbedElement(), Element.PYRO, "Palm absorbs Pyro");
@@ -256,7 +258,7 @@ public final class AmberGameTests {
             runtime.target(enemy).aura().applyHit(Element.HYDRO, 2, start); // Hydro has no gameplay source in this slice.
             runtime.receive(player, Intent.SWITCH_2);
             shoot(session, start);
-            close(context, runtime.target(enemy).hp(), 885.200 - 1.5 * talent(1.24), "Pyro on seeded Hydro reverse-Vaporizes1.5");
+            close(context, runtime.target(enemy).hp(), 885.200 - 1.5 * arrow(1.24), "Pyro on seeded Hydro reverse-Vaporizes1.5");
         });
         context.succeed();
     }
@@ -267,6 +269,7 @@ public final class AmberGameTests {
     }
     private static Hilichurl hilichurl(GameTestHelper context, Vec3 position, boolean ai) {
         var enemy = new Hilichurl(GenshinEntities.HILICHURL, context.getLevel());
+        enemy.setGenshinLevel(20);
         enemy.snapTo(position);
         enemy.setNoAi(!ai);
         context.assertTrue(context.getLevel().addFreshEntity(enemy), "Amber test hilichurl spawned");
@@ -290,7 +293,9 @@ public final class AmberGameTests {
             context.assertFalse(after.is(Blocks.FIRE) || after.is(Blocks.SOUL_FIRE), "No fire blocks in Pyro area at " + pos);
         });
     }
-    private static double talent(double multiplier) { return (48.04 + 23) * multiplier * .5 * .9; }
+    // damage.md: Amber20/20 base48.04 + Slingshot20/20 base86; equal-level DEF.5, RES.9.
+    private static double talent(double multiplier) { return (48.04 + 86) * multiplier * .5 * .9; }
+    private static double arrow(double multiplier) { return talent(multiplier) * 1.36; } // R1; release→hitscan impact0s.
     private static long now(GameTestHelper context) { return Frames.atServerTick(context.getLevel().getServer().getTickCount()); }
     private static void close(GameTestHelper context, double actual, double expected, String message) {
         context.assertTrue(Math.abs(actual - expected) < .0001, message + ": expected " + expected + ", actual " + actual);

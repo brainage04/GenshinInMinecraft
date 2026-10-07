@@ -14,6 +14,7 @@ public final class PartyGameTests {
     public static void lisaNormalThenTravelerSwirl(GameTestHelper context) {
         HilichurlGameTests.withManaged(context, (runtime, player) -> {
             var enemy = new Hilichurl(GenshinEntities.HILICHURL, context.getLevel());
+            enemy.setGenshinLevel(20); // Preserve this reaction fixture's sourced Lv20 HP/DEF.
             enemy.snapTo(player.position().add(0, 0, 2));
             enemy.setNoAi(true);
             context.assertTrue(context.getLevel().addFreshEntity(enemy), "Reaction test hilichurl spawned");
@@ -26,13 +27,19 @@ public final class PartyGameTests {
             var target = runtime.target(enemy);
             close(context, target.hp(), 885.200, "Lisa normal cannot hit before source frame26");
             session.advanceTo(start + 26);
-            close(context, target.hp(), 885.200 - (49.87 + 23) * .396 * .5 * .9,
+            close(context, target.hp(), 885.200 - (49.87 + 94) * .396 * .5 * .9,
                     "Talent1 Lisa normal uses Lisa level20/20 ATK, not Traveler stats");
             context.assertTrue(target.aura().gauge(Element.ELECTRO) > 0, "Lisa normal applies 1U Electro aura to hilichurl");
             context.assertTrue(session.intent(Intent.SWITCH_1, start + 60), "Switch back after sourced one second");
             context.assertTrue(session.intent(Intent.SKILL_PRESS, start + 60), "Traveler Palm accepted");
             session.intent(Intent.SKILL_RELEASE, start + 60);
             session.advanceTo(start + 92);
+            // Lisa normal=(49.87+94)*.396*.45; Lisa→Traveler R1 TTDS grants24% ATK.
+            // Palm176% plus absorbed25% share (45.75+94)*1.24; Swirl=.6*K20*.9, no ATK buff.
+            double lisaDamage = (49.87 + 94) * .396 * .45;
+            double palm = (45.75 + 94) * 1.24 * (1.76 + 1.76 * .25) * .45;
+            close(context, target.hp(), 885.200 - lisaDamage - palm - .6 * 80.584775 * .9,
+                    "Incoming Traveler receives the real Thrilling Tales ATK buff, not a formula multiplier");
             context.assertValueEqual(target.swirlCount(), 1, "Traveler skill Swirls Lisa's Electro aura");
             context.assertValueEqual(session.skillAbsorbedElement(), Element.ELECTRO, "Traveler absorbs Electro before consuming aura");
             close(context, session.party().kit(0).energy(), 6, "Active Traveler receives two same-element particles");
@@ -62,6 +69,7 @@ public final class PartyGameTests {
     public static void characterDeathForcesSwitchAndPartyWipeKillsPlayer(GameTestHelper context) {
         HilichurlGameTests.withManaged(context, (runtime, player) -> {
             var enemy = new Hilichurl(GenshinEntities.HILICHURL, context.getLevel());
+            enemy.setGenshinLevel(20);
             enemy.snapTo(player.position().add(0, 0, 2));
             var session = runtime.session(player);
             session.kit().grantEnergy(60);

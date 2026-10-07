@@ -47,8 +47,7 @@ public final class AmberKit extends NormalAttackKit {
 
     public AmberKit(Consumer<Hit> hits) { this(new EventTimeline(), new Stamina(), hits); }
     public AmberKit(EventTimeline timeline, Stamina stamina, Consumer<Hit> hits) {
-        super(CharacterBaseStats.Character.AMBER, Weapon.BOW, CharacterState.TRAINING_BOW_BASE_ATK,
-                BURST_COST, timeline, stamina, hits);
+        super(CharacterBaseStats.Character.AMBER, Weapon.BOW, BURST_COST, timeline, stamina, hits);
     }
     public boolean aiming() { return aiming; }
     public boolean fullyCharged() { return aiming && frame() - attackStart >= FULL_CHARGE_FRAME; }

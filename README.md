@@ -7,9 +7,11 @@ This is a private-use project for the owner and friends, not a template or a rel
 # Playing the first draft
 
 1. `./gradlew --no-daemon :fabric:runClient` (or `:neoforge:runClient`), create a **new, disposable** creative world with cheats on.
-2. `/genshin arena camp` — builds a flat 50×50 arena around you (destructive inside that box), turns on managed mode, puts you in adventure mode and places three hilichurls at the far side.
+2. `/genshin arena camp` — builds a flat50×50 arena around you (destructive inside that box), turns on managed mode, puts you in adventure mode and places three **Lv8** hilichurls at the far side. This early-camp level is a documented adaptation, awaiting the owner's exact WL0 Starfell/Windrise observations.
 3. You are a party of Traveler (Anemo), Amber, Kaeya and Lisa at level 20. **1–4** switch; **left click** normal attack (hold for charged / Amber's aimed shot); **E** skill (tap/hold); **Q** burst; **Sprint** (left Ctrl) dashes and sprints using stamina; **mouse** orbits the camera, WASD moves relative to it; **F5** toggles first person. Walk into solid walls to **climb** (W/S up/down, A/D sideways, Jump climb-jump, S+Jump away, Sneak drop); airborne **Jump** opens/closes the **glider**, with WASD steering.
-4. `/genshin camp hilichurl [count]` spawns more; `/genshin aura hydro 2` puts a Hydro aura on the enemy you look at, for Electro-Charged/Frozen/Vaporize. `/genshin managed off` returns the world to vanilla rules and controls.
+4. `/genshin camp hilichurl [count] [level]` spawns more (default3, count1–12; defaultLv8, level1–20); e.g. `/genshin camp hilichurl 3 20` selects the original level20 encounter. `/genshin aura hydro 2` puts a Hydro aura on the enemy you look at, for Electro-Charged/Frozen/Vaporize. `/genshin managed off` returns the world to vanilla rules and controls.
+
+The fixed starter weapons are **level20/20, R1 Harbinger of Dawn** (Traveler/Kaeya), **Slingshot** (Amber) and **Thrilling Tales of Dragon Slayers** (Lisa), with their secondary stats/passives. Harbinger grants CRIT Rate above90% HP; Slingshot boosts normal/charged instant arrows, not E/Q; switching away from Lisa buffs the incoming member's ATK for10s (20s proc cooldown). No artifacts yet. Sources and exact published inputs: [damage specification](spec/mechanics/damage.md#named-starter-loadout-2026-10-07).
 
 Full controls, numbers and adaptations: [AGENTS.md](AGENTS.md#in-game-development-commands), [docs/decisions.md](docs/decisions.md), [spec/fidelity.md](spec/fidelity.md).
 

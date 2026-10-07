@@ -191,7 +191,8 @@ public final class LisaGameTests {
             context.assertTrue(session.intent(Intent.SWITCH_4, start + 96), "Switch from Amber to Lisa");
             tap(context, session, start + 96);
             double overloaded = 2.75 * 80.584775 * .9;
-            close(context, runtime.target(enemy).hp(), 885.200 - (48.04 + 23) * 1.24 * .5 * .9 - lisaTalent(.8) - overloaded,
+            // damage.md: Slingshot86 and its R1 instant-arrow36% bonus; Lisa base49.87 + Thrilling Tales94.
+            close(context, runtime.target(enemy).hp(), 885.200 - (48.04 + 86) * 1.24 * 1.36 * .5 * .9 - lisaTalent(.8) - overloaded,
                     "Amber-then-Lisa triggers current Overloaded coefficient independent of talent DEF");
             close(context, runtime.target(neighbor).hp(), 885.200 - overloaded, "Reaction-only neighbor takes zero-gauge Pyro AoE");
             context.assertValueEqual(runtime.target(neighbor).auraElements(), 0, "Overloaded AoE never applies Pyro or Electro");
@@ -253,6 +254,7 @@ public final class LisaGameTests {
     }
     private static Hilichurl hilichurl(GameTestHelper context, Vec3 position) {
         var enemy = new Hilichurl(GenshinEntities.HILICHURL, context.getLevel());
+        enemy.setGenshinLevel(20);
         enemy.snapTo(position); enemy.setNoAi(true);
         context.assertTrue(context.getLevel().addFreshEntity(enemy), "Lisa test enemy spawned");
         return enemy;
@@ -266,7 +268,8 @@ public final class LisaGameTests {
         catch (CommandSyntaxException exception) { throw new AssertionError("Command failed: " + command, exception); }
     }
     private static long now(GameTestHelper context) { return Frames.atServerTick(context.getLevel().getServer().getTickCount()); }
-    private static double lisaTalent(double multiplier) { return (49.87 + 23) * multiplier * .5 * .9; }
+    // damage.md: Lisa20/20 base49.87 + Thrilling Tales20/20 base94; equal-level DEF.5 and RES.9.
+    private static double lisaTalent(double multiplier) { return (49.87 + 94) * multiplier * .5 * .9; }
     private static double crit(java.util.Random random) { return random.nextDouble() < .05 ? 1.5 : 1; }
     private static void close(GameTestHelper context, double actual, double expected, String message) {
         context.assertTrue(Math.abs(actual - expected) < .0001, message + ": expected " + expected + ", actual " + actual);

@@ -184,6 +184,23 @@ Ungeared base stats; no weapon, artifacts, resonance, food, or quest-granted Tra
 
 These decimals are **published rounded base stats**, not recovered exact internal floats. The wiki documents Traveler stat increases per resonated element after the *True Moon* quest and additional talents unlocked by that quest [source][MC]. They are progression-dependent; the baseline starter table does not include them. Exact boosted base-stat totals at these levels are **unknown** in this system specification; consult the character specification for progression unlocks.
 
+## Named starter loadout (2026-10-07)
+
+`StarterLoadout` selects **level20/20, ascension0, refinement1** weapons for the level20/20, C0, talent1 party. This is a transparent development loadout, not a claim that every early-game account owns these weapons. The held Minecraft item does not select gear. **No artifacts, food, resonance or character ascension passives** are granted.
+
+| Character(s) | Weapon | Base ATK at20/20 | Secondary at20/20 | R1 passive and source |
+| --- | --- | ---: | --- | --- |
+| Traveler, Kaeya | Harbinger of Dawn | 94 | CRIT DMG18% | HP **above90%**: CRIT Rate+14 percentage points; inactive at/below90%. [Published weapon table/passive](https://paimon.moe/weapons/harbinger_of_dawn). |
+| Amber | Slingshot | 86 | CRIT Rate12% | Normal/Charged Attack impact within0.3s after firing: DMG Bonus+36%; otherwise−10%. Not an ATK bonus and not an E/Q bonus. [Published weapon table/passive](https://paimon.moe/weapons/slingshot). |
+| Lisa | Thrilling Tales of Dragon Slayers | 94 | HP13.5% | Switching away grants the incoming character ATK+24% for10s; one proc per20s. Applies to base character+weapon ATK, not flat ATK or a separate final-damage multiplier; Lisa receives no self buff. [Published weapon table/passive](https://paimon.moe/weapons/thrilling_tales_of_dragon_slayers). |
+
+These are the unascended20 rows, **not** the113/105/113 ATK ascended20 rows. Published rounding and unconfirmed pinned-version continuity remain the same evidence limitations as the base-character tables.
+
+Before conditional party buffs, total ATK is **139.75 / 134.04 / 142.04 / 143.87** (Traveler/Amber/Kaeya/Lisa). Lisa maxHP is `2061.30×1.135=2339.5755`. Full-HP Harbinger users have19% CR/68% CD; Amber17% CR/50% CD; Lisa5% CR/50% CD. Losing the Harbinger condition changes CR only, not ATK or CD. Live talent hits use individual seeded rolls; `1+CR×CD` remains an analysis-only expectation.
+
+Slingshot flight is measured **from firing, not from attack/charge press**. The current Amber raycast lands at release, hence0 elapsed frames and the positive branch at every reachable distance; the rules also represent the late-impact−10% branch. This is an existing hitscan geometry adaptation, **not sourced projectile speed**. Visible projectile/travel work is item19. Thrilling Tales uses600-frame duration/1200-frame cooldown; a rejected switch grants nothing, and its buff belongs only to the incoming character (including while off-field). Forced replacements reuse the switch proc as an explicit adaptation; exact death-proc behavior has not been sourced.
+
+
 ## Version changes and conditional reactions
 
 ### Historical damage buffs: not alternative current values

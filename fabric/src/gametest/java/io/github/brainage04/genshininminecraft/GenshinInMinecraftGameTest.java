@@ -15,6 +15,9 @@ import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 
 public class GenshinInMinecraftGameTest {
+    @GameTest public void liveNormalsRollSeededCritsAndUpdateHarbingerHpCondition(GameTestHelper context) {
+        HilichurlGameTests.liveNormalsRollSeededCritsAndUpdateHarbingerHpCondition(context);
+    }
     @GameTest public void safeFallDoesNotDamage(GameTestHelper context) { TraversalGameTests.safeFallDoesNotDamage(context); }
     @GameTest public void damagingFallLosesHalfMaxHp(GameTestHelper context) { TraversalGameTests.damagingFallLosesHalfMaxHp(context); }
     @GameTest public void lethalFallForcesCharacterSwitch(GameTestHelper context) { TraversalGameTests.lethalFallForcesCharacterSwitch(context); }

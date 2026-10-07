@@ -182,6 +182,7 @@ public final class CombatLifecycleGameTests {
     }
     private static Hilichurl enemy(GameTestHelper context, Vec3 point) {
         var enemy = new Hilichurl(GenshinEntities.HILICHURL, context.getLevel());
+        enemy.setGenshinLevel(20);
         enemy.snapTo(point);
         enemy.setNoAi(true);
         context.assertTrue(context.getLevel().addFreshEntity(enemy), "Lifetime target spawned");

@@ -7,6 +7,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Frames;
+import io.github.brainage04.genshininminecraft.rules.HilichurlProfile;
 import io.github.brainage04.genshininminecraft.world.ManagedWorld;
 import io.github.brainage04.genshininminecraft.GenshinInMinecraft;
 import io.github.brainage04.genshininminecraft.world.ManagedWorldData;
@@ -51,9 +52,12 @@ public final class GenshinCommand {
                 .then(Commands.literal("camp")
                         .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.literal("hilichurl")
-                                .executes(context -> camp(context.getSource(), HilichurlCamp.DEFAULT_COUNT))
+                                .executes(context -> camp(context.getSource(), HilichurlCamp.DEFAULT_COUNT, HilichurlProfile.DEFAULT_CAMP_LEVEL))
                                 .then(Commands.argument("count", IntegerArgumentType.integer(1, HilichurlCamp.MAX_COUNT))
-                                        .executes(context -> camp(context.getSource(), IntegerArgumentType.getInteger(context, "count")))))));
+                                        .executes(context -> camp(context.getSource(), IntegerArgumentType.getInteger(context, "count"), HilichurlProfile.DEFAULT_CAMP_LEVEL))
+                                        .then(Commands.argument("level", IntegerArgumentType.integer(HilichurlProfile.MIN_LEVEL, HilichurlProfile.MAX_LEVEL))
+                                                .executes(context -> camp(context.getSource(), IntegerArgumentType.getInteger(context, "count"),
+                                                        IntegerArgumentType.getInteger(context, "level"))))))));
     }
 
     private static LiteralArgumentBuilder<CommandSourceStack> auraCommand() {
@@ -90,16 +94,16 @@ public final class GenshinCommand {
         var player = source.getPlayerOrException();
         var center = TestArena.build(player);
         if (withCamp) HilichurlCamp.spawn(player.level(), Vec3.atLowerCornerOf(center).add(0, 1, HilichurlCamp.ARENA_OFFSET),
-                HilichurlCamp.DEFAULT_COUNT);
+                HilichurlCamp.DEFAULT_COUNT, HilichurlProfile.DEFAULT_CAMP_LEVEL);
         source.sendSuccess(() -> Component.literal("Built Genshin arena at " + center.toShortString()
                 + "; managed mode on, adventure mode enabled" + (withCamp ? ", hilichurl camp placed." : ".")), true);
         return 1;
     }
 
-    private static int camp(CommandSourceStack source, int count) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+    private static int camp(CommandSourceStack source, int count, int level) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         var player = source.getPlayerOrException();
-        int spawned = HilichurlCamp.spawn(player.level(), player.position(), count).size();
-        source.sendSuccess(() -> Component.literal("Spawned hilichurl camp: " + spawned + " members."), true);
+        int spawned = HilichurlCamp.spawn(player.level(), player.position(), count, level).size();
+        source.sendSuccess(() -> Component.literal("Spawned hilichurl camp: " + spawned + " members, Lv. " + level + "."), true);
         return spawned;
     }
 

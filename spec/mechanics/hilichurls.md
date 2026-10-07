@@ -169,6 +169,15 @@ The [Going Upon the Breeze walkthrough](https://www.powerpyx.com/genshin-impact-
 
 **Unknown:** exact camp subtype roster, levels, coordinates, equipment, spawn waves, respawn/persistence, chest behavior, and whether the recreation brief's chosen camp is this quest camp rather than another Starfell Valley camp. The count is from a historical walkthrough, not a pinned-release spawn table. Do not fabricate a Fighter/Shooter/Guard combination or merge the isolated Hilichurl into the camp count.
 
+### Development camp-level adaptation (2026-10-07)
+
+Enemy level is **per spawn**, independent of party level. `/genshin camp hilichurl [count] [level]` accepts1–12 members and levels1–20, exactly the publicly tabulated HP rows above. No unsourced higher-level interpolation is permitted. New summons and `/genshin arena camp` use named `HilichurlProfile.DEFAULT_CAMP_LEVEL=8`: **237.820HP, DEF540,10% body RES**. Explicit level20 remains885.200HP/DEF600. Saved entity level is retained on reload and leash; legacy camps without a level field retain their previous level20, recognized by their saved camp anchor. Fresh `/summon` NBT without a level or saved anchor uses the named default.
+
+The [Adventure Rank/World Level table](https://genshin-impact.fandom.com/wiki/Adventure_Rank#World_Level_and_Ascension) gives WL0 (AR1–19) approximate enemiesLv1–36, independently corroborated by the [readable public AR guide](https://www.vcgamers.com/news/en/ar-genshin-impact/) (2024-02-26; its high-world-level cap is historical, not used here). This broad range does **not** establish exact Starfell/Windrise camp levels. **Level8 is our adaptation, awaiting the owner's in-game observation of those specific WL0 camps**, not a measured or datamined spawn table. Enemy name/aura feedback displays the actual spawn level as `Lv. N`.
+
+The enemy ATK curve remains unknown: named `ADAPTED_ATK=120` is retained at every supported level rather than inventing a scaled curve. Incoming defense mitigation now uses that enemy's actual level. This is a separate fidelity gap from the sourced outgoing HP/DEF/RES and is not a kill-speed fudge factor.
+
+
 ## Conflicts, unknowns, and confidence
 
 - **No documented numeric contradiction established** for the ordinary-family HP ratios, DEF, or body RES. Generic KQM RES tables have explicit Samachurl own-element overrides; do not omit them.

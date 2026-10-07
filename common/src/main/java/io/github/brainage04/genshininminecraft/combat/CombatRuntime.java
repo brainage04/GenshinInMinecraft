@@ -166,7 +166,8 @@ public final class CombatRuntime {
             AmberKit amber = (AmberKit) session.party.kit(1);
             // DEF snapshot chooses Amber's DEF and neutral RES; inheritance is an explicit adaptation.
             double damage = Damage.enemyDamage(HilichurlProfile.ADAPTED_ATK, HilichurlProfile.CLUB_MULTIPLIER,
-                    HilichurlProfile.LEVEL, amber.stats().def(), HilichurlProfile.STARTER_PLAYER_RESISTANCE);
+                    enemy instanceof Hilichurl hilichurl ? hilichurl.genshinLevel() : TravelerAnemoKit.STARTER_LEVEL,
+                    amber.stats().def(), HilichurlProfile.STARTER_PLAYER_RESISTANCE);
             amber.damagePuppet(damage, frame);
             if (session.bunny != null) session.bunny.setHealth((float) amber.puppetHp());
             return true;
@@ -757,9 +758,11 @@ public final class CombatRuntime {
             else particles(level, origin.add(burst ? Vec3.ZERO : forward(player).scale(1.5)),
                     basic && hit.element() != Element.PHYSICAL ? hit.element() : absorbed, sword);
             boolean enemyHit = false;
+            // Existing bow raycasts hit at release: elapsed flight is zero, not the attack's wind-up.
+            Stats hitStats = basic ? kit.state().normalChargedStats(hit.frame(), 0) : kit.state().stats(hit.frame());
             for (LivingEntity enemy : enemies) {
                 CombatTarget target = target(enemy);
-                enemyHit |= deal(kit, target, hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame(), false);
+                enemyHit |= deal(kit, target, hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame(), false, hitStats);
                 if (absorbed != null && hit.absorbedHit() && enemy.isAlive()
                         && (!burst || enemy.position().distanceToSqr(origin) <= ABSORBED_TORNADO_RADIUS * ABSORBED_TORNADO_RADIUS)) {
                     deal(kit, target, absorbed, burst ? .248 : hit.multiplier() * .25,
@@ -1005,6 +1008,10 @@ public final class CombatRuntime {
         }
         private boolean deal(CharacterKit kit, CombatTarget target, Element element, double multiplier,
                 double gauge, String tag, long frame, boolean conductiveTap) {
+            return deal(kit, target, element, multiplier, gauge, tag, frame, conductiveTap, kit.state().stats(frame));
+        }
+        private boolean deal(CharacterKit kit, CombatTarget target, Element element, double multiplier,
+                double gauge, String tag, long frame, boolean conductiveTap, Stats stats) {
             target.aura().advanceTo(frame);
             target.conductive().advanceTo(frame);
             UUID owner = combatOwners[kit.state().character().ordinal()];
@@ -1021,8 +1028,8 @@ public final class CombatRuntime {
             for (Reaction reaction : reactions) {
                 if (reaction.amplifying()) { amplification = reaction; break; }
             }
-            boolean critical = random.nextDouble() < Math.clamp(kit.stats().critRate(), 0, 1);
-            double amount = Damage.talentDamage(kit.stats(), multiplier, element, target.level(), 0, 0,
+            boolean critical = random.nextDouble() < Math.clamp(stats.critRate(), 0, 1);
+            double amount = Damage.talentDamage(stats, multiplier, element, target.level(), 0, 0,
                     target.resistance(element), amplification, 0, critical ? Damage.CritMode.CRIT : Damage.CritMode.NON_CRIT, null);
             boolean applied = target.damage(player, amount);
             if (applied) feedback(target, amount, element, amplification == null ? null : amplification.type(), critical);

@@ -18,9 +18,9 @@ abstract class NormalAttackKit implements CharacterKit {
     private long switchReady;
     private boolean held;
 
-    NormalAttackKit(CharacterBaseStats.Character character, Weapon weapon, double weaponAtk, double burstCost,
+    NormalAttackKit(CharacterBaseStats.Character character, Weapon weapon, double burstCost,
             EventTimeline timeline, Stamina stamina, Consumer<Hit> hits) {
-        this.state = new CharacterState(character, weaponAtk, burstCost);
+        this.state = new CharacterState(character, burstCost);
         this.weapon = weapon;
         this.timeline = timeline;
         this.stamina = stamina;

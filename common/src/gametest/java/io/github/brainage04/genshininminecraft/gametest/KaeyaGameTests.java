@@ -28,7 +28,7 @@ public final class KaeyaGameTests {
             var target = runtime.target(enemy);
             close(context, target.hp(), 885.200, "No skill damage before original frame28");
             session.advanceTo(start + 28);
-            double damage = talent(target, 48.04 + 23, 1.912, .10);
+            double damage = talent(target, 48.04 + 94, 1.912, .10);
             close(context, target.hp(), 885.200 - damage, "Talent1 191.2% Cryo uses spec Kaeya ATK and target DEF/RES");
             close(context, target.aura().gauge(Element.CRYO), 2 * .8, "No-ICD 2U skill installs taxed Cryo aura");
             close(context, enemy.getHealth(), 20 * target.hp() / 885.200, "Genshin HP mirrors to vanilla health");
@@ -62,8 +62,8 @@ public final class KaeyaGameTests {
             context.assertTrue(session.intent(Intent.SWITCH_3, start + 60), "Switch to Kaeya");
             context.assertTrue(session.intent(Intent.SKILL_PRESS, start + 60), "Cryo skill accepted on Electro target");
             session.advanceTo(start + 88);
-            double lisa = talent(target, 49.87 + 23, .396, .10);
-            double frostgnaw = talent(target, 48.04 + 23, 1.912, .10);
+            double lisa = talent(target, 49.87 + 94, .396, .10);
+            double frostgnaw = talent(target, (48.04 + 94) * 1.24, 1.912, .10); // Lisa→Kaeya: R1 Thrilling Tales24% ATK.
             // damage.md current Superconduct1.5 * character K(20), bypasses DEF, Cryo RES10%.
             double superconduct = 1.5 * 80.584775 * (1 - .10);
             close(context, target.hp(), 885.200 - lisa - frostgnaw - superconduct, "Superconduct is separate noncritical Cryo damage");
@@ -74,10 +74,10 @@ public final class KaeyaGameTests {
             context.assertTrue(session.intent(Intent.ATTACK_PRESS, start + 113), "Following Kaeya Physical normal accepted");
             session.intent(Intent.ATTACK_RELEASE, start + 113);
             session.advanceTo(start + 127);
-            double physical = talent(target, 48.04 + 23, .5375, -.30);
+            double physical = talent(target, (48.04 + 94) * 1.24, .5375, -.30); // Same ten-second ATK buff.
             close(context, target.hp(), 885.200 - lisa - frostgnaw - superconduct - physical,
                     "Subsequent Physical hit uses negative-RES branch1.15, not unshredded0.9");
-            context.assertTrue(physical > talent(target, 48.04 + 23, .5375, .10), "Shred increases actual Physical damage");
+            context.assertTrue(physical > talent(target, (48.04 + 94) * 1.24, .5375, .10), "Shred increases actual Physical damage");
             session.advanceTo(start + 807);
             target.aura().advanceTo(start + 807);
             close(context, target.resistance(Element.PHYSICAL), -.30, "Shred remains one frame before expiry");
@@ -102,7 +102,7 @@ public final class KaeyaGameTests {
             context.assertTrue(session.intent(Intent.ATTACK_PRESS, start + 60), "Lisa Electro normal accepted");
             session.intent(Intent.ATTACK_RELEASE, start + 60);
             session.advanceTo(start + 86);
-            double damage = talent(target, 48.04 + 23, 1.912, .10) + talent(target, 49.87 + 23, .396, .10)
+            double damage = talent(target, 48.04 + 94, 1.912, .10) + talent(target, 49.87 + 94, .396, .10)
                     + 1.5 * 80.584775 * .9;
             close(context, target.hp(), 885.200 - damage, "Electro-on-Cryo also deals current Superconduct damage");
             close(context, target.resistance(Element.PHYSICAL), -.30, "Reverse trigger direction also installs Physical shred");
@@ -119,7 +119,7 @@ public final class KaeyaGameTests {
             runtime.receive(player, Intent.SWITCH_3);
             runtime.receive(player, Intent.SKILL_PRESS);
             runtime.session(player).advanceTo(start + 28);
-            close(context, target.hp(), 885.200 - talent(target, 48.04 + 23, 1.912, .10) * 1.5,
+            close(context, target.hp(), 885.200 - talent(target, 48.04 + 94, 1.912, .10) * 1.5,
                     "Reverse Melt amplifies the eligible Cryo talent by1.5 at zero EM");
             close(context, target.aura().gauge(Element.PYRO), 0, "2U Cryo consumes Pyro at0.5 gauge modifier");
             close(context, target.aura().gauge(Element.CRYO), 0, "Over-consuming trigger does not install leftover Cryo aura");
@@ -140,10 +140,10 @@ public final class KaeyaGameTests {
             context.assertTrue(session.intent(Intent.SKILL_PRESS, start + 60), "Palm Vortex accepted");
             session.intent(Intent.SKILL_RELEASE, start + 60);
             session.advanceTo(start + 92);
-            double damage = talent(target, 48.04 + 23, 1.912, .10)
-                    + talent(target, 45.75 + 23, 1.76, .10)
+            double damage = talent(target, 48.04 + 94, 1.912, .10)
+                    + talent(target, 45.75 + 94, 1.76, .10)
                     + .6 * 80.584775 * .9
-                    + talent(target, 45.75 + 23, 1.76 * .25, .10);
+                    + talent(target, 45.75 + 94, 1.76 * .25, .10);
             close(context, target.hp(), 885.200 - damage, "Cryo Swirl uses Cryo RES and separate transformative damage plus absorption");
             context.assertValueEqual(target.swirlCount(), 1, "Traveler Swirls Kaeya's actual Cryo aura");
             context.assertValueEqual(session.skillAbsorbedElement(), Element.CRYO, "Traveler locks Cryo absorption before aura consumption");
@@ -168,7 +168,7 @@ public final class KaeyaGameTests {
             session.advanceTo(start + 51);
             close(context, target.hp(), 885.200, "No damage before original first-contact frame52");
             session.advanceTo(start + 52);
-            double icicle = talent(target, 48.04 + 23, .776, .10);
+            double icicle = talent(target, 48.04 + 94, .776, .10);
             close(context, target.hp(), 885.200 - icicle, "First contacted icicle deals sourced77.6% Cryo");
             context.assertTrue(target.aura().gauge(Element.CRYO) > 0, "Burst first contact applies1U Cryo");
             close(context, runtime.target(center).hp(), 885.200, "Burst is not an unconditional radial tick");
@@ -190,7 +190,7 @@ public final class KaeyaGameTests {
             double beforeShatter = followedTarget.hp();
             session.advanceTo(start + 532);
             double shatterDamage = beforeShatter - followedTarget.hp();
-            context.assertTrue(Math.abs(shatterDamage - icicle) < .0001 || Math.abs(shatterDamage - icicle * 1.5) < .0001,
+            context.assertTrue(Math.abs(shatterDamage - icicle) < .0001 || Math.abs(shatterDamage - icicle * 1.68) < .0001,
                     "Final contact-shatter is one77.6% Cryo hit (possibly crit) despite this icicle's recent ordinary hit lock");
             double endedHp = followedTarget.hp();
             session.advanceTo(start + 700);
@@ -258,6 +258,7 @@ public final class KaeyaGameTests {
 
     private static Hilichurl hilichurl(GameTestHelper context, Vec3 position) {
         var enemy = new Hilichurl(GenshinEntities.HILICHURL, context.getLevel());
+        enemy.setGenshinLevel(20); // This existing golden encounter intentionally stays Lv20.
         enemy.snapTo(position);
         enemy.setNoAi(true);
         context.assertTrue(context.getLevel().addFreshEntity(enemy), "Kaeya test hilichurl spawned");
@@ -266,6 +267,7 @@ public final class KaeyaGameTests {
     private static long now(GameTestHelper context) { return Frames.atServerTick(context.getLevel().getServer().getTickCount()); }
     private static double talent(CombatTarget target, double attack, double multiplier, double resistance) {
         // damage.md outgoing DEF formula written in raw target DEF form; no Damage helper under test.
+        // damage.md: Harbinger20/20 base94, Lisa's Thrilling Tales20/20 base94; selected buff is passed explicitly.
         double defenseMultiplier = 5 * (20.0 + 100) / (5 * (20 + 100) + target.defense());
         double resMultiplier = resistance < 0 ? 1 - resistance / 2 : 1 - resistance;
         return attack * multiplier * defenseMultiplier * resMultiplier;

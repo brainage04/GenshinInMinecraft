@@ -39,8 +39,7 @@ public final class KaeyaKit extends NormalAttackKit {
     private static final int[] CHARGE_FRAMES = {36, 31, 55, 54};
     public KaeyaKit(Consumer<Hit> hits) { this(new EventTimeline(), new Stamina(), hits); }
     public KaeyaKit(EventTimeline timeline, Stamina stamina, Consumer<Hit> hits) {
-        super(CharacterBaseStats.Character.KAEYA, Weapon.SWORD, CharacterState.TRAINING_SWORD_BASE_ATK,
-                BURST_COST, timeline, stamina, hits);
+        super(CharacterBaseStats.Character.KAEYA, Weapon.SWORD, BURST_COST, timeline, stamina, hits);
     }
     @Override public boolean intent(Intent intent, long frame) {
         if (intent != Intent.SKILL_PRESS && intent != Intent.BURST_PRESS) return super.intent(intent, frame);

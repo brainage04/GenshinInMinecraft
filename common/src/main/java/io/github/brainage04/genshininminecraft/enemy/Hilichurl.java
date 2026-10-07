@@ -39,6 +39,7 @@ public final class Hilichurl extends PathfinderMob {
     public static final double MOVEMENT_SPEED = .23;
     public static final double HOME_TOLERANCE = .75;
     private static final EntityDataAccessor<Boolean> WINDING_UP = SynchedEntityData.defineId(Hilichurl.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> GENSHIN_LEVEL = SynchedEntityData.defineId(Hilichurl.class, EntityDataSerializers.INT);
     private static final DustParticleOptions TELEGRAPH = new DustParticleOptions(0xffca65, 1.2F);
     private Vec3 campAnchor;
     private Vec3 idlePosition;
@@ -64,12 +65,18 @@ public final class Hilichurl extends PathfinderMob {
     @Override protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(WINDING_UP, false);
+        builder.define(GENSHIN_LEVEL, HilichurlProfile.DEFAULT_CAMP_LEVEL);
     }
     public boolean isWindingUp() { return entityData.get(WINDING_UP); }
     public boolean isReturningToCamp() { return returning; }
     public Vec3 campAnchor() { return campAnchor; }
     public Vec3 idlePosition() { return idlePosition; }
     public void setCamp(Vec3 anchor, Vec3 home) { campAnchor = anchor; idlePosition = home; }
+    public int genshinLevel() { return entityData.get(GENSHIN_LEVEL); }
+    public void setGenshinLevel(int level) {
+        HilichurlProfile.maxHp(level); // Reject unsourced rows rather than silently interpolate.
+        entityData.set(GENSHIN_LEVEL, level);
+    }
 
     private boolean eligible(ServerPlayer player) {
         return player.level() == level() && player.isAlive() && !player.isRemoved()
@@ -131,7 +138,7 @@ public final class Hilichurl extends PathfinderMob {
                             && (distance < .01 || swingX * dx + swingZ * dz >= MELEE_ARC_COSINE * Math.sqrt(distance))
                             && hasLineOfSight(victim)) {
                         CombatRuntime.get(level.getServer()).enemyHit(victim, this, HilichurlProfile.ADAPTED_ATK,
-                                HilichurlProfile.CLUB_MULTIPLIER, HilichurlProfile.LEVEL);
+                                HilichurlProfile.CLUB_MULTIPLIER, genshinLevel());
                     }
                 }
                 if (!(target instanceof ServerPlayer)) {
@@ -200,6 +207,7 @@ public final class Hilichurl extends PathfinderMob {
     @Override protected boolean shouldDropLoot(ServerLevel level) { return false; }
     @Override protected void addAdditionalSaveData(ValueOutput output) {
         super.addAdditionalSaveData(output);
+        output.putInt("GenshinLevel", genshinLevel());
         if (campAnchor != null) {
             output.store("GenshinCamp", Vec3.CODEC, campAnchor);
             output.store("GenshinIdle", Vec3.CODEC, idlePosition);
@@ -207,7 +215,10 @@ public final class Hilichurl extends PathfinderMob {
     }
     @Override protected void readAdditionalSaveData(ValueInput input) {
         super.readAdditionalSaveData(input);
-        campAnchor = input.read("GenshinCamp", Vec3.CODEC).orElse(position());
+        var savedAnchor = input.read("GenshinCamp", Vec3.CODEC);
+        // Old saved camps were Lv20; fresh /summon NBT has neither a level nor a saved camp anchor.
+        setGenshinLevel(input.getIntOr("GenshinLevel", savedAnchor.isPresent() ? 20 : HilichurlProfile.DEFAULT_CAMP_LEVEL));
+        campAnchor = savedAnchor.orElse(position());
         idlePosition = input.read("GenshinIdle", Vec3.CODEC).orElse(campAnchor);
     }
 }

@@ -50,6 +50,7 @@ public final class Party {
         return false;
     }
     private void activate(int slot, long frame) {
+        activeMember().switchTo(members.get(slot), frame);
         activeKit().leaveField(frame);
         active = slot;
         switchReady = frame + SWITCH_COOLDOWN_FRAMES;

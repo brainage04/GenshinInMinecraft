@@ -29,7 +29,7 @@ public interface CharacterKit {
     void leaveField(long frame);
     /** Cancel every queued action and persistent field without resetting party resources. */
     default void cancelCasts(long frame) { leaveField(frame); }
-    default Stats stats() { return state().stats(); }
+    default Stats stats() { return state().stats(frame()); }
     default double hp() { return state().hp(); }
     default double maxHp() { return state().maxHp(); }
     default double energy() { return state().energy(); }

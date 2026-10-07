@@ -37,15 +37,15 @@ public final class CombatTarget {
     CombatTarget(LivingEntity entity) {
         this.entity = entity;
         boolean hilichurl = entity instanceof Hilichurl;
-        level = hilichurl ? HilichurlProfile.LEVEL : TravelerAnemoKit.STARTER_LEVEL;
+        level = hilichurl ? ((Hilichurl) entity).genshinLevel() : TravelerAnemoKit.STARTER_LEVEL;
         baseResistance = hilichurl ? HilichurlProfile.RESISTANCE : DEFAULT_RESISTANCE;
-        maxHp = hilichurl ? HilichurlProfile.MAX_HP : entity.getMaxHealth() * VANILLA_HEALTH_TO_GENSHIN_HP;
+        maxHp = hilichurl ? HilichurlProfile.maxHp(level) : entity.getMaxHealth() * VANILLA_HEALTH_TO_GENSHIN_HP;
         hp = maxHp * entity.getHealth() / entity.getMaxHealth();
         mirroredHealth = entity.getHealth();
     }
     public LivingEntity entity() { return entity; }
     public int level() { return level; }
-    public double defense() { return entity instanceof Hilichurl ? HilichurlProfile.DEF : 5 * level + 500; }
+    public double defense() { return HilichurlProfile.defense(level); }
     public double endurance() { return entity instanceof Hilichurl ? HilichurlProfile.PLACEHOLDER_ENDURANCE : 0; }
     public double hp() { return hp; }
     public double maxHp() { return maxHp; }

@@ -16,7 +16,7 @@ public final class HilichurlCamp {
     public static final double ARENA_OFFSET = 16;
     private HilichurlCamp() {}
 
-    public static List<Hilichurl> spawn(ServerLevel level, Vec3 anchor, int count) {
+    public static List<Hilichurl> spawn(ServerLevel level, Vec3 anchor, int count, int enemyLevel) {
         List<Hilichurl> members = new ArrayList<>(count);
         for (int index = 0; index < count; index++) {
             double angle = 2 * Math.PI * index / count;
@@ -25,6 +25,7 @@ public final class HilichurlCamp {
             // Ground navigation ends at block centres; matching idle points avoids an unreachable sub-block home.
             home = new Vec3(Math.floor(home.x) + .5, home.y, Math.floor(home.z) + .5);
             Hilichurl member = new Hilichurl(GenshinEntities.HILICHURL, level);
+            member.setGenshinLevel(enemyLevel);
             member.snapTo(home);
             member.setCamp(anchor, home);
             if (level.addFreshEntity(member)) {

@@ -389,6 +389,9 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
             int electroMobId = server.computeOnServer(minecraftServer -> {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
                 var mob = new Hilichurl(GenshinEntities.HILICHURL, player.level());
+                // This multi-tick EC/Rose fixture must survive several145.052595 reaction ticks.
+                // Keep the original sourced Lv20/885.200HP encounter; the arena-default fixture below tests Lv8.
+                mob.setGenshinLevel(20);
                 mob.snapTo(player.position().add(0, 0, 3));
                 mob.setNoAi(true);
                 mob.setYRot(180); mob.setYBodyRot(180); mob.setYHeadRot(180);
@@ -494,6 +497,14 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                 }
             });
             context.waitTicks(10);
+            context.runOnClient(client -> {
+                long labels = CombatFeedback.extract(0).stream().filter(text -> {
+                    StringBuilder value = new StringBuilder();
+                    text.text().accept((index, style, codePoint) -> { value.appendCodePoint(codePoint); return true; });
+                    return value.toString().equals("Lv. 8 · Hilichurl");
+                }).count();
+                if (labels != 3) throw new AssertionError("Every arena hilichurl must show its synced Lv. 8 name line");
+            });
             context.runOnClient(client -> client.gui.hud.getChat().clearMessages(true));
             screenshot(context, "genshin-hilichurl-camp");
             server.runCommand("gamemode adventure @a");

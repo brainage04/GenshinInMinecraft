@@ -53,8 +53,7 @@ public final class LisaKit extends NormalAttackKit {
 
     public LisaKit(Consumer<Hit> hits) { this(new EventTimeline(), new Stamina(), hits); }
     public LisaKit(EventTimeline timeline, Stamina stamina, Consumer<Hit> hits) {
-        super(CharacterBaseStats.Character.LISA, Weapon.CATALYST, CharacterState.TRAINING_CATALYST_BASE_ATK,
-                BURST_COST, timeline, stamina, hits);
+        super(CharacterBaseStats.Character.LISA, Weapon.CATALYST, BURST_COST, timeline, stamina, hits);
     }
     public static double holdMultiplier(int stacks) { return HOLD_MULTIPLIERS[stacks]; }
     public void setCryoSlowed(boolean slowed) { holdThreshold = slowed ? CRYO_HOLD_CHARGE_FRAMES : HOLD_CHARGE_FRAMES; }

@@ -25,7 +25,7 @@ public final class TravelerAnemoKit implements CharacterKit {
     private static final int[] CHARGE_TRANSITION_FRAMES = {28, 28, 36, 45};
     private static final int[] CUTTING_FRAMES = {21, 30, 51, 60, 81, 90};
     private final CharacterState state = new CharacterState(CharacterBaseStats.Character.TRAVELER_ANEMO,
-            CharacterState.TRAINING_SWORD_BASE_ATK, BURST_COST);
+            BURST_COST);
     private final EventTimeline timeline;
     private final Consumer<Hit> hits;
     private final Stamina stamina;
