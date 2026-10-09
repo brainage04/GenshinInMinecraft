@@ -1109,7 +1109,8 @@ public final class CombatRuntime {
                     basic && hit.element() != Element.PHYSICAL ? hit.element() : absorbed, sword);
             boolean enemyHit = false;
             // Existing bow raycasts hit at release: elapsed flight is zero, not the attack's wind-up.
-            Stats hitStats = basic ? kit.state().normalChargedStats(hit.frame(), 0) : kit.state().stats(hit.frame());
+            Stats hitStats = burst ? ((TravelerAnemoKit) kit).burstStats()
+                    : basic ? kit.state().normalChargedStats(hit.frame(), 0) : kit.state().stats(hit.frame());
             for (LivingEntity enemy : enemies) {
                 CombatTarget target = target(enemy);
                 enemyHit |= deal(kit, target, hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame(), false, hitStats);
@@ -1117,7 +1118,7 @@ public final class CombatRuntime {
                         && (!burst || enemy.position().distanceToSqr(origin) <= ABSORBED_TORNADO_RADIUS * ABSORBED_TORNADO_RADIUS)) {
                     deal(kit, target, absorbed, burst ? .248 : hit.multiplier() * .25,
                             burst ? 2 : 1, hit.kind() == Kind.STORM ? null
-                                    : (burst ? "Elemental Burst " : "Elemental Skill ") + absorbed, hit.frame(), false);
+                                    : (burst ? "Elemental Burst " : "Elemental Skill ") + absorbed, hit.frame(), false, hitStats);
                 }
             }
             if (enemyHit && hit.particles() > 0) collect(hit.element(), hit.particles());
@@ -1348,7 +1349,7 @@ public final class CombatRuntime {
             projectile(ProjectileVisualPayload.Kind.ROSE_BOLT, roseLevel, start, end, hit.frame(), 12);
             soundBudget.play(roseLevel, start, CombatSounds.Cue.ROSE, hit.frame());
             for (LivingEntity enemy : nearby(roseLevel, selected.position(), ROSE_IMPACT_RADIUS))
-                deal(lisa, target(enemy), Element.ELECTRO, hit.multiplier(), 1, hit.icdTag(), hit.frame(), false);
+                deal(lisa, target(enemy), Element.ELECTRO, hit.multiplier(), 1, hit.icdTag(), hit.frame(), false, lisa.roseStats());
         }
         private void bunnyVisual(BunnyVisualPayload.Kind kind, Vec3 origin, Vec3 destination, long start, float yaw) {
             var packet = new ClientboundCustomPayloadPacket(new BunnyVisualPayload(player.getUUID(),
@@ -1441,7 +1442,7 @@ public final class CombatRuntime {
                 if (contacts.isEmpty() || !end && !kaeya.connectIcicle(icicle, hit.frame())) continue;
                 // One contact AoE spends this icicle's enemy-independent lock, not a per-target timer.
                 for (LivingEntity enemy : contacts)
-                    deal(kaeya, target(enemy), hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame(), false);
+                    deal(kaeya, target(enemy), hit.element(), hit.multiplier(), hit.gauge(), hit.icdTag(), hit.frame(), false, kaeya.burstStats());
             }
         }
         /** Nearest unobstructed living target on the server eye ray. */

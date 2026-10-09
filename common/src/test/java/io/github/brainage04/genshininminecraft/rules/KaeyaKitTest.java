@@ -5,6 +5,7 @@ import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Hit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Kind;
 import io.github.brainage04.genshininminecraft.rules.kit.KaeyaKit;
+import io.github.brainage04.genshininminecraft.rules.kit.LisaKit;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -126,6 +127,30 @@ class KaeyaKitTest {
         party.advanceTo(532);
         assertEquals(Kind.ICICLES_END, hits.getLast().kind());
     }
+    @Test void waltzRetainsCachedCastStatsAcrossBuffAndHpChangesAndReplacesThemOnlyOnAcceptedCast() {
+        var kit = new KaeyaKit(hit -> {});
+        var castStats = kit.stats();
+        kit.grantEnergy(60);
+        assertTrue(kit.intent(Intent.BURST_PRESS, 0));
+        assertSame(castStats, kit.burstStats(), "Snapshot retains an existing immutable variant, not a copy");
+        assertEquals(0, kit.energy());
+        kit.setHp(kit.maxHp() * .9);
+        new LisaKit(hit -> {}).state().switchTo(kit.state(), 1);
+        kit.advanceTo(532);
+        assertSame(castStats, kit.burstStats());
+        assertEquals(.19, kit.burstStats().critRate(), 1e-12);
+        assertEquals(.05, kit.stats().critRate(), 1e-12);
+        assertEquals((48.04 + 94) * 1.24, kit.stats().atk(), 1e-12);
+        kit.grantEnergy(60);
+        assertFalse(kit.intent(Intent.BURST_PRESS, 947));
+        assertSame(castStats, kit.burstStats(), "Rejected recast must not overwrite the active snapshot");
+        assertTrue(kit.intent(Intent.BURST_PRESS, 948));
+        assertSame(kit.state().stats(948), kit.burstStats());
+        assertNotSame(castStats, kit.burstStats());
+        kit.cancelCasts(949);
+        assertNull(kit.burstStats());
+    }
+
     @Test void subsequentNormalsAndSkillDoNotCancelAnExistingWaltz() {
         var hits = new ArrayList<Hit>();
         var kit = new KaeyaKit(hits::add);

@@ -4,6 +4,8 @@ import com.mojang.authlib.GameProfile;
 import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Frames;
+import io.github.brainage04.genshininminecraft.rules.CharacterBaseStats;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterState;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import io.github.brainage04.genshininminecraft.world.ManagedWorldData;
 import io.github.brainage04.genshininminecraft.world.PartySavedData;
@@ -67,6 +69,88 @@ public final class TravelerCombatGameTests {
             for (int repeated = 0; repeated < 10; repeated++) session.intent(Intent.ATTACK_RELEASE, start + 96);
             context.assertValueEqual(mob.getDeltaMovement(), pulledVelocity, "Repeated intents in one frame must not amplify tornado pulling");
             mob.discard();
+        });
+        context.succeed();
+    }
+
+    public static void gustSurgeIgnoresBuffGainedAfterCast(GameTestHelper context) {
+        withManaged(context, (runtime, player) -> {
+            var session = runtime.session(player);
+            long start = Frames.atServerTick(context.getLevel().getServer().getTickCount());
+            session.kit().grantEnergy(60);
+            context.assertTrue(session.intent(Intent.BURST_PRESS, start), "Cast unbuffed Gust Surge");
+            session.advanceTo(start + 95);
+            var first = mob(context, player);
+            first.snapTo(player.position().add(0, 0, 3.2));
+            session.advanceTo(start + 96);
+            close(context, runtime.target(first).hp(), 2000 - (45.75 + 94) * .808 * .5 * .9,
+                    "First unbuffed tornado tick");
+            first.discard();
+            context.assertTrue(session.intent(Intent.SWITCH_4, start + 100), "Switch to Lisa while the tornado persists");
+            context.assertTrue(session.intent(Intent.SWITCH_1, start + 160), "Real Lisa-to-Traveler switch grants Thrilling Tales");
+            close(context, session.kit().stats().atk(), (45.75 + 94) * 1.24, "Live Traveler really gains24% ATK");
+            session.advanceTo(start + 185);
+            var later = mob(context, player);
+            later.snapTo(player.position().add(0, 0, 6.2));
+            runtime.target(later).aura().applyHit(Element.CRYO, 1, start + 185);
+            session.advanceTo(start + 186);
+            double talent = (45.75 + 94) * (.808 + .248) * .5 * .9;
+            double swirl = .6 * 80.584775 * .9;
+            close(context, runtime.target(later).hp(), 2000 - talent - swirl,
+                    "Gust Surge Anemo and newly absorbed Cryo ignore Thrilling Tales gained after cast");
+            context.assertValueEqual(session.burstAbsorbedElement(), Element.CRYO, "Absorption can be chosen after the stat snapshot");
+            later.discard();
+        });
+        context.succeed();
+    }
+
+    public static void gustSurgeKeepsBuffAfterExpiry(GameTestHelper context) {
+        withManaged(context, (runtime, player) -> {
+            var session = runtime.session(player);
+            long start = Frames.atServerTick(context.getLevel().getServer().getTickCount());
+            context.assertTrue(session.intent(Intent.SWITCH_4, start), "Select Lisa");
+            context.assertTrue(session.intent(Intent.SWITCH_1, start + 60), "Grant Traveler the real ten-second buff");
+            session.kit().grantEnergy(60);
+            context.assertTrue(session.intent(Intent.BURST_PRESS, start + 540), "Cast while the buff remains through first tick");
+            session.advanceTo(start + 635);
+            var first = mob(context, player);
+            first.snapTo(player.position().add(0, 0, 3.2));
+            runtime.target(first).aura().applyHit(Element.CRYO, 1, start + 635);
+            session.advanceTo(start + 636);
+            double talent = (45.75 + 94) * 1.24 * (.808 + .248) * .5 * .9;
+            double swirl = .6 * 80.584775 * .9;
+            close(context, runtime.target(first).hp(), 2000 - talent - swirl, "First tick uses buffed Anemo and absorbed damage");
+            first.discard();
+            session.advanceTo(start + 665);
+            close(context, session.kit().stats().atk(), 45.75 + 94, "Live Traveler has lost Thrilling Tales");
+            var later = mob(context, player);
+            later.snapTo(player.position().add(0, 0, 4.2));
+            session.advanceTo(start + 666);
+            close(context, runtime.target(later).hp(), 2000 - talent, "Gust Surge Anemo and absorbed damage retain expired cast-time buff");
+            later.discard();
+        });
+        context.succeed();
+    }
+
+    public static void palmVortexHoldDamageRemainsDynamic(GameTestHelper context) {
+        withManaged(context, (runtime, player) -> {
+            var session = runtime.session(player);
+            long start = Frames.atServerTick(context.getLevel().getServer().getTickCount());
+            context.assertTrue(session.intent(Intent.SKILL_PRESS, start), "Begin held Palm Vortex without buff");
+            session.advanceTo(start + 20);
+            var first = mob(context, player);
+            session.advanceTo(start + 21);
+            close(context, runtime.target(first).hp(), 2000 - (45.75 + 94) * .12 * .5 * .9, "First cutting hit is unbuffed");
+            first.discard();
+            new CharacterState(CharacterBaseStats.Character.LISA, 80).switchTo(session.kit().state(), start + 22);
+            session.advanceTo(start + 29);
+            var later = mob(context, player);
+            runtime.target(later).aura().applyHit(Element.CRYO, 1, start + 29);
+            session.advanceTo(start + 30);
+            close(context, runtime.target(later).hp(),
+                    2000 - (45.75 + 94) * 1.24 * (.12 + .12 * .25) * .5 * .9 - .6 * 80.584775 * .9,
+                    "Held Palm Vortex Anemo and absorbed cutting damage use live buffed stats, not a snapshot");
+            later.discard();
         });
         context.succeed();
     }

@@ -4,6 +4,7 @@ import io.github.brainage04.genshininminecraft.rules.CharacterBaseStats;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.EventTimeline;
 import io.github.brainage04.genshininminecraft.rules.Stamina;
+import io.github.brainage04.genshininminecraft.rules.Stats;
 import java.util.function.Consumer;
 
 /** Lisa, C0/ascension 0/talent 1. Charged attacks do not grant the locked A1 passive. */
@@ -53,6 +54,7 @@ public final class LisaKit extends NormalAttackKit {
     @Override protected int chargedHitFrame() { return ADAPTED_CHARGED_HIT_FRAMES; }
     private long skillHeld = -1;
     private long roseCast = -1;
+    private Stats roseStats;
     private int holdThreshold = HOLD_CHARGE_FRAMES;
 
     public LisaKit(Consumer<Hit> hits) { this(new EventTimeline(), new Stamina(), hits); }
@@ -92,6 +94,11 @@ public final class LisaKit extends NormalAttackKit {
             state.energy -= BURST_COST; // Reserve at acceptance, not original drain63.
             state.burstCooldown(frame + BURST_COOLDOWN_START_FRAME, BURST_COOLDOWN_FRAMES);
             roseCast = frame;
+            roseStats = null;
+            // lisa.md: snapshot when the lantern forms, not at acceptance or the earlier placement hit.
+            timeline.schedule(frame + ADAPTED_ROSE_FORMATION_FRAME, at -> {
+                if (state.alive() && roseCast == frame) roseStats = state.stats(at);
+            });
             roseEvent(frame + ROSE_PLACEMENT_FRAME, Kind.ROSE_PLACE, ROSE_PLACEMENT_MULTIPLIER, 0, frame);
             for (int index = 0; index < ROSE_DISCHARGE_COUNT; index++)
                 roseEvent(frame + ROSE_FIRST_DISCHARGE_FRAME + index * ROSE_DISCHARGE_INTERVAL_FRAMES,
@@ -131,6 +138,7 @@ public final class LisaKit extends NormalAttackKit {
                         gauge == 0 ? null : "Elemental Burst", false, false, 0, cast));
         });
     }
+    public Stats roseStats() { return roseStats; }
     public boolean roseActive(long frame) {
         return state.alive() && roseCast >= 0 && frame >= roseCast + ADAPTED_ROSE_FORMATION_FRAME
                 && frame <= roseCast + ADAPTED_ROSE_FORMATION_FRAME + ROSE_DURATION_FRAMES;
@@ -139,6 +147,7 @@ public final class LisaKit extends NormalAttackKit {
     @Override public void cancelCasts(long frame) {
         leaveField(frame);
         roseCast = -1;
+        roseStats = null;
     }
     @Override protected void normal(long frame, int index) {
         combo(frame, index, 4, RECOVERY_FRAMES[index]);

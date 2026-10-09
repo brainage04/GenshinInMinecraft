@@ -7,6 +7,8 @@ import io.github.brainage04.genshininminecraft.enemy.GenshinEntities;
 import io.github.brainage04.genshininminecraft.enemy.Hilichurl;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Frames;
+import io.github.brainage04.genshininminecraft.rules.CharacterBaseStats;
+import io.github.brainage04.genshininminecraft.rules.kit.CharacterState;
 import io.github.brainage04.genshininminecraft.rules.kit.AmberKit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import java.util.UUID;
@@ -159,6 +161,63 @@ public final class LisaGameTests {
         });
         context.succeed();
     }
+    public static void lightningRoseIgnoresBuffAfterFormation(GameTestHelper context) {
+        HilichurlGameTests.withManaged(context, (runtime, player) -> {
+            var session = runtime.session(player);
+            long start = now(context);
+            context.assertTrue(session.intent(Intent.SWITCH_4, start), "Select Lisa");
+            session.kit().grantEnergy(80);
+            context.assertTrue(session.intent(Intent.BURST_PRESS, start), "Cast unbuffed Rose");
+            session.advanceTo(start + 59);
+            // This starter party has no second catalyst; use the actual server-state weapon buff API.
+            new CharacterState(CharacterBaseStats.Character.LISA, 80).switchTo(session.kit().state(), start + 60);
+            session.advanceTo(start + 118);
+            close(context, session.kit().stats().atk(), (49.87 + 94) * 1.24, "Live Lisa really has24% ATK");
+            var enemy = hilichurl(context, player.position().add(0, 0, 2));
+            session.advanceTo(start + 119);
+            close(context, runtime.target(enemy).hp(), 885.200 - lisaTalent(.3656),
+                    "Rose ignores Thrilling Tales gained after lantern formation");
+            enemy.discard();
+        });
+        context.succeed();
+    }
+
+    public static void lightningRoseSnapshotsFormationAndKeepsExpiredBuff(GameTestHelper context) {
+        HilichurlGameTests.withManaged(context, (runtime, player) -> {
+            var session = runtime.session(player);
+            long start = now(context);
+            context.assertTrue(session.intent(Intent.SWITCH_4, start), "Select Lisa");
+            session.kit().grantEnergy(80);
+            context.assertTrue(session.intent(Intent.BURST_PRESS, start), "Cast Rose before the buff");
+            session.advanceTo(start + 55);
+            var placement = hilichurl(context, player.position().add(0, 0, 2));
+            session.advanceTo(start + 56);
+            close(context, runtime.target(placement).hp(), 885.200 - lisaTalent(.1), "Placement precedes lantern formation and the buff");
+            placement.discard();
+            session.advanceTo(start + 58);
+            new CharacterState(CharacterBaseStats.Character.LISA, 80).switchTo(session.kit().state(), start + 58);
+            session.advanceTo(start + 118);
+            var first = hilichurl(context, player.position().add(0, 0, 2));
+            session.advanceTo(start + 119);
+            double discharge = lisaTalent(.3656) * 1.24;
+            close(context, runtime.target(first).hp(), 885.200 - discharge,
+                    "Rose snapshots at lantern formation, not burst acceptance or placement");
+            first.discard();
+            session.advanceTo(start + 658);
+            close(context, session.kit().stats().atk(), 49.87 + 94, "Live Lisa loses the ten-second buff");
+            var later = hilichurl(context, player.position().add(0, 0, 2));
+            session.advanceTo(start + 659);
+            close(context, runtime.target(later).hp(), 885.200 - discharge, "Rose retains lantern-formation buff after expiry");
+            later.discard();
+            session.advanceTo(start + 958);
+            var last = hilichurl(context, player.position().add(0, 0, 2));
+            session.advanceTo(start + 959);
+            close(context, runtime.target(last).hp(), 885.200 - discharge, "Last of29 discharges keeps the formation snapshot");
+            last.discard();
+        });
+        context.succeed();
+    }
+
     public static void electroChargedTicksConsumeBothGauges(GameTestHelper context) {
         HilichurlGameTests.withManaged(context, (runtime, player) -> {
             var enemy = hilichurl(context, player.position().add(0, 0, 2));

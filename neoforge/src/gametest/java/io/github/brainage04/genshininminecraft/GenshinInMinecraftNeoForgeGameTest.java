@@ -62,6 +62,8 @@ public final class GenshinInMinecraftNeoForgeGameTest {
             Map.entry("violet_hold_consumes_three_stacks", LisaGameTests::violetHoldConsumesThreeStacks),
             Map.entry("violet_tap_multistacks_and_off_field_projectile", LisaGameTests::violetTapMultistacksAndOffFieldProjectile),
             Map.entry("lightning_rose_energy_timing_and_switch", LisaGameTests::lightningRoseEnergyTimingAndSwitch),
+            Map.entry("lightning_rose_ignores_buff_after_formation", LisaGameTests::lightningRoseIgnoresBuffAfterFormation),
+            Map.entry("lightning_rose_snapshots_formation_and_keeps_expired_buff", LisaGameTests::lightningRoseSnapshotsFormationAndKeepsExpiredBuff),
             Map.entry("electro_charged_ticks_consume_both_gauges", LisaGameTests::electroChargedTicksConsumeBothGauges),
             Map.entry("lisa_overloads_ambers_pyro", LisaGameTests::lisaOverloadsAmbersPyro),
             Map.entry("aura_command_permissions_and_targeting", LisaGameTests::auraCommandPermissionsAndTargeting),
@@ -88,6 +90,9 @@ public final class GenshinInMinecraftNeoForgeGameTest {
             Map.entry("arena_command_builds", ManagedWorldGameTests::arenaCommandBuilds),
             Map.entry("palm_vortex_damage_and_cooldown", TravelerCombatGameTests::palmVortexDamageAndCooldown),
             Map.entry("burst_energy_and_tornado", TravelerCombatGameTests::burstEnergyAndTornado),
+            Map.entry("gust_surge_ignores_buff_gained_after_cast", TravelerCombatGameTests::gustSurgeIgnoresBuffGainedAfterCast),
+            Map.entry("gust_surge_keeps_buff_after_expiry", TravelerCombatGameTests::gustSurgeKeepsBuffAfterExpiry),
+            Map.entry("palm_vortex_hold_damage_remains_dynamic", TravelerCombatGameTests::palmVortexHoldDamageRemainsDynamic),
             Map.entry("palm_vortex_swirls_and_absorbs_pyro", TravelerCombatGameTests::palmVortexSwirlsAndAbsorbsPyro),
             Map.entry("managed_vanilla_melee_cancelled", TravelerCombatGameTests::managedVanillaMeleeCancelled),
             Map.entry("target_death_is_attributed", TravelerCombatGameTests::targetDeathIsAttributed),
@@ -109,6 +114,8 @@ public final class GenshinInMinecraftNeoForgeGameTest {
             Map.entry("frostgnaw_melts_pyro_aura", KaeyaGameTests::frostgnawMeltsPyroAura),
             Map.entry("traveler_swirls_kaeyas_cryo", KaeyaGameTests::travelerSwirlsKaeyasCryo),
             Map.entry("glacial_waltz_energy_contact_and_switch", KaeyaGameTests::glacialWaltzEnergyContactAndSwitch),
+            Map.entry("glacial_waltz_ignores_buff_gained_after_cast", KaeyaGameTests::glacialWaltzIgnoresBuffGainedAfterCast),
+            Map.entry("glacial_waltz_keeps_buff_after_expiry", KaeyaGameTests::glacialWaltzKeepsBuffAfterExpiry),
             Map.entry("frozen_target_cannot_move", KaeyaGameTests::frozenTargetCannotMove),
             Map.entry("simultaneous_bursts_keep_character_icd_separate", KaeyaGameTests::simultaneousBurstsKeepCharacterIcdSeparate)
     );

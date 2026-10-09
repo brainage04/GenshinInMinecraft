@@ -105,6 +105,12 @@ public class GenshinInMinecraftGameTest {
         TravelerCombatGameTests.burstEnergyAndTornado(context);
     }
     @GameTest
+    public void gustSurgeIgnoresBuffGainedAfterCast(GameTestHelper context) { TravelerCombatGameTests.gustSurgeIgnoresBuffGainedAfterCast(context); }
+    @GameTest
+    public void gustSurgeKeepsBuffAfterExpiry(GameTestHelper context) { TravelerCombatGameTests.gustSurgeKeepsBuffAfterExpiry(context); }
+    @GameTest
+    public void palmVortexHoldDamageRemainsDynamic(GameTestHelper context) { TravelerCombatGameTests.palmVortexHoldDamageRemainsDynamic(context); }
+    @GameTest
     public void palmVortexSwirlsAndAbsorbsPyro(GameTestHelper context) {
         TravelerCombatGameTests.palmVortexSwirlsAndAbsorbsPyro(context);
     }
@@ -189,6 +195,10 @@ public class GenshinInMinecraftGameTest {
         KaeyaGameTests.glacialWaltzEnergyContactAndSwitch(context);
     }
     @GameTest
+    public void glacialWaltzIgnoresBuffGainedAfterCast(GameTestHelper context) { KaeyaGameTests.glacialWaltzIgnoresBuffGainedAfterCast(context); }
+    @GameTest
+    public void glacialWaltzKeepsBuffAfterExpiry(GameTestHelper context) { KaeyaGameTests.glacialWaltzKeepsBuffAfterExpiry(context); }
+    @GameTest
     public void frozenTargetCannotMove(GameTestHelper context) {
         KaeyaGameTests.frozenTargetCannotMove(context);
     }
@@ -240,6 +250,10 @@ public class GenshinInMinecraftGameTest {
     public void violetTapMultistacksAndOffFieldProjectile(GameTestHelper context) { LisaGameTests.violetTapMultistacksAndOffFieldProjectile(context); }
     @GameTest
     public void lightningRoseEnergyTimingAndSwitch(GameTestHelper context) { LisaGameTests.lightningRoseEnergyTimingAndSwitch(context); }
+    @GameTest
+    public void lightningRoseIgnoresBuffAfterFormation(GameTestHelper context) { LisaGameTests.lightningRoseIgnoresBuffAfterFormation(context); }
+    @GameTest
+    public void lightningRoseSnapshotsFormationAndKeepsExpiredBuff(GameTestHelper context) { LisaGameTests.lightningRoseSnapshotsFormationAndKeepsExpiredBuff(context); }
     @GameTest
     public void electroChargedTicksConsumeBothGauges(GameTestHelper context) { LisaGameTests.electroChargedTicksConsumeBothGauges(context); }
     @GameTest

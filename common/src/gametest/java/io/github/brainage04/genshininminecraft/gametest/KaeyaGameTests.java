@@ -198,6 +198,75 @@ public final class KaeyaGameTests {
         });
         context.succeed();
     }
+    public static void glacialWaltzIgnoresBuffGainedAfterCast(GameTestHelper context) {
+        HilichurlGameTests.withManaged(context, (runtime, player) -> {
+            var session = runtime.session(player);
+            long start = now(context);
+            context.assertTrue(session.intent(Intent.SWITCH_3, start), "Select Kaeya without Thrilling Tales");
+            session.kit().grantEnergy(60);
+            context.assertTrue(session.intent(Intent.BURST_PRESS, start), "Cast unbuffed Waltz");
+            session.advanceTo(start + 51);
+            var first = hilichurl(context, player.position().add(0, 0, 2.5));
+            session.advanceTo(start + 52);
+            double icicle = (48.04 + 94) * .776 * .5 * .9; // kaeya.md / damage.md, Lv20 target.
+            close(context, runtime.target(first).hp(), 885.200 - icicle, "Unbuffed cast-time icicle value");
+            first.discard();
+            context.assertTrue(session.intent(Intent.SWITCH_4, start + 76), "Switch to Lisa while Waltz persists");
+            context.assertTrue(session.intent(Intent.SWITCH_3, start + 136), "Real Lisa-to-Kaeya switch grants Thrilling Tales");
+            close(context, session.kit().stats().atk(), (48.04 + 94) * 1.24, "Live Kaeya really gains24% ATK");
+            session.advanceTo(start + 171);
+            var later = hilichurl(context, player.position().add(0, 0, 2.5));
+            session.advanceTo(start + 172);
+            close(context, runtime.target(later).hp(), 885.200 - icicle,
+                    "Waltz ignores Thrilling Tales gained after cast");
+            later.discard();
+            session.advanceTo(start + 531);
+            var shatter = hilichurl(context, player.position().add(0, 0, 2.5));
+            session.advanceTo(start + 532);
+            close(context, runtime.target(shatter).hp(), 885.200 - icicle, "Final shatter uses the same unbuffed snapshot");
+            shatter.discard();
+        });
+        context.succeed();
+    }
+
+    public static void glacialWaltzKeepsBuffAfterExpiry(GameTestHelper context) {
+        HilichurlGameTests.withManaged(context, (runtime, player) -> {
+            var session = runtime.session(player);
+            long start = now(context);
+            context.assertTrue(session.intent(Intent.SWITCH_4, start), "Select Lisa");
+            context.assertTrue(session.intent(Intent.SWITCH_3, start + 60), "Grant Kaeya the real ten-second Thrilling Tales buff");
+            session.kit().grantEnergy(60);
+            context.assertTrue(session.intent(Intent.BURST_PRESS, start + 600), "Cast Waltz with one second of buff remaining");
+            session.advanceTo(start + 651);
+            var first = hilichurl(context, player.position().add(0, 0, 2.5));
+            session.advanceTo(start + 652);
+            double icicle = (48.04 + 94) * 1.24 * .776 * .5 * .9;
+            close(context, runtime.target(first).hp(), 885.200 - icicle, "Buffed cast-time icicle value");
+            first.discard();
+            session.advanceTo(start + 660);
+            close(context, session.kit().stats().atk(), 48.04 + 94, "Live Kaeya loses24% ATK at exact buff expiry");
+            session.advanceTo(start + 771);
+            var later = hilichurl(context, player.position().add(0, 0, 2.5));
+            session.advanceTo(start + 772);
+            close(context, runtime.target(later).hp(), 885.200 - icicle, "Waltz retains cast-time Thrilling Tales after expiry");
+            later.discard();
+            session.advanceTo(start + 1131);
+            var shatter = hilichurl(context, player.position().add(0, 0, 2.5));
+            session.advanceTo(start + 1132);
+            close(context, runtime.target(shatter).hp(), 885.200 - icicle, "Final shatter keeps expired cast-time buff");
+            shatter.discard();
+            session.kit().grantEnergy(60);
+            context.assertTrue(session.intent(Intent.BURST_PRESS, start + 1548), "Next Waltz casts after its cooldown with no buff");
+            session.advanceTo(start + 1599);
+            var recast = hilichurl(context, player.position().add(0, 0, 2.5));
+            session.advanceTo(start + 1600);
+            close(context, runtime.target(recast).hp(), 885.200 - (48.04 + 94) * .776 * .5 * .9,
+                    "A new cast replaces rather than reuses the previous buffed snapshot");
+            recast.discard();
+        });
+        context.succeed();
+    }
+
     public static void simultaneousBurstsKeepCharacterIcdSeparate(GameTestHelper context) {
         HilichurlGameTests.withManaged(context, (runtime, player) -> {
             var enemy = hilichurl(context, player.position().add(0, 0, 2.5));

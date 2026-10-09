@@ -6,6 +6,7 @@ import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Energy;
 import io.github.brainage04.genshininminecraft.rules.EventTimeline;
 import io.github.brainage04.genshininminecraft.rules.Stamina;
+import io.github.brainage04.genshininminecraft.rules.Stats;
 import java.util.function.Consumer;
 
 /** Aether, C0, ascension 0, talent level 1. All timestamps are reference frames. */
@@ -47,6 +48,7 @@ public final class TravelerAnemoKit implements CharacterKit {
     private long skillGeneration;
     private long actionGeneration;
     private long burstGeneration;
+    private Stats burstStats;
 
     private final CombatVisual visual = new CombatVisual();
     public static int normalStrike(int index) { return NORMAL_HIT_FRAMES[index]; }
@@ -65,6 +67,7 @@ public final class TravelerAnemoKit implements CharacterKit {
     @Override public Weapon weapon() { return Weapon.SWORD; }
     @Override public long frame() { return timeline.frame(); }
     public boolean skillHeld() { return skillHeld; }
+    public Stats burstStats() { return burstStats; }
     public void grantParticles(int count) {
         grantEnergy(count * Energy.received(Energy.Item.PARTICLE, Element.ANEMO, Element.ANEMO, true, 1, 1));
     }
@@ -87,6 +90,7 @@ public final class TravelerAnemoKit implements CharacterKit {
     @Override public void cancelCasts(long frame) {
         leaveField(frame);
         ++burstGeneration;
+        burstStats = null;
     }
     @Override public boolean intent(Intent intent, long frame) {
         advanceTo(frame);
@@ -177,6 +181,8 @@ public final class TravelerAnemoKit implements CharacterKit {
     }
     private boolean burst(long frame) {
         if (skillHeld || frame < state.burstReady || state.energy < BURST_COST || frame < state.actionReady) return false;
+        // traveler-anemo.md: both Anemo and later absorbed talent damage snapshot for this use.
+        burstStats = state.stats(frame);
         state.energy -= BURST_COST;
         state.burstCooldown(frame, 900);
         state.actionReady = frame + BURST_RECOVERY_FRAMES;

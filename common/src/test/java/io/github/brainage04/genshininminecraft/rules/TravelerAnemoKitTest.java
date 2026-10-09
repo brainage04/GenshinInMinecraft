@@ -1,6 +1,7 @@
 package io.github.brainage04.genshininminecraft.rules;
 
 import io.github.brainage04.genshininminecraft.rules.kit.TravelerAnemoKit;
+import io.github.brainage04.genshininminecraft.rules.kit.LisaKit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Hit;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Kind;
@@ -114,6 +115,29 @@ class TravelerAnemoKitTest {
         kit.grantEnergy(60);
         assertFalse(kit.intent(Intent.BURST_PRESS, 899));
         assertTrue(kit.intent(Intent.BURST_PRESS, 900));
+    }
+
+    @Test void gustSurgeRetainsCachedCastStatsWhilePalmVortexStatsStayLive() {
+        var kit = new TravelerAnemoKit(hit -> {});
+        var castStats = kit.stats();
+        kit.grantEnergy(60);
+        assertTrue(kit.intent(Intent.BURST_PRESS, 0));
+        assertSame(castStats, kit.burstStats());
+        new LisaKit(hit -> {}).state().switchTo(kit.state(), 1);
+        kit.setHp(kit.maxHp() * .9);
+        kit.advanceTo(336);
+        assertSame(castStats, kit.burstStats());
+        assertEquals(.19, kit.burstStats().critRate(), 1e-12);
+        assertEquals(.05, kit.stats().critRate(), 1e-12);
+        assertEquals((45.75 + 94) * 1.24, kit.stats().atk(), 1e-12);
+        kit.grantEnergy(60);
+        assertFalse(kit.intent(Intent.BURST_PRESS, 899));
+        assertSame(castStats, kit.burstStats());
+        assertTrue(kit.intent(Intent.BURST_PRESS, 900));
+        assertSame(kit.state().stats(900), kit.burstStats());
+        assertNotSame(castStats, kit.burstStats());
+        kit.cancelCasts(901);
+        assertNull(kit.burstStats());
     }
 
     @Test void multiplePlayersShareSubTickHitOrderRatherThanPlayerIterationOrder() {

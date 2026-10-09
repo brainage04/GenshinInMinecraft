@@ -43,6 +43,7 @@ Goal: a player can join a world (test arena now, the ported map once it exists),
 
 ## Next candidates (not started; known gaps from playtest round 1)
 
+26a. [x] Persistent-damage snapshot audit: failing-first shared regressions demonstrated Waltz/Rose/Gust Surge buff gain and expiry bugs; cached per-cast Kaeya stats (before energy drain), Lisa lantern-formation stats and Traveler Anemo/absorbed burst stats now persist unchanged. Palm Vortex stays explicitly dynamic; unsourced Fiery Rain/Bunny snapshot timing stays unchanged and is recorded unknown in fidelity. Seven shared cases plus four identity/lifecycle unit cases; full `./gradlew --no-daemon build runAllGameTests` passes (8m54s;93 required server tests in each loader/mode plus connected Fabric client). Exact failed-before quotes and per-field audit are in decisions.
 27. [ ] Elemental resonance (party.md has the sourced rules; co-op already counts rosters across players once it exists).
 28. [ ] Enemy ATK by level: hilichurls hit with a flat 120 ATK at every level because no public curve was found; find a sourced curve or ask the owner to measure.
 29. [ ] Artifacts (the remaining loadout gap after the weapon fix) and a character screen.

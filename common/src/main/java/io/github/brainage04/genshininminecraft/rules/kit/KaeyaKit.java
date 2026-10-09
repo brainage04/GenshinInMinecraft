@@ -4,6 +4,7 @@ import io.github.brainage04.genshininminecraft.rules.CharacterBaseStats;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.EventTimeline;
 import io.github.brainage04.genshininminecraft.rules.Stamina;
+import io.github.brainage04.genshininminecraft.rules.Stats;
 import java.util.function.Consumer;
 
 /** Kaeya, C0, ascension 0, talent 1. Explicit Frostgnaw and contact-sampled Glacial Waltz. */
@@ -35,6 +36,7 @@ public final class KaeyaKit extends NormalAttackKit {
     public static final int ADAPTED_CONTACT_SAMPLE_FRAMES = 3;
     private final long[] icicleReady = new long[ICICLE_COUNT];
     private long burstCast = -1;
+    private Stats burstStats;
     private static final double[] MULTIPLIERS = {.5375, .5169, .6527, .7086, .8824};
     private static final int[] HIT_FRAMES = {14, 9, 14, 23, 30};
     private static final int[] RECOVERY_FRAMES = {27, 27, 47, 46, 74};
@@ -65,6 +67,8 @@ public final class KaeyaKit extends NormalAttackKit {
             visual.begin(io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.BURST, frame,
                     BURST_FIRST_CONTACT_FRAME, BURST_RECOVERY_FRAME);
             // Reserve at acceptance, like Traveler, instead of the measured frame51 drain.
+            // kaeya.md: after casting, before draining energy; retain the cached immutable variant.
+            burstStats = state.stats(frame);
             state.energy -= BURST_COST;
             state.burstCooldown(frame + BURST_COOLDOWN_START_FRAME, BURST_COOLDOWN_FRAMES);
             burstCast = frame;
@@ -76,7 +80,9 @@ public final class KaeyaKit extends NormalAttackKit {
     @Override public void cancelCasts(long frame) {
         leaveField(frame);
         burstCast = -1;
+        burstStats = null;
     }
+    public Stats burstStats() { return burstStats; }
     public boolean burstActive(long frame) {
         return state.alive() && burstCast >= 0 && frame >= burstCast + BURST_FIRST_CONTACT_FRAME
                 && frame < burstCast + BURST_FIRST_CONTACT_FRAME + BURST_DURATION_FRAMES;

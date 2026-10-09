@@ -107,6 +107,41 @@ class LisaKitTest {
         kit.grantEnergy(80); assertFalse(kit.intent(Intent.BURST_PRESS, 1272));
         assertTrue(kit.intent(Intent.BURST_PRESS, 1273));
     }
+    @Test void roseRetainsTheCachedVariantSelectedAtFormationRatherThanAcceptance() {
+        var kit = new LisaKit(hit -> {});
+        kit.grantEnergy(80);
+        assertTrue(kit.intent(Intent.BURST_PRESS, 0));
+        assertNull(kit.roseStats());
+        kit.advanceTo(58);
+        new LisaKit(hit -> {}).state().switchTo(kit.state(), 58);
+        var formationStats = kit.state().stats(59);
+        kit.advanceTo(59);
+        assertSame(formationStats, kit.roseStats(), "Formation must retain the existing immutable stats variant");
+        assertEquals((49.87 + 94) * 1.24, kit.roseStats().atk(), 1e-12);
+        kit.leaveField(60);
+        kit.advanceTo(959);
+        assertSame(formationStats, kit.roseStats(), "Off-field terminal discharge keeps the expired formation buff");
+        assertEquals(49.87 + 94, kit.stats().atk(), 1e-12);
+        kit.grantEnergy(80);
+        assertFalse(kit.intent(Intent.BURST_PRESS, 1252));
+        assertSame(formationStats, kit.roseStats());
+        assertTrue(kit.intent(Intent.BURST_PRESS, 1253));
+        assertNull(kit.roseStats());
+        kit.advanceTo(1312);
+        assertSame(kit.state().stats(1312), kit.roseStats());
+        assertNotSame(formationStats, kit.roseStats());
+        kit.cancelCasts(1313);
+        assertNull(kit.roseStats());
+    }
+    @Test void cancellingRoseBeforeFormationCannotCaptureAStaleSnapshot() {
+        var kit = new LisaKit(hit -> fail("Cancelled Rose cannot emit hits"));
+        kit.grantEnergy(80);
+        assertTrue(kit.intent(Intent.BURST_PRESS, 0));
+        kit.cancelCasts(58);
+        kit.advanceTo(959);
+        assertNull(kit.roseStats());
+    }
+
     @Test void rosePersistsOffFieldButNotAfterLisaFalls() {
         var hits = new ArrayList<Hit>();
         var party = new Party(new EventTimeline(), (kit, hit) -> hits.add(hit));
