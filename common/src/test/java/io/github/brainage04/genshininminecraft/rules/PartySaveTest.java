@@ -61,7 +61,7 @@ class PartySaveTest {
         assertEquals(7, saved.members().getFirst().energy());
         assertEquals(0, saved.members().getFirst().skillRemaining());
         assertTrue(saved.members().get(1).fallen());
-        assertEquals(2506.36, saved.members().get(2).hp());
+        assertEquals(2506.3585316, saved.members().get(2).hp());
         assertEquals(saved, PartySave.fromRecord(saved.toRecord()));
     }
     @Test void loadClampsAbsoluteHpAndEnergyToCurrentMaximaAndKeepsFallenState() {

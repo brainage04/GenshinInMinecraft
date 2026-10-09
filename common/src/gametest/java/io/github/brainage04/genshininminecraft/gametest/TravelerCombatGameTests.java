@@ -37,9 +37,9 @@ public final class TravelerCombatGameTests {
             session.advanceTo(start + 31);
             close(context, mob.getHealth(), 20, "Storm cannot land before source frame 32");
             session.advanceTo(start + 32);
-            // damage.md Lv20/20 ATK45.75 + Harbinger94; equal-level DEF=.5, RES10%;
+            // datamine.md:17.808*2.569 +38.7413*2.42; equal-level DEF=.5, RES10%;
             // traveler-anemo.md Initial Storm176%. UUID seed0's first crit roll is noncritical.
-            double expected = (45.75 + 94) * 1.76 * ((20.0 + 100) / (20 + 100 + 20 + 100)) * (1 - .10);
+            double expected = (45.748752 + 93.753946) * 1.76 * ((20.0 + 100) / (20 + 100 + 20 + 100)) * (1 - .10);
             close(context, runtime.target(mob).hp(), 20 * 100 - expected, "Sourced Initial Storm Genshin damage");
             close(context, mob.getHealth(), 20 - expected / 100, "Vanilla health mirrors target fraction");
             close(context, session.kit().energy(), 2 * 3, "Two same-element particles grant six energy directly");
@@ -62,7 +62,7 @@ public final class TravelerCombatGameTests {
             close(context, session.kit().energy(), 0, "Burst drains the complete 60 cost");
             context.assertValueEqual(session.kit().burstReadyFrame(), start + 900, "Fifteen-second burst cooldown");
             session.advanceTo(start + 96);
-            double expected = (45.75 + 94) * .808 * .5 * .9;
+            double expected = (45.748752 + 93.753946) * .808 * .5 * .9;
             close(context, runtime.target(mob).hp(), 2000 - expected, "First sourced Aether tornado hit at96");
             context.assertTrue(mob.getDeltaMovement().lengthSqr() > 0, "Small mob pulled by the moving tornado");
             Vec3 pulledVelocity = mob.getDeltaMovement();
@@ -83,18 +83,18 @@ public final class TravelerCombatGameTests {
             var first = mob(context, player);
             first.snapTo(player.position().add(0, 0, 3.2));
             session.advanceTo(start + 96);
-            close(context, runtime.target(first).hp(), 2000 - (45.75 + 94) * .808 * .5 * .9,
+            close(context, runtime.target(first).hp(), 2000 - (45.748752 + 93.753946) * .808 * .5 * .9,
                     "First unbuffed tornado tick");
             first.discard();
             context.assertTrue(session.intent(Intent.SWITCH_4, start + 100), "Switch to Lisa while the tornado persists");
             context.assertTrue(session.intent(Intent.SWITCH_1, start + 160), "Real Lisa-to-Traveler switch grants Thrilling Tales");
-            close(context, session.kit().stats().atk(), (45.75 + 94) * 1.24, "Live Traveler really gains24% ATK");
+            close(context, session.kit().stats().atk(), (45.748752 + 93.753946) * 1.24, "Live Traveler really gains24% ATK");
             session.advanceTo(start + 185);
             var later = mob(context, player);
             later.snapTo(player.position().add(0, 0, 6.2));
             runtime.target(later).aura().applyHit(Element.CRYO, 1, start + 185);
             session.advanceTo(start + 186);
-            double talent = (45.75 + 94) * (.808 + .248) * .5 * .9;
+            double talent = (45.748752 + 93.753946) * (.808 + .248) * .5 * .9;
             double swirl = .6 * 80.584775 * .9;
             close(context, runtime.target(later).hp(), 2000 - talent - swirl,
                     "Gust Surge Anemo and newly absorbed Cryo ignore Thrilling Tales gained after cast");
@@ -117,12 +117,12 @@ public final class TravelerCombatGameTests {
             first.snapTo(player.position().add(0, 0, 3.2));
             runtime.target(first).aura().applyHit(Element.CRYO, 1, start + 635);
             session.advanceTo(start + 636);
-            double talent = (45.75 + 94) * 1.24 * (.808 + .248) * .5 * .9;
+            double talent = (45.748752 + 93.753946) * 1.24 * (.808 + .248) * .5 * .9;
             double swirl = .6 * 80.584775 * .9;
             close(context, runtime.target(first).hp(), 2000 - talent - swirl, "First tick uses buffed Anemo and absorbed damage");
             first.discard();
             session.advanceTo(start + 665);
-            close(context, session.kit().stats().atk(), 45.75 + 94, "Live Traveler has lost Thrilling Tales");
+            close(context, session.kit().stats().atk(), 45.748752 + 93.753946, "Live Traveler has lost Thrilling Tales");
             var later = mob(context, player);
             later.snapTo(player.position().add(0, 0, 4.2));
             session.advanceTo(start + 666);
@@ -140,7 +140,7 @@ public final class TravelerCombatGameTests {
             session.advanceTo(start + 20);
             var first = mob(context, player);
             session.advanceTo(start + 21);
-            close(context, runtime.target(first).hp(), 2000 - (45.75 + 94) * .12 * .5 * .9, "First cutting hit is unbuffed");
+            close(context, runtime.target(first).hp(), 2000 - (45.748752 + 93.753946) * .12 * .5 * .9, "First cutting hit is unbuffed");
             first.discard();
             new CharacterState(CharacterBaseStats.Character.LISA, 80).switchTo(session.kit().state(), start + 22);
             session.advanceTo(start + 29);
@@ -148,7 +148,7 @@ public final class TravelerCombatGameTests {
             runtime.target(later).aura().applyHit(Element.CRYO, 1, start + 29);
             session.advanceTo(start + 30);
             close(context, runtime.target(later).hp(),
-                    2000 - (45.75 + 94) * 1.24 * (.12 + .12 * .25) * .5 * .9 - .6 * 80.584775 * .9,
+                    2000 - (45.748752 + 93.753946) * 1.24 * (.12 + .12 * .25) * .5 * .9 - .6 * 80.584775 * .9,
                     "Held Palm Vortex Anemo and absorbed cutting damage use live buffed stats, not a snapshot");
             later.discard();
         });
@@ -166,7 +166,7 @@ public final class TravelerCombatGameTests {
             runtime.receive(player, Intent.SKILL_RELEASE);
             session.advanceTo(start + 32);
             // Separate absorbed storm=25% Anemo scaling and Swirl=.6*K(20)*Pyro RES, not ATK damage.
-            double stormAndAbsorbed = (45.75 + 94) * (1.76 + 1.76 * .25) * .5 * .9;
+            double stormAndAbsorbed = (45.748752 + 93.753946) * (1.76 + 1.76 * .25) * .5 * .9;
             double swirl = .6 * 80.584775 * .9;
             close(context, target.hp(), 2000 - stormAndAbsorbed - swirl, "Talent, absorbed Pyro and transformative Swirl instances");
             context.assertValueEqual(target.swirlCount(), 1, "One Swirl reaction");

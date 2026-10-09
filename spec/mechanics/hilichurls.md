@@ -4,7 +4,7 @@
 
 Target: **[Version 7.1, “A Rekviem for the Underworld”](https://genshin.hoyoverse.com/m/en/news/detail/166383)**, as pinned in the project brief. Scope is ordinary overworld basic Hilichurl, Hilichurl Fighter, Wooden Shield Hilichurl Guard, uninfused Hilichurl Shooter, Pyro Hilichurl Grenadier, and a Samachurl family summary. Elemental Shooters are distinguished where relevant; shielded Mitachurls and other elite families are not aliases for these enemies.
 
-**Evidence limitation:** the wiki and KQM pages below are live reference pages, not a version-tagged export of the pinned release. The [update-details transcript](https://traveler.gg/a-rekviem-for-the-underworld-version-7-1-update-details/) did not identify a named change to these families in the material inspected. That does not establish unchanged values. Every reported value below is **published reference data; exact applicability to the pinned release is unknown unless explicitly stated otherwise**. No historical value is promoted to a confirmed pinned-version test expectation. Exact binary HP curve values and version-stamped enemy configuration were not available in the inspected sources.
+**Numeric authority (2026-10-09):** [datamine.md](datamine.md) pins AnimeGameData2 commit `792978e5503ecfba73dcb3562ed44a0d35a2abe2` (release-labelled7.1) and supersedes the rounded HP references: exact exported base HP/ATK/DEF, resistances and level curves are available. Behaviour/frame/AI/drop sources below remain live wiki/KQM pages, not pinned client retests; absence of a named patch change does not prove behaviour unchanged.
 
 ## HP, DEF, and level scaling
 
@@ -25,40 +25,12 @@ Quest, domain, and co-op multipliers are separate. Their values for the intended
 
 The Cryo Grenadier is a separate subtype and is not covered by the Pyro Grenadier row.
 
-### Low-level published curve, not exact game floats
+### Pinned level-indexed HP, ATK and DEF
 
-The [Japanese wiki mirror's enemy scaling table](https://wiki3.jp/genshin_impact/page/2093) publishes a **Hilichurl HP baseline**, not the raw dimensionless multiplier. It explicitly says its table is rounded and the game's values contain decimals. The baseline column below is transcribed, not fitted or interpolated. The Shooter column retains the multiplication expression to avoid presenting derived extra digits as measured precision. It covers the requested [levels 1–20](https://wiki3.jp/genshin_impact/page/2093).
+[datamine.md § Ordinary monsters](datamine.md#ordinary-monsters) gives the file paths/full7.1 commit, all HP/ATK/DEF curves1–100, and exact products for every supported camp level1–20. Basic/club IDs21010101/21010201 use baseHP13.584, baseATK22.608, baseDEF500; uninfused Shooter21010401 uses HP10.8672/ATK11.304/DEF500. Do not apply the HP ratio to ATK.
 
-For basic, Fighter, Wooden Shield, Pyro Grenadier, and Samachurl, use the baseline column only as a **rounded published reference**. Shooter reference HP is the baseline multiplied by its [published ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP). Exact pinned HP for every row is **unknown**.
+Lv1/8/20 club HP is72.916996656 /237.81997824 /885.2000016; ATK45.67991616 /103.56204816 /301.04993664. DEF500×`GROW_CURVE_DEFENSE` exactly matches5L+500 at every exported row1–100. The former rounded mirror table is retired as a runtime/golden source, not interpolated to invent missing precision. Products mean exported-decimal arithmetic, not a claim about the source engine's binary rounding order.
 
-| Enemy level (level) | Published Type 1 Hilichurl baseline (HP, rounded) | Shooter reference expression (HP, approximate) | Source |
-| ---: | ---: | --- | --- |
-| 1 | 72.917 | 0.8 × 72.917 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 2 | 92.628 | 0.8 × 92.628 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 3 | 114.394 | 0.8 × 114.394 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 4 | 138.215 | 0.8 × 138.215 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 5 | 164.093 | 0.8 × 164.093 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 6 | 192.050 | 0.8 × 192.050 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 7 | 222.075 | 0.8 × 222.075 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 8 | 237.820 | 0.8 × 237.820 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 9 | 261.734 | 0.8 × 261.734 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 10 | 286.604 | 0.8 × 286.604 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 11 | 326.883 | 0.8 × 326.883 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 12 | 368.759 | 0.8 × 368.759 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 13 | 412.257 | 0.8 × 412.257 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 14 | 460.521 | 0.8 × 460.521 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 15 | 510.583 | 0.8 × 510.583 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 16 | 562.470 | 0.8 × 562.470 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 17 | 624.878 | 0.8 × 624.878 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 18 | 679.928 | 0.8 × 679.928 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 19 | 736.002 | 0.8 × 736.002 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 20 | 885.200 | 0.8 × 885.200 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratio](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-
-The modern [Fighter page](https://genshin-impact.fandom.com/wiki/Hilichurl_Fighter#Stats) reports integer HP of **73 / 287 / 885 HP** at **level 1 / 10 / 20**, respectively. These are displayed, rounded values, consistent at that precision with the baseline; they are not competing exact float measurements. A closed-form HP polynomial is **unknown**. Preserve a level-indexed curve rather than interpolating missing rows.
-
-### DEF
-
-For ordinary enemies in scope, the [DEF reference](https://genshin-impact.fandom.com/wiki/DEF#Enemy_Defense) gives **`DEF(L) = 5 × L + 500` DEF points**. For example, the [Fighter table](https://genshin-impact.fandom.com/wiki/Hilichurl_Fighter#Stats) reports **505 / 550 / 600 DEF points** at **level 1 / 10 / 20**. The older mirror instead writes the scaling as **`1 + 0.01 × L`**, multiplying a base DEF of **500 points** ([mirror](https://wiki3.jp/genshin_impact/page/2093)); these forms are algebraically equivalent, not a version difference.
 
 ## Resistance, weakspots, and endurance
 
@@ -171,17 +143,17 @@ The [Going Upon the Breeze walkthrough](https://www.powerpyx.com/genshin-impact-
 
 ### Development camp-level adaptation (2026-10-07)
 
-Enemy level is **per spawn**, independent of party level. `/genshin camp hilichurl [count] [level]` accepts1–12 members and levels1–20, exactly the publicly tabulated HP rows above. No unsourced higher-level interpolation is permitted. New summons and `/genshin arena camp` use named `HilichurlProfile.DEFAULT_CAMP_LEVEL=8`: **237.820HP, DEF540,10% body RES**. Explicit level20 remains885.200HP/DEF600. Saved entity level is retained on reload and leash; legacy camps without a level field retain their previous level20, recognized by their saved camp anchor. Fresh `/summon` NBT without a level or saved anchor uses the named default.
+Enemy level is **per spawn**, independent of party level. `/genshin camp hilichurl [count] [level]` retains1–12 members and levels1–20. [Pinned numeric tables](datamine.md#ordinary-monsters) replace the old rounded HP/flatATK: new summons and `/genshin arena camp` keep `DEFAULT_CAMP_LEVEL=8`, now237.81997824HP/103.56204816ATK/DEF540/10% RES. ExplicitLv20 is885.2000016HP/301.04993664ATK/DEF600. Saved levels survive reload/leash; anchored legacy saves retainLv20, fresh summons useLv8.
 
-The [Adventure Rank/World Level table](https://genshin-impact.fandom.com/wiki/Adventure_Rank#World_Level_and_Ascension) gives WL0 (AR1–19) approximate enemiesLv1–36, independently corroborated by the [readable public AR guide](https://www.vcgamers.com/news/en/ar-genshin-impact/) (2024-02-26; its high-world-level cap is historical, not used here). This broad range does **not** establish exact Starfell/Windrise camp levels. **Level8 is our adaptation, awaiting the owner's in-game observation of those specific WL0 camps**, not a measured or datamined spawn table. Enemy name/aura feedback displays the actual spawn level as `Lv. N`.
+The WL0 approximateLv1–36 public range does **not** identify a camp. [The checked7.1 spawn files and World Level rows](datamine.md#camp-spawns-and-world-level) did not recover exact Starfell/Windrise/Mondstadt-gate spawn IDs/levels; the table has no WL0 row. KeepLv8 as a named adaptation until an identifiable spawn export or owner observation supplies them. The default is not equated with party level; feedback displays the actual level.
 
-The enemy ATK curve remains unknown: named `ADAPTED_ATK=120` is retained at every supported level rather than inventing a scaled curve. Incoming defense mitigation now uses that enemy's actual level. This is a separate fidelity gap from the sourced outgoing HP/DEF/RES and is not a kill-speed fudge factor.
+The flat `ADAPTED_ATK=120` is removed. Actual club ATK is22.608×the pinned `GROW_CURVE_ATTACK` row at its spawn level for both player and Baron Bunny hits; incoming mitigation still uses that enemy's level and the defender's actual DEF. No generic kill-speed multiplier is introduced.
 
 
 ## Conflicts, unknowns, and confidence
 
 - **No documented numeric contradiction established** for the ordinary-family HP ratios, DEF, or body RES. Generic KQM RES tables have explicit Samachurl own-element overrides; do not omit them.
-- Displayed integer HP and the mirror's rounded decimal baseline are different presentation precision, not different measured base parameters. Exact raw curve floats, numeric rounding policy, and pinned-version applicability remain **unknown**.
+- Exact exported HP/ATK/DEF inputs and their pinned7.1 applicability are now sourced in [datamine.md](datamine.md); displayed wiki/mirror rounding is no longer a runtime golden. Engine binary rounding order remains unverified.
 - Burning Fighter state is under-specified: KQM describes Pyro infusion, while the wiki gives ordinary Physical multipliers. The burning-state multiplier/GU cannot be selected silently.
 - Least reliable published data for exact expectations: mirror HP decimals (rounded, old mirror), the descriptive Shooter charge duration, family-wide equipment/AI prose, and historical camp count/applicability.
 - Still **unknown**: measured poise/endurance, almost all attack frame data and ICD groups, most subtype multipliers and gauges, shield durability/arc, aggro/detection/attack ranges, exact low-level loot tables, and exact camp roster. Attempts included wiki subtype/stat pages, current KQM pages and original Markdown tabs, original gauge/CC/poise evidence, the mirror curve, and quest walkthroughs. Several wiki and NGA requests were inaccessible; absence of a retrieved number is not a zero-value mechanic.

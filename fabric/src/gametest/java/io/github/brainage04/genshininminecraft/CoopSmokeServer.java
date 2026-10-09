@@ -72,7 +72,7 @@ public final class CoopSmokeServer implements ModInitializer {
                     enemy = new Hilichurl(GenshinEntities.HILICHURL, host.level()); enemy.setGenshinLevel(20);
                     enemy.snapTo(host.position().add(0, 0, 2)); enemy.setNoAi(true); enemy.setCustomName(net.minecraft.network.chat.Component.literal("Co-op smoke hilichurl"));
                     require(host.level().addFreshEntity(enemy), "Shared enemy spawn");
-                    require(Math.abs(runtime.target(enemy).maxHp() - 1327.8) < .001, "Sourced two-player enemy HP1.50");
+                    require(Math.abs(runtime.target(enemy).maxHp() - 1327.8000024) < .001, "Sourced two-player enemy HP13.584×65.1649×1.50");
                     before = runtime.target(enemy).hp(); phase(server, "models");
                 }
                 case "models" -> {
@@ -117,7 +117,7 @@ public final class CoopSmokeServer implements ModInitializer {
                         for (int slot = 0; slot < 4; slot++) if (party.allocated(slot))
                             require(Math.abs(party.kit(slot).hp() - Math.round(party.kit(slot).maxHp() * .35)) < .001, "Guest own35% respawn");
                         require(host.isAlive() && runtime.session(host).kit().hp() == survivingHp, "Host continues unchanged through guest respawn");
-                        Files.writeString(directory.resolve("server-result.json"), "{\"passed\":true,\"clients\":2,\"enemyMaxHp\":1327.8,\"bothHitSameEnemy\":true,\"crossPlayerSuperconduct\":true,\"independentWipeRespawn\":true}\n");
+                        Files.writeString(directory.resolve("server-result.json"), "{\"passed\":true,\"clients\":2,\"enemyMaxHp\":1327.8000024,\"bothHitSameEnemy\":true,\"crossPlayerSuperconduct\":true,\"independentWipeRespawn\":true}\n");
                         phase(server, "done");
                     }
                 }

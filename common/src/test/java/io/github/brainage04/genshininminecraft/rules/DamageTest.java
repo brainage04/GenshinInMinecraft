@@ -31,7 +31,7 @@ class DamageTest {
     @Test
     void incomingEnemyDamageUsesActualCharacterDefenseAndResistance() {
         // damage.md Incoming enemy talent damage: defender DEF, not outgoing equal-level .5.
-        assertEquals(120 * 600 / (147.01 + 600), Damage.enemyDamage(120, 1, 20, 147.01, 0), EPS);
+        assertEquals(120 * 600 / (147.011025 + 600), Damage.enemyDamage(120, 1, 20, 147.011025, 0), EPS);
         assertEquals(200, Damage.enemyDamage(100, 2, 20, 0, 0), EPS);
         assertEquals(90, Damage.enemyDamage(100, 2, 20, 600, .1), EPS);
         assertEquals(60, Damage.enemyDamage(100, 1, 20, 600, -.4), EPS);

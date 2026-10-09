@@ -2,7 +2,7 @@
 
 Reference target: **Genshin Impact Version 7.1**, as pinned in [the project brief](../../docs/GENSHIN_MINECRAFT_BRIEF.md#fixed-decisions). Research concerns ordinary playable-character movement, not character-specific traversal skills, alternate sprints, or underwater Aquatic Stamina unless explicitly distinguished.
 
-**Evidence status:** current wiki descriptions below are candidate rules for the pinned version, not newly measured game constants. No version-specific traversal measurement for the pinned release was found. Older experiments are isolated as historical/conflicting evidence; their continued validity is `unknown`. Values marked `unknown` are not implementation defaults. Source access was mixed: the Stamina and Invincibility Frame pages and KQM evidence were readable; several other wiki pages were available only through indexed search excerpts.
+**Evidence status (2026-10-09):** [datamine.md](datamine.md#traversalstamina-constants-found) now pins7.1 numeric constants confirming100base/140extra,18dash/start,1.5s recovery wait,5climb-entry,25climb-jump and3glide cost. No number changes follow. Wiki/KQM remain behaviour/rate sources; held-sprint18/s,regen25/s, exact speeds/quantization/billing boundaries are not independently recovered. Older experiments remain historical evidence, not pinned measurements.
 
 ## Capacity and Statue progression
 
@@ -45,8 +45,8 @@ These are unmodified costs, before talent, resonance, constellation, and food re
 | Held ordinary sprint | 18 stamina units/s | [Stamina — Consumption](https://genshin-impact.fandom.com/wiki/Stamina#Stamina_Consumption); also used in [KQM's original Lumenstone test](https://library.keqingmains.com/evidence/general-mechanics/overworld#blooming-light-stamina-regeneration), with [recorded evidence](https://youtu.be/t4rjtB6m15U) |
 | Normal climbing movement | `unknown` stamina units/s | [Stamina — Consumption](https://genshin-impact.fandom.com/wiki/Stamina#Stamina_Consumption) explicitly lists the rate as unknown |
 | Minimum stamina to start climbing | 5 stamina units | [Stamina — Consumption](https://genshin-impact.fandom.com/wiki/Stamina#Stamina_Consumption); eligibility threshold, **not** a continuous drain rate |
-| Climb-jump | Reported 25 stamina units per jump; unverified | [Stamina — Consumption](https://genshin-impact.fandom.com/wiki/Stamina#Stamina_Consumption) labels this value **citation needed**; pinned-version authoritative cost is `unknown` |
-| Ordinary gliding | 3 stamina units/s while moving | [Stamina — Consumption](https://genshin-impact.fandom.com/wiki/Stamina#Stamina_Consumption); “while moving” is the source wording, not proof that withholding forward input eliminates descent cost |
+| Climb-jump | 25 stamina units per jump | Pinned7.1 `CLIMB_JUMP_COST_STAMINA`; [file/commit citation](datamine.md#traversalstamina-constants-found). Supersedes wiki citation-needed/historical24 numeric uncertainty. Formula tuple semantics remain unverified. |
+| Ordinary gliding | 3 stamina units/s | Pinned7.1 `FLY_COST_STAMINA=3`; [file/commit citation](datamine.md#traversalstamina-constants-found). Public “while moving” wording does not prove idle-input descent is free. |
 | Normal surface swimming | 4 stamina units per movement animation | [Stamina — Consumption](https://genshin-impact.fandom.com/wiki/Stamina#Stamina_Consumption); explicitly animation-based, **not** a fixed per-second cost |
 | Surface swim dash, initial | 2 stamina units | [Stamina — Consumption](https://genshin-impact.fandom.com/wiki/Stamina#Stamina_Consumption) |
 | Surface swim dash, held movement | 10.2 stamina units/s | [Stamina — Consumption](https://genshin-impact.fandom.com/wiki/Stamina#Stamina_Consumption) |

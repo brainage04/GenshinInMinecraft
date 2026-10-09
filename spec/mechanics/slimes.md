@@ -4,7 +4,7 @@
 
 Target: **[Version 7.1, “A Rekviem for the Underworld”](https://genshin.hoyoverse.com/m/en/news/detail/166383)**, as pinned in the project brief. This file covers small and large ordinary overworld variants of each named element. Mutant Electro Slimes are distinguished as a related large variant; domain-enhanced slimes are not silently substituted for overworld enemies.
 
-**Evidence limitation:** the sources below are live wiki/KQM reference pages and older linked community tests, not a version-tagged enemy-data export for the pinned release. The [update-details transcript](https://traveler.gg/a-rekviem-for-the-underworld-version-7-1-update-details/) did not identify a named slime change in the material inspected. Absence of a named change does not prove unchanged behavior. All numerical values below are **published reference data; exact pinned-release applicability is unknown**. Exact game curve floats must not be invented from rounded tables. No live-game verification was performed.
+**Numeric authority (2026-10-09):** [datamine.md](datamine.md) pins AnimeGameData2 commit `792978e5503ecfba73dcb3562ed44a0d35a2abe2` (release-labelled7.1), with exact exported base HP/ATK/DEF/resistances and all ordinary curve rows1–100. Those supersede rounded numeric references. Behaviour, innate immunity/aura and historical community measurements below remain qualified wiki/KQM research, not pinned client retests.
 
 ## Base HP, DEF, and level curve
 
@@ -19,53 +19,16 @@ Base HP is a curve parameter, not HP at the lowest level. Co-op, quests, and dom
 | Small Pyro, Cryo, Electro, Hydro, Anemo | 10.8672 | Type 1 | 0.8 | [Scaling wiki](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP), [KQM small](https://library.keqingmains.com/enemy-data/elementals/slime) |
 | Large Pyro, Cryo, Electro, Hydro, Anemo | 27.168 | Type 1 | 2 | [Scaling wiki](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP), [KQM large](https://library.keqingmains.com/enemy-data/elementals/large-slime) |
 
-### Published low-level reference table
+### Pinned level-indexed HP, ATK and DEF
 
-The [Japanese wiki mirror](https://wiki3.jp/genshin_impact/page/2093) publishes a rounded **Hilichurl HP baseline** by level. This is not the raw multiplier column of the modern English wiki. It explicitly warns that its decimals are rounded and that calculations can incur rounding errors. The following expressions combine that transcribed baseline with the [English wiki's slime ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP). They are **arithmetic-derived approximations, not measurements, interpolation, or exact game floats**. Expressions are retained rather than claiming extra decimal precision. The rows cover the requested [levels 1–20](https://wiki3.jp/genshin_impact/page/2093).
+[datamine.md § Ordinary monsters](datamine.md#ordinary-monsters) lists every small/large Pyro/Cryo/Electro/Hydro/Anemo and Mutant Electro ID with base parameters and exact HP/ATK products1–20, includingLv8. All select `GROW_CURVE_HP` / `GROW_CURVE_ATTACK` / `GROW_CURVE_DEFENSE`; the complete1–100 multipliers are transcribed there. No polynomial fitting, rounded Hilichurl baseline multiplication or interpolation is needed.
 
-Both size columns apply to all elements in scope. Exact pinned HP for every row is **unknown**.
+SmallHP10.8672 and largeHP27.168 match the published parameters. DEF500×the pinned curve is algebraically5L+500 at every row1–100; size does not change it. Do not use the HP ratio for ATK. The current runtime has no slime entity/AI; this is a sourced profile for later implementation, not an invented vanilla-slime cutover.
 
-| Enemy level (level) | Published Hilichurl baseline (HP, rounded) | Small slime HP expression (HP, approximate) | Large slime HP expression (HP, approximate) | Source |
-| ---: | ---: | --- | --- | --- |
-| 1 | 72.917 | 0.8 × 72.917 | 2 × 72.917 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 2 | 92.628 | 0.8 × 92.628 | 2 × 92.628 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 3 | 114.394 | 0.8 × 114.394 | 2 × 114.394 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 4 | 138.215 | 0.8 × 138.215 | 2 × 138.215 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 5 | 164.093 | 0.8 × 164.093 | 2 × 164.093 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 6 | 192.050 | 0.8 × 192.050 | 2 × 192.050 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 7 | 222.075 | 0.8 × 222.075 | 2 × 222.075 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 8 | 237.820 | 0.8 × 237.820 | 2 × 237.820 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 9 | 261.734 | 0.8 × 261.734 | 2 × 261.734 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 10 | 286.604 | 0.8 × 286.604 | 2 × 286.604 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 11 | 326.883 | 0.8 × 326.883 | 2 × 326.883 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 12 | 368.759 | 0.8 × 368.759 | 2 × 368.759 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 13 | 412.257 | 0.8 × 412.257 | 2 × 412.257 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 14 | 460.521 | 0.8 × 460.521 | 2 × 460.521 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 15 | 510.583 | 0.8 × 510.583 | 2 × 510.583 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 16 | 562.470 | 0.8 × 562.470 | 2 × 562.470 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 17 | 624.878 | 0.8 × 624.878 | 2 × 624.878 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 18 | 679.928 | 0.8 × 679.928 | 2 × 679.928 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 19 | 736.002 | 0.8 × 736.002 | 2 × 736.002 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
-| 20 | 885.200 | 0.8 × 885.200 | 2 × 885.200 | [Curve](https://wiki3.jp/genshin_impact/page/2093), [ratios](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_HP) |
+### ATK parameters
 
-Independent displayed-integer samples:
 
-| Size / source subtype | Level (level) | Wiki-displayed HP (HP, rounded) | Source |
-| --- | ---: | ---: | --- |
-| Small Pyro | 1 | 58 | [Wiki stats](https://genshin-impact.fandom.com/wiki/Pyro_Slime#Stats) |
-| Small Pyro | 10 | 229 | [Wiki stats](https://genshin-impact.fandom.com/wiki/Pyro_Slime#Stats) |
-| Small Pyro | 20 | 708 | [Wiki stats](https://genshin-impact.fandom.com/wiki/Pyro_Slime#Stats) |
-| Large Cryo | 1 | 146 | [Wiki stats](https://genshin-impact.fandom.com/wiki/Large_Cryo_Slime#Stats) |
-| Large Cryo | 10 | 573 | [Wiki stats](https://genshin-impact.fandom.com/wiki/Large_Cryo_Slime#Stats) |
-| Large Cryo | 20 | 1,770 | [Wiki stats](https://genshin-impact.fandom.com/wiki/Large_Cryo_Slime#Stats) |
-
-A closed-form HP polynomial is **unknown**. Treat the curve as a level-indexed lookup. Do not smooth its steps, extrapolate missing rows, or use these displayed integers to reconstruct exact base parameters.
-
-### DEF and ATK parameters
-
-For ordinary covered enemies, **`DEF(L) = 5 × L + 500` DEF points** ([DEF wiki](https://genshin-impact.fandom.com/wiki/DEF#Enemy_Defense)). The [small Pyro](https://genshin-impact.fandom.com/wiki/Pyro_Slime#Stats) and [large Cryo](https://genshin-impact.fandom.com/wiki/Large_Cryo_Slime#Stats) tables report **505 / 550 / 600 DEF points** at **level 1 / 10 / 20**. Size does not change this unmodified DEF rule.
-
-Attack damage must use the attacker's ATK parameter and ATK curve, not the HP ratio. The [scaling wiki](https://genshin-impact.fandom.com/wiki/Enemy/Level_Scaling#Base_ATK) lists these parameters; exact ATK curve floats for the pinned release are **unknown**.
+Attack damage uses baseATK×`GROW_CURVE_ATTACK`, not the HP ratio. [Pinned datamine tables](datamine.md#ordinary-monsters) confirm the published parameters below and supply the previously missing exact7.1 curve rows.
 
 | Variant | Published base ATK parameter (ATK points) | Published curve | Source |
 | --- | ---: | --- | --- |
@@ -232,4 +195,4 @@ The documented introductory camp near Mondstadt is a Hilichurl encounter; the hi
 - **Anemo pop qualification:** KQM's “any damage during airborne attacks” and the wiki's “damage while inflated” have different wording. The wiki explicitly retains Anemo immunity. Inflation-window timing is **unknown**, not all airborne frames or all hits.
 - Generic own-element RES tables and permanent-aura prose are summaries with subtype/state exceptions, not contradictory measurements. Pyro ignition, Cryo armor, Anemo intrinsic immunity, and Hydro native gauge must not be flattened into one universal slime aura model.
 - **Least reliable for exact tests:** rounded mirrored HP baselines; descriptive AI timings; unsourced generic attack prose; wiki values printed as rounded decimals, particularly Cryo shard multipliers; old Freeze-gauge and CC tests extrapolated to the pinned release.
-- **Still unknown:** exact pinned raw HP/ATK curve values, most enemy attack multipliers/gauges/ICD groups and frame data, poise/endurance, detection/leash/attack ranges, Cryo armor blunt coefficient and regeneration time, large Pyro extinction GU, Electro/Cryo native GU, exact aura restoration algorithm, early-level loot, and camp elemental roster. Research included current wiki subtype stats, KQM pages and original Markdown tabs, original gauge/Freeze/CC/poise tests, the rounded mirror curve, and historical quest walkthroughs. Several subtype wiki/NGA pages and the de-aggro sheet were inaccessible; this is recorded as missing evidence, not as a fabricated mechanic.
+- **Still unknown:** most enemy attack multipliers/gauges/ICD groups and frame data, poise/endurance, detection/leash/attack ranges, Cryo armor blunt coefficient and regeneration time, large Pyro extinction GU, Electro/Cryo native GU, exact aura restoration algorithm, early-level loot and camp elemental roster. Exact exported HP/ATK/DEF curves are no longer unknown; see [datamine.md](datamine.md). Wiki/NGA/de-aggro-source access limitations below are behavioural research gaps, not fabricated zero values.

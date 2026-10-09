@@ -69,16 +69,16 @@ public final class StaminaGameTests {
                 HilichurlGameTests.tick(context, member);
             }
             context.assertFalse(member.isWindingUp(), "The club actually lands during the active dash window");
-            close(context, session.kit().hp(), 2342.39, "A real hilichurl swing inside dash i-frames deals no damage");
+            close(context, session.kit().hp(), 2342.391079, "A real hilichurl swing inside dash i-frames deals no damage");
             for (int tick = 3; tick <= 41; tick++) {
                 session.advanceTo(start + tick * 3L);
                 HilichurlGameTests.tick(context, member);
-                close(context, session.kit().hp(), 2342.39, "Recovery/second wind-up cannot deal early damage");
+                close(context, session.kit().hp(), 2342.391079, "Recovery/second wind-up cannot deal early damage");
             }
             session.advanceTo(start + 126);
             HilichurlGameTests.tick(context, member);
-            double clubDamage = 120 * (5 * 20.0 + 500) / (147.01 + 5 * 20 + 500);
-            close(context, session.kit().hp(), 2342.39 - clubDamage,
+            double clubDamage = 301.04993664 * 600 / (147.011025 + 600); // datamine.md:22.608*13.31608;57.225*2.569.
+            close(context, session.kit().hp(), 2342.391079 - clubDamage,
                     "A subsequent real swing outside the six-tick window deals spec DEF-mitigated damage");
             member.discard();
             // Camera-decoupled strafing regression: a body that has turned left must not rotate A twice.
@@ -108,7 +108,7 @@ public final class StaminaGameTests {
             try {
                 context.assertTrue(runtime.receive(player, Intent.ATTACK_PRESS), "Normal attacks remain free at zero stamina");
                 session.advanceTo(start + 49); // N1 at13; held charge would have landed at38 and49.
-                double normalDamage = (45.75 + 94) * .445 * .5 * .9;
+                double normalDamage = (45.748752 + 93.753946) * .445 * .5 * .9;
                 close(context, runtime.target(target).hp(), 2000 - normalDamage,
                         "Zero-stamina hold deals only sourced N1 damage, neither charged hit");
                 close(context, session.stamina().current(), 0, "Rejected charge cannot overdraft or reset recovery");

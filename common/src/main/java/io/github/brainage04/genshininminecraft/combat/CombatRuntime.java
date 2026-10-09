@@ -299,9 +299,9 @@ public final class CombatRuntime {
             if (session.bunny != puppet || !puppet.isAlive()) continue;
             AmberKit amber = (AmberKit) session.party.kit(1);
             // DEF snapshot chooses Amber's DEF and neutral RES; inheritance is an explicit adaptation.
-            double damage = Damage.enemyDamage(HilichurlProfile.ADAPTED_ATK, HilichurlProfile.CLUB_MULTIPLIER,
-                    enemy instanceof Hilichurl hilichurl ? hilichurl.genshinLevel() : TravelerAnemoKit.STARTER_LEVEL,
-                    amber.stats().def(), HilichurlProfile.STARTER_PLAYER_RESISTANCE);
+            int enemyLevel = enemy instanceof Hilichurl hilichurl ? hilichurl.genshinLevel() : TravelerAnemoKit.STARTER_LEVEL;
+            double damage = Damage.enemyDamage(HilichurlProfile.attack(enemyLevel), HilichurlProfile.CLUB_MULTIPLIER,
+                    enemyLevel, amber.stats().def(), HilichurlProfile.STARTER_PLAYER_RESISTANCE);
             amber.damagePuppet(damage, frame);
             if (session.bunny != null) session.bunny.setHealth((float) amber.puppetHp());
             if (session.bunny != null) session.bunny.visualHurt();

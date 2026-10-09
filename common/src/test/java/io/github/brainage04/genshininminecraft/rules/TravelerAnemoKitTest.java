@@ -129,7 +129,7 @@ class TravelerAnemoKitTest {
         assertSame(castStats, kit.burstStats());
         assertEquals(.19, kit.burstStats().critRate(), 1e-12);
         assertEquals(.05, kit.stats().critRate(), 1e-12);
-        assertEquals((45.75 + 94) * 1.24, kit.stats().atk(), 1e-12);
+        assertEquals((45.748752 + 93.753946) * 1.24, kit.stats().atk(), 1e-12);
         kit.grantEnergy(60);
         assertFalse(kit.intent(Intent.BURST_PRESS, 899));
         assertSame(castStats, kit.burstStats());
@@ -158,7 +158,7 @@ class TravelerAnemoKitTest {
     @Test void deadCharacterCannotStartActionsOrDealPendingHits() {
         List<Hit> hits = new ArrayList<>();
         var kit = new TravelerAnemoKit(hits::add);
-        assertEquals(2342.39, kit.maxHp()); // damage.md: Lv20/20 Traveler.
+        assertEquals(2342.391079, kit.maxHp()); // damage.md: Lv20/20 Traveler.
         kit.intent(Intent.ATTACK_PRESS, 0);
         kit.setHp(0);
         kit.advanceTo(50);

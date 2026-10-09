@@ -1,23 +1,31 @@
 package io.github.brainage04.genshininminecraft.rules;
 
-/** Ordinary club Fighter references; rounded level-indexed inputs are sourced in hilichurls.md. */
+/** Ordinary club Fighter numeric profile: pinned 7.1 inputs are sourced in datamine.md. */
 public final class HilichurlProfile {
     public static final int MIN_LEVEL = 1;
     public static final int MAX_LEVEL = 20;
-    public static final int DEFAULT_CAMP_LEVEL = 8; // WL0 adaptation, awaiting owner camp observations.
-    private static final double[] HP_BY_LEVEL = {
-        72.917, 92.628, 114.394, 138.215, 164.093, 192.050, 222.075, 237.820, 261.734, 286.604,
-        326.883, 368.759, 412.257, 460.521, 510.583, 562.470, 624.878, 679.928, 736.002, 885.200
-    };
+    public static final int DEFAULT_CAMP_LEVEL = 8; // WL0 adaptation: dump lacks identifiable camp spawns.
+    public static final double BASE_HP = 13.584;
+    public static final double BASE_ATK = 22.608;
+    public static final double BASE_DEF = 500;
     public static final double RESISTANCE = .10;
     public static final double PLACEHOLDER_ENDURANCE = 100;
-    public static final double ADAPTED_ATK = 120; // Enemy ATK curve has not been sourced.
     public static final double CLUB_MULTIPLIER = 1; // hilichurls.md: ordinary Fighter club hit 100%.
     public static final double STARTER_PLAYER_RESISTANCE = 0;
-    public static double maxHp(int level) {
-        if (level < MIN_LEVEL || level > MAX_LEVEL) throw new IllegalArgumentException("Sourced hilichurl levels are 1–20");
-        return HP_BY_LEVEL[level - 1];
+    private static void checkLevel(int level) {
+        if (level < MIN_LEVEL || level > MAX_LEVEL) throw new IllegalArgumentException("Camp levels are 1–20");
     }
-    public static double defense(int level) { return 5 * level + 500; }
+    public static double maxHp(int level) {
+        checkLevel(level);
+        return MonsterCurve.hp(BASE_HP, level);
+    }
+    public static double attack(int level) {
+        checkLevel(level);
+        return MonsterCurve.attack(BASE_ATK, level);
+    }
+    public static double defense(int level) {
+        checkLevel(level);
+        return MonsterCurve.defense(BASE_DEF, level);
+    }
     private HilichurlProfile() {}
 }

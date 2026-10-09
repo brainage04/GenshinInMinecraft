@@ -83,7 +83,7 @@ For an ordinary unbuffed enemy attack, `D_in = enemyATK × attackMultiplier × A
 
 **Conflict:** that Japanese page's separate [incoming section](https://wikiwiki.jp/genshinwiki/%E7%A0%82%E5%A0%B4/%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E8%A8%88%E7%AE%97%E5%BC%8F/%E5%8F%82%E7%85%A7%E3%82%B9%E3%83%86%E3%83%BC%E3%82%BF%E3%82%B9#yfe0e4a2) instead prints **501**. Pinned-release exactness is unknown; `Damage.INCOMING_DEF_BASE = 500` deliberately selects the general derivation/English-reference baseline rather than hiding this discrepancy. The separate damage-reduction factor is neutral for this unshielded starter; shields and reduction buffs are not granted. The starter's Physical RES is an explicit `HilichurlProfile.STARTER_PLAYER_RESISTANCE = 0` adaptation until character RES is separately sourced.
 
-The camp implements the published Fighter **100% Physical club hit** from [hilichurls.md](hilichurls.md). Its ATK curve is absent from the researched specification: `HilichurlProfile.ADAPTED_ATK = 120` is a named level-20 gameplay substitution, **not sourced enemy ATK**. No enemy crit, infusion, multi-hit combo, jump attack or loot/particle emission is inferred. Tests calculate the selected inputs without rounding intermediate damage, not exact live-game golden output.
+The camp implements the published Fighter **100% Physical club hit** from [hilichurls.md](hilichurls.md). [datamine.md](datamine.md#ordinary-monsters) now pins exact7.1 baseATK22.608×`GROW_CURVE_ATTACK`, replacing the flat120 adaptation at every supported level. Player and Bunny incoming hits use the same spawn-level ATK. No enemy crit, infusion, other Fighter attacks or loot/particle emission is inferred. The incoming500-vs501 formula-source conflict remains separate from the sourced enemy stat curve.
 
 
 ## Amplifying reactions: Melt and Vaporize
@@ -169,20 +169,20 @@ Ungeared base stats; no weapon, artifacts, resonance, food, or quest-granted Tra
 
 | Character | Lv./cap | Base HP (HP units) | Base ATK (ATK units) | Base DEF (DEF units) | Ascension stat and bonus | Source for entire row |
 | --- | --- | ---: | ---: | ---: | --- | --- |
-| Traveler (Anemo; either twin) | 1/20 | 911.79 | 17.81 | 57.23 | ATK%; no bonus | [Traveler wiki][MC] |
-| Traveler (Anemo; either twin) | 20/20 | 2342.39 | 45.75 | 147.01 | ATK%; no bonus | [Traveler wiki][MC] |
+| Traveler (Anemo; either twin) | 1/20 | 911.791 | 17.808 | 57.225 | ATK%; no bonus | [Pinned Avatar/AvatarCurve data](datamine.md#character-base-stats-no-ascension-or-quest-boosts) |
+| Traveler (Anemo; either twin) | 20/20 | 2342.391079 | 45.748752 | 147.011025 | ATK%; no bonus | [Pinned Avatar/AvatarCurve data](datamine.md#character-base-stats-no-ascension-or-quest-boosts) |
 | Traveler (Anemo; either twin) | 20/40 | 3023.55 | 59.05 | 189.76 | ATK%; no bonus | [Traveler wiki][MC] |
-| Amber | 1/20 | 793.26 | 18.70 | 50.36 | ATK%; no bonus | [Amber wiki][AM] |
-| Amber | 20/20 | 2037.88 | 48.04 | 129.37 | ATK%; no bonus | [Amber wiki][AM] |
+| Amber | 1/20 | 793.2582 | 18.6984 | 50.358 | ATK%; no bonus | [Pinned Avatar/AvatarCurve data](datamine.md#character-base-stats-no-ascension-or-quest-boosts) |
+| Amber | 20/20 | 2037.8803158 | 48.0361896 | 129.369702 | ATK%; no bonus | [Pinned Avatar/AvatarCurve data](datamine.md#character-base-stats-no-ascension-or-quest-boosts) |
 | Amber | 20/40 | 2630.48 | 62.01 | 166.99 | ATK%; no bonus | [Amber wiki][AM] |
-| Kaeya | 1/20 | 975.62 | 18.70 | 66.38 | Energy Recharge%; no additional bonus | [Kaeya wiki][KA] |
-| Kaeya | 20/20 | 2506.36 | 48.04 | 170.53 | Energy Recharge%; no additional bonus | [Kaeya wiki][KA] |
+| Kaeya | 1/20 | 975.6164 | 18.6984 | 66.381 | Energy Recharge%; no additional bonus | [Pinned Avatar/AvatarCurve data](datamine.md#character-base-stats-no-ascension-or-quest-boosts) |
+| Kaeya | 20/20 | 2506.3585316 | 48.0361896 | 170.532789 | Energy Recharge%; no additional bonus | [Pinned Avatar/AvatarCurve data](datamine.md#character-base-stats-no-ascension-or-quest-boosts) |
 | Kaeya | 20/40 | 3235.19 | 62.01 | 220.12 | Energy Recharge%; no additional bonus | [Kaeya wiki][KA] |
-| Lisa | 1/20 | 802.38 | 19.41 | 48.07 | EM; no bonus | [Lisa wiki][LI] |
-| Lisa | 20/20 | 2061.30 | 49.87 | 123.49 | EM; no bonus | [Lisa wiki][LI] |
+| Lisa | 1/20 | 802.3761 | 19.41072 | 48.069 | EM; no bonus | [Pinned Avatar/AvatarCurve data](datamine.md#character-base-stats-no-ascension-or-quest-boosts) |
+| Lisa | 20/20 | 2061.3042009 | 49.86613968 | 123.489261 | EM; no bonus | [Pinned Avatar/AvatarCurve data](datamine.md#character-base-stats-no-ascension-or-quest-boosts) |
 | Lisa | 20/40 | 2660.72 | 64.37 | 159.40 | EM; no bonus | [Lisa wiki][LI] |
 
-These decimals are **published rounded base stats**, not recovered exact internal floats. The wiki documents Traveler stat increases per resonated element after the *True Moon* quest and additional talents unlocked by that quest [source][MC]. They are progression-dependent; the baseline starter table does not include them. Exact boosted base-stat totals at these levels are **unknown** in this system specification; consult the character specification for progression unlocks.
+Lv1/20 unascended rows now use the exact exported base inputs and Lv20 multiplier2.569 at pinned7.1; [datamine.md](datamine.md) records old→new arithmetic and precision limits. The unused ascended20/40 rows remain rounded public references, not runtime inputs. Traveler's True Moon/other quest stat additions remain progression-dependent and excluded from the starter baseline; exact boosted totals are not inferred.
 
 ## Named starter loadout (2026-10-07)
 
@@ -190,13 +190,13 @@ These decimals are **published rounded base stats**, not recovered exact interna
 
 | Character(s) | Weapon | Base ATK at20/20 | Secondary at20/20 | R1 passive and source |
 | --- | --- | ---: | --- | --- |
-| Traveler, Kaeya | Harbinger of Dawn | 94 | CRIT DMG18% | HP **above90%**: CRIT Rate+14 percentage points; inactive at/below90%. [Published weapon table/passive](https://paimon.moe/weapons/harbinger_of_dawn). |
-| Amber | Slingshot | 86 | CRIT Rate12% | Normal/Charged Attack impact within0.3s after firing: DMG Bonus+36%; otherwise−10%. Not an ATK bonus and not an E/Q bonus. [Published weapon table/passive](https://paimon.moe/weapons/slingshot). |
-| Lisa | Thrilling Tales of Dragon Slayers | 94 | HP13.5% | Switching away grants the incoming character ATK+24% for10s; one proc per20s. Applies to base character+weapon ATK, not flat ATK or a separate final-damage multiplier; Lisa receives no self buff. [Published weapon table/passive](https://paimon.moe/weapons/thrilling_tales_of_dragon_slayers). |
+| Traveler, Kaeya | Harbinger of Dawn | 93.753946 | CRIT DMG18.0234% | HP **above90%**: CRIT Rate+14 percentage points. [Pinned numeric data](datamine.md#starter-weapons-level2020-unascended-r1); [passive behaviour](https://paimon.moe/weapons/harbinger_of_dawn). |
+| Amber | Slingshot | 85.5570625 | CRIT Rate12.0156% | Normal/Charged impact within0.3s: DMG Bonus+36%; otherwise−10%. Not ATK or E/Q bonus. [Pinned numeric data](datamine.md#starter-weapons-level2020-unascended-r1); [passive behaviour](https://paimon.moe/weapons/slingshot). |
+| Lisa | Thrilling Tales of Dragon Slayers | 93.753946 | HP13.53522% | Incoming member ATK+24%/10s,20s proc cooldown; character+weapon base ATK, no self buff. [Pinned numeric data](datamine.md#starter-weapons-level2020-unascended-r1); [passive behaviour](https://paimon.moe/weapons/thrilling_tales_of_dragon_slayers). |
 
-These are the unascended20 rows, **not** the113/105/113 ATK ascended20 rows. Published rounding and unconfirmed pinned-version continuity remain the same evidence limitations as the base-character tables.
+These are exact exported-decimal unascended20/20 products; ascension0 adds no ATK. They replace the old rounded94/86/94 and18%/12%/13.5%, not the ascended20 rows.
 
-Before conditional party buffs, total ATK is **139.75 / 134.04 / 142.04 / 143.87** (Traveler/Amber/Kaeya/Lisa). Lisa maxHP is `2061.30×1.135=2339.5755`. Full-HP Harbinger users have19% CR/68% CD; Amber17% CR/50% CD; Lisa5% CR/50% CD. Losing the Harbinger condition changes CR only, not ATK or CD. Live talent hits use individual seeded rolls; `1+CR×CD` remains an analysis-only expectation.
+Before conditional buffs, total ATK is **139.502698 /133.5932521 /141.7901356 /143.62008568** (Traveler/Amber/Kaeya/Lisa). Lisa maxHP is2061.3042009×1.1353522=2340.30625936105698. Full-HP Harbinger users have19% CR/68.0234% CD; Amber17.0156% CR/50% CD; Lisa5% CR/50% CD. Harbinger's HP condition changes CR only. Live talent hits still use individual seeded rolls; expected-crit analysis is not per-hit gameplay.
 
 Slingshot flight is measured **from firing, not from attack/charge press**. The current Amber raycast lands at release, hence0 elapsed frames and the positive branch at every reachable distance; the rules also represent the late-impact−10% branch. This is an existing hitscan geometry adaptation, **not sourced projectile speed**. Visible projectile/travel work is item19. Thrilling Tales uses600-frame duration/1200-frame cooldown; a rejected switch grants nothing, and its buff belongs only to the incoming character (including while off-field). Forced replacements reuse the switch proc as an explicit adaptation; exact death-proc behavior has not been sourced.
 
@@ -224,7 +224,7 @@ Pinned update notes explicitly fix Stellar Swirl sometimes failing to include co
 
 ## Conflicts, unknowns, and reliability
 
-- **Least reliable for exact golden tests: base-stat decimals.** Wiki stats are rounded to the shown precision. Exact internal values and game rounding order are **unknown**; do not claim binary-float equality against live-game output from these tables.
+- **Base-stat precision:** starterLv1/20 rows are now pinned exported-decimal inputs/products, not rounded wiki goldens; source-engine intermediate binary rounding order and unused ascended/quest-boosted totals remain unverified. [datamine.md](datamine.md) states these limits explicitly.
 - **Level-table precision:** wiki supplies the detailed `K(L)` table; KQM only exposes a rounded high-level summary (**1446.85 character / 1202.81 enemy/environment [source][D]**), consistent with the detailed values after rounding. This is a precision difference, not a reason to replace the table with the shorter summary. Exact precision beyond the wiki's published digits is **unknown**.
 - **Historical reaction constants:** old versus new multiplier values above are version changes, not unresolved simultaneous claims. They must not be mixed in pinned-version tests.
 - **Least reliable timing/ownership:** EC ownership in multi-target, repeated-application, hitlag, and environmental interactions. The library includes older bugs and evolving testing; see the explicit conflicts in [elements.md](elements.md).

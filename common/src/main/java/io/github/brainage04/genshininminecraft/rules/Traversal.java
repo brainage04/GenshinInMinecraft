@@ -4,10 +4,10 @@ package io.github.brainage04.genshininminecraft.rules;
 public final class Traversal {
     public enum Mode { FREE, CLIMB, GLIDE }
     public static final double CLIMB_ENTRY_STAMINA = 5;
-    public static final double GLIDE_DRAIN_PER_SECOND = 3; // Approximate public player testing; stamina.md.
+    public static final double GLIDE_DRAIN_PER_SECOND = 3; // Pinned CONST_VALUE_FLY_COST_STAMINA; datamine.md.
     public static final double ADAPTED_BLOCKS_PER_METRE = 1;
     public static final double ADAPTED_CLIMB_DRAIN_PER_SECOND = 5.36; // 8 × .67, owner playtest2026-10-04.
-    public static final double ADAPTED_CLIMB_JUMP_COST = 25; // Citation-needed wiki25 conflicts with historical24.
+    public static final double CLIMB_JUMP_COST = 25; // Pinned CONST_VALUE_CLIMB_JUMP_COST_STAMINA; datamine.md.
     public static final double ADAPTED_CLIMB_BLOCKS_PER_TICK = .08;
     public static final double ADAPTED_CLIMB_JUMP_BLOCKS_PER_TICK = .24;
     public static final long ADAPTED_CLIMB_JUMP_FRAMES = 18;
@@ -54,7 +54,7 @@ public final class Traversal {
         return true;
     }
     public boolean climbJump(int side, long frame) {
-        if (mode != Mode.CLIMB || !stamina.consume(ADAPTED_CLIMB_JUMP_COST, frame)) return false;
+        if (mode != Mode.CLIMB || !stamina.consume(CLIMB_JUMP_COST, frame)) return false;
         jumpSide = Integer.signum(side);
         jumpEnd = frame + ADAPTED_CLIMB_JUMP_FRAMES;
         return true;

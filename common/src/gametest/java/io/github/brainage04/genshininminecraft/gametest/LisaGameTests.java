@@ -122,9 +122,9 @@ public final class LisaGameTests {
             session.kit().grantEnergy(1);
             context.assertTrue(runtime.receive(player, Intent.BURST_PRESS), "Lightning Rose accepted with80");
             close(context, session.kit().energy(), 0, "Reserve80 at acceptance");
-            session.advanceTo(start + 55); close(context, runtime.target(near).hp(), 885.200, "No placement before original56");
+            session.advanceTo(start + 55); close(context, runtime.target(near).hp(), 885.2000016, "No placement before original56");
             session.advanceTo(start + 56);
-            close(context, runtime.target(near).hp(), 885.200 - lisaTalent(.1), "Placement has weak10% Electro damage");
+            close(context, runtime.target(near).hp(), 885.2000016 - lisaTalent(.1), "Placement has weak10% Electro damage");
             context.assertValueEqual(runtime.target(near).auraElements(), 0, "Placement0U must not apply Electro");
             context.assertTrue(near.getDeltaMovement().horizontalDistanceSqr() > 0, "Initial placement knocks back enemies");
             context.assertTrue(session.intent(Intent.SWITCH_2, start + 60), "Rose persists after sourced swap window and party cooldown");
@@ -150,10 +150,10 @@ public final class LisaGameTests {
             var crits = new java.util.Random(0);
             double damage = lisaTalent(.1) * crit(crits) + lisaTalent(.1) * crit(crits);
             for (int arc = 0; arc < 29; arc++) damage += lisaTalent(.3656) * crit(crits);
-            close(context, expiredHp, 2 * 885.200 - damage,
+            close(context, expiredHp, 2 * 885.2000016 - damage,
                     "Exactly29 sourced arcs across random targets, with independent5%/50% seeded crit arithmetic");
-            context.assertTrue(runtime.target(near).hp() < 885.200 - lisaTalent(.1)
-                            && runtime.target(far).hp() < 885.200 - lisaTalent(.1),
+            context.assertTrue(runtime.target(near).hp() < 885.2000016 - lisaTalent(.1)
+                            && runtime.target(far).hp() < 885.2000016 - lisaTalent(.1),
                     "Random source priority can select both enemies, not just the nearest one");
             session.advanceTo(start + 1200);
             close(context, runtime.target(near).hp() + runtime.target(far).hp(), expiredHp, "Expired field stops damage");
@@ -172,10 +172,10 @@ public final class LisaGameTests {
             // This starter party has no second catalyst; use the actual server-state weapon buff API.
             new CharacterState(CharacterBaseStats.Character.LISA, 80).switchTo(session.kit().state(), start + 60);
             session.advanceTo(start + 118);
-            close(context, session.kit().stats().atk(), (49.87 + 94) * 1.24, "Live Lisa really has24% ATK");
+            close(context, session.kit().stats().atk(), (49.86613968 + 93.753946) * 1.24, "Live Lisa really has24% ATK");
             var enemy = hilichurl(context, player.position().add(0, 0, 2));
             session.advanceTo(start + 119);
-            close(context, runtime.target(enemy).hp(), 885.200 - lisaTalent(.3656),
+            close(context, runtime.target(enemy).hp(), 885.2000016 - lisaTalent(.3656),
                     "Rose ignores Thrilling Tales gained after lantern formation");
             enemy.discard();
         });
@@ -192,7 +192,7 @@ public final class LisaGameTests {
             session.advanceTo(start + 55);
             var placement = hilichurl(context, player.position().add(0, 0, 2));
             session.advanceTo(start + 56);
-            close(context, runtime.target(placement).hp(), 885.200 - lisaTalent(.1), "Placement precedes lantern formation and the buff");
+            close(context, runtime.target(placement).hp(), 885.2000016 - lisaTalent(.1), "Placement precedes lantern formation and the buff");
             placement.discard();
             session.advanceTo(start + 58);
             new CharacterState(CharacterBaseStats.Character.LISA, 80).switchTo(session.kit().state(), start + 58);
@@ -200,19 +200,19 @@ public final class LisaGameTests {
             var first = hilichurl(context, player.position().add(0, 0, 2));
             session.advanceTo(start + 119);
             double discharge = lisaTalent(.3656) * 1.24;
-            close(context, runtime.target(first).hp(), 885.200 - discharge,
+            close(context, runtime.target(first).hp(), 885.2000016 - discharge,
                     "Rose snapshots at lantern formation, not burst acceptance or placement");
             first.discard();
             session.advanceTo(start + 658);
-            close(context, session.kit().stats().atk(), 49.87 + 94, "Live Lisa loses the ten-second buff");
+            close(context, session.kit().stats().atk(), 49.86613968 + 93.753946, "Live Lisa loses the ten-second buff");
             var later = hilichurl(context, player.position().add(0, 0, 2));
             session.advanceTo(start + 659);
-            close(context, runtime.target(later).hp(), 885.200 - discharge, "Rose retains lantern-formation buff after expiry");
+            close(context, runtime.target(later).hp(), 885.2000016 - discharge, "Rose retains lantern-formation buff after expiry");
             later.discard();
             session.advanceTo(start + 958);
             var last = hilichurl(context, player.position().add(0, 0, 2));
             session.advanceTo(start + 959);
-            close(context, runtime.target(last).hp(), 885.200 - discharge, "Last of29 discharges keeps the formation snapshot");
+            close(context, runtime.target(last).hp(), 885.2000016 - discharge, "Last of29 discharges keeps the formation snapshot");
             last.discard();
         });
         context.succeed();
@@ -229,7 +229,7 @@ public final class LisaGameTests {
             session.intent(Intent.SKILL_PRESS, start); session.intent(Intent.SKILL_RELEASE, start + 114);
             session.advanceTo(start + 117);
             double tick = 2 * 80.584775 * .9; // damage.md: current EC coefficient, Lv20 K(L), Electro RES, no DEF/crit.
-            close(context, target.hp(), 885.200 - lisaTalent(3.2) - tick, "Initial EC tick is a separate transformative instance");
+            close(context, target.hp(), 885.2000016 - lisaTalent(3.2) - tick, "Initial EC tick is a separate transformative instance");
             close(context, target.aura().gauge(Element.HYDRO), 1.6 - 117.0 / 60 * (1.6 / 12) - .4, "Initial tick consumes0.4U Hydro plus natural decay");
             close(context, target.aura().gauge(Element.ELECTRO), 1.6 - .4, "Initial tick consumes0.4U Electro");
             double before = target.hp();
@@ -256,10 +256,10 @@ public final class LisaGameTests {
             context.assertTrue(session.intent(Intent.SWITCH_4, start + 96), "Switch from Amber to Lisa");
             tap(context, session, start + 96);
             double overloaded = 2.75 * 80.584775 * .9;
-            // damage.md: Slingshot86 and its R1 instant-arrow36% bonus; Lisa base49.87 + Thrilling Tales94.
-            close(context, runtime.target(enemy).hp(), 885.200 - (48.04 + 86) * 1.24 * 1.36 * .5 * .9 - lisaTalent(.8) - overloaded,
+            // datamine.md: Slingshot37.6075*2.275, instant-arrow36%; Lisa19.41072*2.569 +38.7413*2.42.
+            close(context, runtime.target(enemy).hp(), 885.2000016 - (48.0361896 + 85.5570625) * 1.24 * 1.36 * .5 * .9 - lisaTalent(.8) - overloaded,
                     "Amber-then-Lisa triggers current Overloaded coefficient independent of talent DEF");
-            close(context, runtime.target(neighbor).hp(), 885.200 - overloaded, "Reaction-only neighbor takes zero-gauge Pyro AoE");
+            close(context, runtime.target(neighbor).hp(), 885.2000016 - overloaded, "Reaction-only neighbor takes zero-gauge Pyro AoE");
             context.assertValueEqual(runtime.target(neighbor).auraElements(), 0, "Overloaded AoE never applies Pyro or Electro");
             context.assertValueEqual(runtime.target(enemy).conductive().stacks(), 2, "Tap Overloaded gives direct enemy2 marks");
             context.assertValueEqual(runtime.target(neighbor).conductive().stacks(), 1, "Reaction-only neighbor gets1 mark");
@@ -333,8 +333,8 @@ public final class LisaGameTests {
         catch (CommandSyntaxException exception) { throw new AssertionError("Command failed: " + command, exception); }
     }
     private static long now(GameTestHelper context) { return Frames.atServerTick(context.getLevel().getServer().getTickCount()); }
-    // damage.md: Lisa20/20 base49.87 + Thrilling Tales20/20 base94; equal-level DEF.5 and RES.9.
-    private static double lisaTalent(double multiplier) { return (49.87 + 94) * multiplier * .5 * .9; }
+    // datamine.md: (19.41072*2.569 +38.7413*2.42)*talent, equal-level DEF.5 and RES.9.
+    private static double lisaTalent(double multiplier) { return (49.86613968 + 93.753946) * multiplier * .5 * .9; }
     private static double crit(java.util.Random random) { return random.nextDouble() < .05 ? 1.5 : 1; }
     private static void close(GameTestHelper context, double actual, double expected, String message) {
         context.assertTrue(Math.abs(actual - expected) < .0001, message + ": expected " + expected + ", actual " + actual);

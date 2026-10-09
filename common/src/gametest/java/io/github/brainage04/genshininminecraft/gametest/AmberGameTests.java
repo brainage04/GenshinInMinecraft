@@ -32,11 +32,11 @@ public final class AmberGameTests {
             double speed = player.getAttributeValue(Attributes.MOVEMENT_SPEED);
             context.assertTrue(runtime.receive(player, Intent.ATTACK_PRESS), "Hold bow attack");
             session.advanceTo(start + 85);
-            close(context, target.hp(), 885.200, "Holding aim must not also launch a normal arrow");
+            close(context, target.hp(), 885.2000016, "Holding aim must not also launch a normal arrow");
             close(context, player.getAttributeValue(Attributes.MOVEMENT_SPEED), speed * .5, "Server aim slows movement by named adaptation");
             context.assertTrue(session.intent(Intent.ATTACK_RELEASE, start + 86), "Release sourced full-charge86");
             session.advanceTo(start + 86);
-            close(context, target.hp(), 885.200 - arrow(1.24), "Talent1 124% ATK Pyro uses equal-level DEF and10% RES plus Slingshot");
+            close(context, target.hp(), 885.2000016 - arrow(1.24), "Talent1 124% ATK Pyro uses equal-level DEF and10% RES plus Slingshot");
             var arrowVisual = session.projectileSnapshots().stream()
                     .filter(packet -> packet.kind() == io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload.Kind.PYRO_ARROW)
                     .findFirst().orElseThrow(() -> new AssertionError("Charged release must publish a glowing arrow mesh"));
@@ -48,7 +48,7 @@ public final class AmberGameTests {
             context.assertTrue(session.intent(Intent.ATTACK_PRESS, start + 96), "Second bow hold");
             session.intent(Intent.ATTACK_RELEASE, start + 111);
             session.advanceTo(start + 111);
-            close(context, target.hp(), 885.200 - arrow(1.24) - arrow(.4386), "Uncharged aimed shot is43.86% Physical, not Pyro");
+            close(context, target.hp(), 885.2000016 - arrow(1.24) - arrow(.4386), "Uncharged aimed shot is43.86% Physical, not Pyro");
             context.assertTrue(session.projectileSnapshots().stream().anyMatch(packet ->
                     packet.kind() == io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload.Kind.ARROW),
                     "Uncharged aimed release publishes a Physical arrow, not a Pyro one");
@@ -88,14 +88,14 @@ public final class AmberGameTests {
             if (exhausted) context.assertFalse(player.isSprinting(), "Exhausted Sprint still respects stamina lockout");
             context.assertTrue(session.intent(Intent.ATTACK_RELEASE, start + 88), "Release cancelled hold");
             session.advanceTo(start + 100);
-            close(context, target.hp(), 885.200, "Release after movement cancellation cannot fire the fully charged arrow");
+            close(context, target.hp(), 885.2000016, "Release after movement cancellation cannot fire the fully charged arrow");
             context.assertValueEqual(target.auraElements(), 0, "Cancelled arrow cannot install Pyro aura");
             player.setLastClientInput(Input.EMPTY);
             session.tickMovement(start + 102);
             context.assertTrue(session.intent(Intent.ATTACK_PRESS, start + 102), "A fresh attack remains available after cancellation");
             session.intent(Intent.ATTACK_RELEASE, start + 102);
             session.advanceTo(start + 116);
-            close(context, target.hp(), 885.200 - arrow(.3612), "Fresh tap launches the sourced free normal, not the cancelled charge");
+            close(context, target.hp(), 885.2000016 - arrow(.3612), "Fresh tap launches the sourced free normal, not the cancelled charge");
         });
         context.succeed();
     }
@@ -110,21 +110,21 @@ public final class AmberGameTests {
             context.assertTrue(bunnies(context, player.position()).isEmpty(), "No entity before adapted original landing45");
             session.advanceTo(start + 45);
             BaronBunny bunny = bunnies(context, player.position()).getFirst();
-            close(context, bunny.getMaxHealth(), 2037.88 * .4136, "Bunny HP snapshots sourced41.36% Amber maxHP");
+            close(context, bunny.getMaxHealth(), 2037.8803158 * .4136, "Bunny HP snapshots sourced41.36% Amber maxHP");
             close(context, session.kit().energy(), 0, "Placement generates no particles");
             HilichurlGameTests.tick(context, enemy);
             context.assertTrue(enemy.getTarget() == bunny, "Actual hilichurl target becomes Baron Bunny");
             for (int tick = 0; tick < 10; tick++) HilichurlGameTests.tick(context, enemy);
-            double incoming = 120 * 600 / (129.37 + 600);
-            close(context, ((AmberKit) session.kit()).puppetHp(), 2037.88 * .4136 - incoming,
+            double incoming = 301.04993664 * 600 / (129.369702 + 600); // datamine.md:22.608*13.31608;50.358*2.569.
+            close(context, ((AmberKit) session.kit()).puppetHp(), 2037.8803158 * .4136 - incoming,
                     "Real telegraphed club damages puppet using adapted Amber DEF inheritance");
             context.assertTrue(session.intent(Intent.SWITCH_3, start + 60), "Puppet persists off-field");
             session.advanceTo(start + 524);
             context.assertTrue(bunny.isAlive() && !bunny.isRemoved(), "Puppet lives until eight seconds from landing");
-            close(context, runtime.target(enemy).hp(), 885.200, "No explosion damage before lifetime boundary");
+            close(context, runtime.target(enemy).hp(), 885.2000016, "No explosion damage before lifetime boundary");
             session.advanceTo(start + 525);
             context.assertTrue(bunny.isRemoved(), "Expired puppet removed");
-            close(context, runtime.target(enemy).hp(), 885.200 - talent(1.232), "123.2% ATK explosion remains Amber-owned off-field");
+            close(context, runtime.target(enemy).hp(), 885.2000016 - talent(1.232), "123.2% ATK explosion remains Amber-owned off-field");
             close(context, runtime.target(enemy).aura().gauge(Element.PYRO), 1.6, "Explosion applies2U Pyro without ICD");
             close(context, session.party().kit(1).energy(), 4 * 1.8, "Off-field Amber gets four same-element particles");
             close(context, session.kit().energy(), 4, "On-field Kaeya gets four different-element particles");
@@ -144,10 +144,10 @@ public final class AmberGameTests {
             BaronBunny bunny = bunnies(context, player.position()).getFirst();
             bunny.hurtServer(context.getLevel(), context.getLevel().damageSources().genericKill(), Float.MAX_VALUE);
             session.advanceTo(start + 46);
-            close(context, runtime.target(enemy).hp(), 885.200 - talent(1.232), "World destruction detonates immediately");
+            close(context, runtime.target(enemy).hp(), 885.2000016 - talent(1.232), "World destruction detonates immediately");
             close(context, session.kit().energy(), 12, "Four qualifying Pyro particles give active Amber12");
             session.advanceTo(start + 525);
-            close(context, runtime.target(enemy).hp(), 885.200 - talent(1.232), "Old expiry cannot replay destroyed explosion");
+            close(context, runtime.target(enemy).hp(), 885.2000016 - talent(1.232), "Old expiry cannot replay destroyed explosion");
             enemy.discard();
             context.assertFalse(session.intent(Intent.SKILL_PRESS, start + 904), "C0 has no spare charge");
             context.assertTrue(session.intent(Intent.SKILL_PRESS, start + 905), "Fifteen-second cooldown from frame5");
@@ -173,22 +173,22 @@ public final class AmberGameTests {
             context.assertTrue(runtime.receive(player, Intent.BURST_PRESS), "Fiery Rain accepted");
             close(context, session.kit().energy(), 0, "Burst reserves40 on acceptance");
             session.advanceTo(start + 71);
-            close(context, runtime.target(inner).hp(), 885.200, "First hit uses original trial72");
+            close(context, runtime.target(inner).hp(), 885.2000016, "First hit uses original trial72");
             session.advanceTo(start + 72);
             double first = runtime.target(inner).hp();
-            close(context, first, 885.200 - talent(.2808), "First inner wave deals talent1 28.08%");
+            close(context, first, 885.2000016 - talent(.2808), "First inner wave deals talent1 28.08%");
             session.advanceTo(start + 192);
             context.assertTrue(runtime.target(inner).hp() < first, "Rain keeps dealing damage over time");
             var crits = new java.util.Random(0); // UUID0; base5% + Slingshot12% CR, base50% CD.
             double innerDamage = 0, outerDamage = 0;
             for (int wave = 0; wave < 18; wave++) {
-                double damage = talent(.2808) * (crits.nextDouble() < .17 ? 1.5 : 1);
+                double damage = talent(.2808) * (crits.nextDouble() < .170156 ? 1.5 : 1);
                 if ((wave & 1) == 0) innerDamage += damage;
                 else outerDamage += damage;
             }
-            close(context, runtime.target(inner).hp(), 885.200 - innerDamage, "Nine of18 waves reach inner half with sourced seeded crit rolls");
-            close(context, runtime.target(outer).hp(), 885.200 - outerDamage, "Other nine waves reach outer half with sourced seeded crit rolls");
-            close(context, runtime.target(high).hp(), 885.200, "Elevated target is outside rain damage region");
+            close(context, runtime.target(inner).hp(), 885.2000016 - innerDamage, "Nine of18 waves reach inner half with sourced seeded crit rolls");
+            close(context, runtime.target(outer).hp(), 885.2000016 - outerDamage, "Other nine waves reach outer half with sourced seeded crit rolls");
+            close(context, runtime.target(high).hp(), 885.2000016, "Elevated target is outside rain damage region");
             context.assertTrue(runtime.target(inner).aura().gauge(Element.PYRO) > 0, "Rain applies1U Pyro using shared Amber ICD");
             context.assertValueEqual(session.kit().burstReadyFrame(), start + 56 + 720, "12-second cooldown from original56");
             assertUnchanged(context, blocks);
@@ -212,9 +212,9 @@ public final class AmberGameTests {
             shoot(session, start + 60);
             double overloaded = 2.75 * 80.584775 * .9; // damage.md current coefficient, no DEF/crit.
             // Lisa→Amber grants R1 Thrilling Tales24% ATK; only the arrow receives Slingshot36%.
-            close(context, target.hp(), 885.200 - (49.87 + 94) * .396 * .5 * .9 - arrow(1.24) * 1.24 - overloaded,
+            close(context, target.hp(), 885.2000016 - (49.86613968 + 93.753946) * .396 * .5 * .9 - arrow(1.24) * 1.24 - overloaded,
                     "Pyro on Lisa Electro triggers separate current Overloaded damage");
-            close(context, runtime.target(neighbor).hp(), 885.200 - overloaded, "Overloaded has zero-gauge Pyro AoE");
+            close(context, runtime.target(neighbor).hp(), 885.2000016 - overloaded, "Overloaded has zero-gauge Pyro AoE");
             close(context, runtime.target(neighbor).aura().gauge(Element.PYRO), 0, "Reaction explosion does not seed Pyro aura");
             context.assertTrue(enemy.getDeltaMovement().horizontalDistanceSqr() <= .12 * .12 + 1e-8,
                     "Overloaded uses only minimal adapted horizontal knockback");
@@ -232,8 +232,8 @@ public final class AmberGameTests {
             session.advanceTo(start + 28);
             session.intent(Intent.SWITCH_2, start + 60);
             shoot(session, start + 60);
-            // Kaeya: Harbinger94; Amber: Slingshot86, instant-arrow36%; forward Melt2×.
-            close(context, runtime.target(enemy).hp(), 885.200 - (48.04 + 94) * 1.912 * .5 * .9 - 2 * arrow(1.24),
+            // datamine.md: Harbinger38.7413*2.42; Slingshot37.6075*2.275, instant-arrow36%; forward Melt2×.
+            close(context, runtime.target(enemy).hp(), 885.2000016 - (48.0361896 + 93.753946) * 1.912 * .5 * .9 - 2 * arrow(1.24),
                     "Forward Melt doubles Amber shot on actual Kaeya Cryo at0 EM");
             close(context, runtime.target(enemy).aura().gauge(Element.CRYO), 0, "Forward Melt consumes Cryo");
         });
@@ -250,8 +250,8 @@ public final class AmberGameTests {
             session.intent(Intent.SKILL_PRESS, start + 96);
             session.intent(Intent.SKILL_RELEASE, start + 96);
             session.advanceTo(start + 128);
-            double storm = (45.75 + 94) * 1.76 * .5 * .9;
-            close(context, runtime.target(enemy).hp(), 885.200 - arrow(1.24) - storm - .6 * 80.584775 * .9 - storm * .25,
+            double storm = (45.748752 + 93.753946) * 1.76 * .5 * .9;
+            close(context, runtime.target(enemy).hp(), 885.2000016 - arrow(1.24) - storm - .6 * 80.584775 * .9 - storm * .25,
                     "Traveler deals Pyro Swirl and absorption from actual aimed Pyro");
             context.assertValueEqual(runtime.target(enemy).swirlCount(), 1, "Actual Pyro aura swirls");
             context.assertValueEqual(session.skillAbsorbedElement(), Element.PYRO, "Palm absorbs Pyro");
@@ -266,7 +266,7 @@ public final class AmberGameTests {
             runtime.target(enemy).aura().applyHit(Element.HYDRO, 2, start); // Hydro has no gameplay source in this slice.
             runtime.receive(player, Intent.SWITCH_2);
             shoot(session, start);
-            close(context, runtime.target(enemy).hp(), 885.200 - 1.5 * arrow(1.24), "Pyro on seeded Hydro reverse-Vaporizes1.5");
+            close(context, runtime.target(enemy).hp(), 885.2000016 - 1.5 * arrow(1.24), "Pyro on seeded Hydro reverse-Vaporizes1.5");
         });
         context.succeed();
     }
@@ -301,8 +301,8 @@ public final class AmberGameTests {
             context.assertFalse(after.is(Blocks.FIRE) || after.is(Blocks.SOUL_FIRE), "No fire blocks in Pyro area at " + pos);
         });
     }
-    // damage.md: Amber20/20 base48.04 + Slingshot20/20 base86; equal-level DEF.5, RES.9.
-    private static double talent(double multiplier) { return (48.04 + 86) * multiplier * .5 * .9; }
+    // datamine.md: (18.6984*2.569 + 37.6075*2.275)*talent, equal-level DEF.5 and RES.9.
+    private static double talent(double multiplier) { return (48.0361896 + 85.5570625) * multiplier * .5 * .9; }
     private static double arrow(double multiplier) { return talent(multiplier) * 1.36; } // R1; release→hitscan impact0s.
     private static long now(GameTestHelper context) { return Frames.atServerTick(context.getLevel().getServer().getTickCount()); }
     private static void close(GameTestHelper context, double actual, double expected, String message) {

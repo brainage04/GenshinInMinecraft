@@ -117,11 +117,11 @@ class LisaKitTest {
         var formationStats = kit.state().stats(59);
         kit.advanceTo(59);
         assertSame(formationStats, kit.roseStats(), "Formation must retain the existing immutable stats variant");
-        assertEquals((49.87 + 94) * 1.24, kit.roseStats().atk(), 1e-12);
+        assertEquals((49.86613968 + 93.753946) * 1.24, kit.roseStats().atk(), 1e-12);
         kit.leaveField(60);
         kit.advanceTo(959);
         assertSame(formationStats, kit.roseStats(), "Off-field terminal discharge keeps the expired formation buff");
-        assertEquals(49.87 + 94, kit.stats().atk(), 1e-12);
+        assertEquals(49.86613968 + 93.753946, kit.stats().atk(), 1e-12);
         kit.grantEnergy(80);
         assertFalse(kit.intent(Intent.BURST_PRESS, 1252));
         assertSame(formationStats, kit.roseStats());

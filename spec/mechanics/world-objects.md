@@ -4,6 +4,8 @@ Reference target: **Genshin Impact Version 7.1**, as pinned in [the project brie
 
 **Evidence status:** public wiki text, KQM's published observations and linked original testing, official HoYoverse support, and identified walkthrough screenshots. No datamines or game-asset extraction were used. The public wiki's readable API supplied material that its normal web pages refused to serve; reproducible API links are included below. No mechanics were measured in the pinned client. Historical tests are explicitly dated by their tested version; they support current descriptions but do not constitute new pinned-release verification. A value not established by these sources is `unknown`.
 
+**Numeric camp audit (2026-10-09):** [datamine.md](datamine.md#camp-spawns-and-world-level) records the pinned7.1 WorldLevel/Scene/LevelDesign files checked. No identifiable Starfell/Windrise/Mondstadt-gate spawn IDs or WL0 levels were recovered; WorldLevel has noWL0 row and does not establish per-camp offsets. Keep the existingLv8 adaptation and source-qualified composition table below. No assets or spawn scripts were copied.
+
 ## Statues of The Seven — Anemo
 
 ### Activation, map reveal, and shared progression

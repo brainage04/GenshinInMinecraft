@@ -54,7 +54,7 @@ public final class TraversalGameTests {
                     context.assertValueEqual(session.party().activeSlot(), 1, "Lethal fall immediately switches to Amber");
                     context.assertTrue(player.isAlive(), "Living party prevents vanilla player death");
                     close(context, session.kit().hp(), session.kit().maxHp(), "Replacement member does not inherit landing damage");
-                } else close(context, session.kit().hp(), 2342.39 * (1 - fraction),
+                } else close(context, session.kit().hp(), 2342.391079 * (1 - fraction),
                         water ? "Above-waist water negates lethal fall" : "Adapted height curve applies max-HP loss, not vanilla hearts");
             } finally { restore(context, saved); }
         });

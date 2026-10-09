@@ -62,7 +62,7 @@ public final class CoopGameTests {
             context.assertTrue(runtime.pickRoster(host, 12), "Owner can choose Kaeya/Lisa outside combat");
             context.assertValueEqual(owner.party().activeSlot(), 2, "Removed active body replaced by first living allocated slot");
             var enemy = enemy(context, host.position().add(0, 0, 2)); var target = runtime.target(enemy);
-            close(context, target.maxHp(), 1327.8, "Two-player HP = Lv20 885.2 ×1.50");
+            close(context, target.maxHp(), 1327.8000024, "Two-player HP =13.584×65.1649×1.50 (datamine.md)");
             enemy.setHealth(10);
             var third = player(context, 2, host.position()); var fourth = player(context, 3, host.position());
             try {
@@ -70,10 +70,10 @@ public final class CoopGameTests {
                 runtime.reconcileCoop(context.getLevel().getServer());
                 context.assertValueEqual(owner.party().allocatedCount(), 2, "Three-player host gets two");
                 context.assertValueEqual(other.party().allocatedCount(), 1, "Three-player guest gets one");
-                close(context, target.maxHp(), 1770.4, "Three-player HP ×2.00"); close(context, target.hp(), 885.2, "Existing enemy preserves half HP");
+                close(context, target.maxHp(), 1770.4000032, "Three-player HP ×2.00"); close(context, target.hp(), 885.2000016, "Existing enemy preserves half HP");
                 fourth = player(context, 4, host.position()); runtime.reconcileCoop(context.getLevel().getServer());
                 context.assertValueEqual(owner.party().allocatedCount(), 1, "Four-player host gets one");
-                close(context, target.maxHp(), 2213, "Four-player HP ×2.50, not historical ATK scaling");
+                close(context, target.maxHp(), 2213.000004, "Four-player HP ×2.50, not historical ATK scaling");
             } finally {
                 runtime.forget(third.getUUID()); runtime.forget(fourth.getUUID());
                 context.getLevel().removePlayerImmediately(third, Entity.RemovalReason.DISCARDED);
@@ -83,7 +83,7 @@ public final class CoopGameTests {
             runtime.reconcileCoop(context.getLevel().getServer());
             context.assertValueEqual(owner.party().allocatedMask(), 15, "Leaving restores all four owned members");
             close(context, owner.party().kit(2).hp(), 1234.5, "Dormant HP unchanged"); close(context, owner.party().kit(2).energy(), 17, "Dormant energy unchanged");
-            close(context, target.maxHp(), 885.2, "Existing enemy returns to solo ×1.00"); close(context, target.hp(), 442.6, "Leaving cannot reset/heal enemy");
+            close(context, target.maxHp(), 885.2000016, "Existing enemy returns to solo ×1.00"); close(context, target.hp(), 442.6000008, "Leaving cannot reset/heal enemy");
             runtime.forget(host.getUUID()); var restored = runtime.session(host);
             close(context, restored.party().kit(2).hp(), 1234.5, "Same UUID restores item22 saved HP");
             close(context, restored.party().kit(2).energy(), 17, "Rejoin preserves item22 energy"); enemy.discard();
@@ -114,8 +114,8 @@ public final class CoopGameTests {
             double before = runtime.target(enemy).hp();
             context.assertTrue(other.intent(Intent.ATTACK_PRESS, start + 900), "Guest Amber aims on another owner's Cryo aura");
             other.intent(Intent.ATTACK_RELEASE, start + 1000); other.advanceTo(start + 1000);
-            // damage.md: Amber unascended Lv20 base48.04 + Slingshot86; not the ascended ATK row.
-            close(context, before - runtime.target(enemy).hp(), (48.04 + 86) * 1.24 * 2 * .5 * .9 * 1.36,
+            // datamine.md: (18.6984*2.569 + 37.6075*2.275), unascended20/20; same Melt/DEF/RES/Slingshot factors.
+            close(context, before - runtime.target(enemy).hp(), (48.0361896 + 85.5570625) * 1.24 * 2 * .5 * .9 * 1.36,
                     "Cross-player Melt uses the trigger's own stats, not the aura applier");
             context.assertValueEqual(enemy.getLastHurtByPlayer(), guest, "Reaction attack credited to guest");
             enemy.discard();
@@ -218,7 +218,7 @@ public final class CoopGameTests {
                 context.assertValueEqual(state.party().allocatedMask(), 5, "Death cannot allocate dormant survivors");
                 context.assertValueEqual(runtime.coopCount(), 2, "A dead connected participant still counts in co-op");
                 context.assertTrue(state.party().wiped() && corpse.getHealth() == 0 && !corpse.isAlive(), "Native zero HP remains eligible for ordinary respawn");
-                close(context, runtime.target(enemy).maxHp(), 1327.8, "Death cannot downscale the shared enemy");
+                close(context, runtime.target(enemy).maxHp(), 1327.8000024, "Death cannot downscale the shared enemy");
                 corpse.connection.handleClientCommand(new net.minecraft.network.protocol.game.ServerboundClientCommandPacket(
                         net.minecraft.network.protocol.game.ServerboundClientCommandPacket.Action.PERFORM_RESPAWN));
                 var replacement = corpse.connection.player;

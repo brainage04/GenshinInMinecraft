@@ -80,7 +80,7 @@ class PartyTest {
         assertFalse(party.switchTo(-1, 0));
         assertFalse(party.switchTo(4, 0));
         assertTrue(party.switchTo(2, 0));
-        assertEquals(2506.36, party.activeMember().hp()); // damage.md level20/20 Kaeya.
+        assertEquals(2506.3585316, party.activeMember().hp()); // damage.md level20/20 Kaeya.
         assertEquals(80, party.stamina().current());
         assertSame(party.stamina(), party.activeKit().stamina());
         assertTrue(party.switchTo(0, 60));

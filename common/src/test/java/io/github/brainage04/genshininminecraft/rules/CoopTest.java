@@ -36,7 +36,7 @@ class CoopTest {
         var guest = new Party(new EventTimeline(), (kit, hit) -> {});
         owner.allocate(9, 0); guest.allocate(3, 0);
         assertTrue(owner.switchTo(3, 0)); assertTrue(owner.switchTo(0, 60));
-        assertEquals((45.75 + 94) * 1.24, owner.kit(0).stats().atk(), 1e-12);
-        assertEquals(45.75 + 94, guest.kit(0).stats().atk(), 1e-12);
+        assertEquals((45.748752 + 93.753946) * 1.24, owner.kit(0).stats().atk(), 1e-12);
+        assertEquals(45.748752 + 93.753946, guest.kit(0).stats().atk(), 1e-12);
     }
 }

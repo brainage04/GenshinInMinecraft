@@ -54,8 +54,8 @@ public final class HilichurlGameTests {
             context.assertValueEqual(camp.size(), 3, "Historical introductory camp count is three");
             for (Hilichurl member : camp) {
                 var target = runtime.target(member);
-                close(context, target.maxHp(), 237.820, "hilichurls.md rounded Lv8 baseline");
-                close(context, target.hp(), 237.820, "Command-spawned camp starts full");
+                close(context, target.maxHp(), 237.81997824, "datamine.md:13.584×17.50736 Lv8 baseline");
+                close(context, target.hp(), 237.81997824, "Command-spawned camp starts full");
                 close(context, target.defense(), 5 * 8 + 500, "Spec level-scaled DEF");
                 context.assertValueEqual(target.level(), 8, "Named camp-level adaptation, independent of Lv20 party");
                 for (Element element : Element.values()) close(context, target.resistance(element), .10, "Spec all-element RES");
@@ -68,16 +68,16 @@ public final class HilichurlGameTests {
             context.assertTrue(runtime.receive(player, Intent.SKILL_PRESS), "Traveler skill accepted");
             context.assertTrue(runtime.receive(player, Intent.SKILL_RELEASE), "Tap release accepted");
             runtime.session(player).advanceTo(start + 31);
-            close(context, runtime.target(member).hp(), 237.820, "No damage before Palm Vortex hitmark");
+            close(context, runtime.target(member).hp(), 237.81997824, "No damage before Palm Vortex hitmark");
             runtime.session(player).advanceTo(start + 32);
-            // damage.md: ATK45.75 + Harbinger94; storm176%; Lv20→Lv8 DEF120/228; RES10%.
-            double expected = (45.75 + 94) * 1.76 * (120.0 / 228) * (1 - .10);
-            close(context, runtime.target(member).hp(), 237.820 - expected, "Traveler applies sourced Genshin damage, not vanilla fallback HP");
-            close(context, member.getHealth(), 20 * (237.820 - expected) / 237.820, "Vanilla health mirrors the spec profile fraction");
+            // datamine.md:17.808*2.569 +38.7413*2.42; storm176%; Lv20→Lv8 DEF120/228; RES10%.
+            double expected = (45.748752 + 93.753946) * 1.76 * (120.0 / 228) * (1 - .10);
+            close(context, runtime.target(member).hp(), 237.81997824 - expected, "Traveler applies sourced Genshin damage, not vanilla fallback HP");
+            close(context, member.getHealth(), 20 * (237.81997824 - expected) / 237.81997824, "Vanilla health mirrors the spec profile fraction");
             member.discard();
             command(context, source(context, player), "genshin camp hilichurl 1 20");
             var level20 = members(context, player).getFirst();
-            close(context, runtime.target(level20).maxHp(), 885.200, "Explicit level20 keeps the published HP unchanged");
+            close(context, runtime.target(level20).maxHp(), 885.2000016, "datamine.md:13.584×65.1649 atLv20");
             context.assertValueEqual(level20.genshinLevel(), 20, "Command supplies per-spawn entity level");
             close(context, runtime.target(level20).defense(), 600, "Explicit level20 DEF remains600");
             var output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, context.getLevel().registryAccess());
@@ -87,7 +87,7 @@ public final class HilichurlGameTests {
                     context.getLevel().registryAccess(), output.buildResult()), context.getLevel(), EntitySpawnReason.LOAD, entity -> entity);
             context.assertTrue(reloaded instanceof Hilichurl && context.getLevel().addFreshEntity(reloaded), "Camp member reloads");
             context.assertValueEqual(((Hilichurl) reloaded).genshinLevel(), 20, "Per-spawn level survives entity persistence");
-            close(context, runtime.target((Hilichurl) reloaded).maxHp(), 885.200, "Reloaded HP comes from the saved level");
+            close(context, runtime.target((Hilichurl) reloaded).maxHp(), 885.2000016, "Reloaded HP comes from the saved level");
             reloaded.discard();
             var legacyTag = output.buildResult();
             legacyTag.remove("GenshinLevel");
@@ -99,7 +99,7 @@ public final class HilichurlGameTests {
             command(context, source(context, player), "summon genshininminecraft:hilichurl ~ ~ ~");
             var summoned = members(context, player).getFirst();
             context.assertValueEqual(summoned.genshinLevel(), 8, "Fresh summon NBT uses the named Lv8 default, not legacy Lv20");
-            close(context, runtime.target(summoned).maxHp(), 237.820, "Fresh summon shares the camp's default HP row");
+            close(context, runtime.target(summoned).maxHp(), 237.81997824, "Fresh summon shares the camp's default HP row");
             summoned.discard();
             for (int invalid : new int[]{0, 21}) {
                 try {
@@ -132,7 +132,7 @@ public final class HilichurlGameTests {
             int[] recovery = {23, 32, 40, 49, 81}, hitmarks = {13, 13, 16, 30, 25};
             double[] talent = {.445, .434, .530, .583, .708}; // traveler-anemo.md talent1.
             // withManaged uses UUID(0,0), so live Random(0) draws12/13/14=.128897/.146602/.023238.
-            // At full HP CR=.05+.14=.19 and CD=.50+.18=.68: precisely these hits crit at1.68×.
+            // At full HP CR=.05+.14=.19 and CD=.50+(.102*1.767)=.680234: precisely these hits crit at1.680234×.
             // After hit14, HP=90% disables Harbinger: draw17=.104491 must NOT crit at base5%.
             for (int hit = 0; hit < 17; hit++) {
                 if (hit == 14) session.kit().setHp(session.kit().maxHp() * .90);
@@ -140,8 +140,8 @@ public final class HilichurlGameTests {
                 context.assertTrue(session.intent(Intent.ATTACK_PRESS, start), "Live normal intent accepted");
                 session.intent(Intent.ATTACK_RELEASE, start);
                 session.advanceTo(start + hitmarks[hit % 5]);
-                double expected = (45.75 + 94) * talent[hit % 5] * .5 * .9
-                        * (hit >= 11 && hit <= 13 ? 1.68 : 1);
+                double expected = (45.748752 + 93.753946) * talent[hit % 5] * .5 * .9
+                        * (hit >= 11 && hit <= 13 ? 1.680234 : 1);
                 close(context, before - target.hp(), expected, "Live hit" + (hit + 1) + " rolls individual crit, never expectation");
                 start += recovery[hit % 5];
             }
@@ -170,23 +170,23 @@ public final class HilichurlGameTests {
                     "Actual windup publishes its durable geo telegraph phase");
             int visualOccurrence = member.visualOccurrence();
             long visualStart = member.visualStartFrame();
-            close(context, session.kit().hp(), 2342.39, "Telegraph start must not instantly damage Genshin HP");
+            close(context, session.kit().hp(), 2342.391079, "Telegraph start must not instantly damage Genshin HP");
             for (int tick = 1; tick < 10; tick++) {
                 tick(context, member);
-                close(context, session.kit().hp(), 2342.39, "No damage during the first nine wind-up ticks");
+                close(context, session.kit().hp(), 2342.391079, "No damage during the first nine wind-up ticks");
                 context.assertValueEqual(member.visualOccurrence(), visualOccurrence, "Windup does not restart on each AI tick");
                 context.assertValueEqual(member.visualStartFrame(), visualStart, "Windup keeps its server start frame");
             }
             tick(context, member);
-            // Named ATK adaptation120; sourced Fighter100%; incoming damage.md DEF600/(DEF147.01+600), RES0%.
-            double expected = 120 * 1.0 * (5 * 20.0 + 500) / (147.01 + 5 * 20 + 500) * (1 - 0);
-            close(context, session.kit().hp(), 2342.39 - expected, "Club hit damages character Genshin HP after half-second wind-up");
-            close(context, player.getHealth(), 20 * (2342.39 - expected) / 2342.39, "Genshin damage mirrors to vanilla health");
+            // datamine.md: Decimal("22.608")*13.31608=301.04993664; Fighter100%, Traveler DEF57.225*2.569, RES0%.
+            double expected = 301.04993664 * 600 / (147.011025 + 600);
+            close(context, session.kit().hp(), 2342.391079 - expected, "Club hit damages character Genshin HP after half-second wind-up");
+            close(context, player.getHealth(), 20 * (2342.391079 - expected) / 2342.391079, "Genshin damage mirrors to vanilla health");
             context.assertFalse(member.isWindingUp(), "Wind-up ends when the strike lands");
             context.assertValueEqual(member.visualPhase(), io.github.brainage04.genshininminecraft.rules.EnemyAnimations.Phase.STRIKE,
                     "Impact pose publishes exactly on the existing tenth windup tick");
             for (int tick = 0; tick < 29; tick++) tick(context, member);
-            close(context, session.kit().hp(), 2342.39 - expected, "Recovery prevents repeated instant melee damage");
+            close(context, session.kit().hp(), 2342.391079 - expected, "Recovery prevents repeated instant melee damage");
         });
         context.succeed();
     }
@@ -203,7 +203,7 @@ public final class HilichurlGameTests {
             runtime.session(player).advanceTo(start + 32);
             var previous = runtime.target(member);
             previous.aura().applyHit(Element.PYRO, 2, start + 32);
-            context.assertTrue(previous.hp() < 237.820, "Precondition: level8 camp member was damaged");
+            context.assertTrue(previous.hp() < 237.81997824, "Precondition: level8 camp member was damaged");
             tick(context, member);
             context.assertValueEqual(member.getTarget(), player, "Camp aggros before leashing");
             member.snapTo(home.add(0, 0, 6));
@@ -213,7 +213,7 @@ public final class HilichurlGameTests {
             context.assertTrue(member.isReturningToCamp(), "Leashed member walks home instead of immediately reacquiring");
             var reset = runtime.target(member);
             context.assertTrue(reset != previous, "Reset discards the complete old combat/aura/ICD state");
-            close(context, reset.hp(), 237.820, "Leash restores full level8 spec HP");
+            close(context, reset.hp(), 237.81997824, "Leash restores full level8 spec HP");
             close(context, member.getHealth(), 20, "Leash restores the vanilla mirror");
             context.assertValueEqual(reset.auraElements(), 0, "Leash clears aura indicators");
             context.assertFalse(member.isWindingUp(), "Leash cancels a pending melee strike");
@@ -235,7 +235,7 @@ public final class HilichurlGameTests {
             tick(context, member);
             player.snapTo(home.add(0, 0, -1.5)); // Dodge behind the fixed swing facing.
             for (int tick = 0; tick < 10; tick++) tick(context, member);
-            close(context, session.kit().hp(), 2342.39, "Moving behind the telegraphed arc avoids the strike");
+            close(context, session.kit().hp(), 2342.391079, "Moving behind the telegraphed arc avoids the strike");
             session.kit().setHp(1);
             // A one-character fall now replaces the active member; vanilla death requires a party wipe.
             for (int slot = 1; slot < 4; slot++) session.party().members().get(slot).setHp(0);

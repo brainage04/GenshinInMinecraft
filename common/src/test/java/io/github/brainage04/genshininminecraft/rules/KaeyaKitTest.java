@@ -122,7 +122,7 @@ class KaeyaKitTest {
         party.advanceTo(100);
         assertTrue(hits.stream().anyMatch(hit -> hit.frame() > 76));
         assertTrue(owners.stream().allMatch(owner -> owner == kaeya));
-        assertEquals(48.04 + 94, owners.getLast().stats().atk(), 1e-12);
+        assertEquals(48.0361896 + 93.753946, owners.getLast().stats().atk(), 1e-12);
         assertEquals(948 - 100, kaeya.burstRemaining());
         party.advanceTo(532);
         assertEquals(Kind.ICICLES_END, hits.getLast().kind());
@@ -140,7 +140,7 @@ class KaeyaKitTest {
         assertSame(castStats, kit.burstStats());
         assertEquals(.19, kit.burstStats().critRate(), 1e-12);
         assertEquals(.05, kit.stats().critRate(), 1e-12);
-        assertEquals((48.04 + 94) * 1.24, kit.stats().atk(), 1e-12);
+        assertEquals((48.0361896 + 93.753946) * 1.24, kit.stats().atk(), 1e-12);
         kit.grantEnergy(60);
         assertFalse(kit.intent(Intent.BURST_PRESS, 947));
         assertSame(castStats, kit.burstStats(), "Rejected recast must not overwrite the active snapshot");

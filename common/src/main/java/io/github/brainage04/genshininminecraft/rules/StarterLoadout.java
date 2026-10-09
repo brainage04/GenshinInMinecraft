@@ -2,13 +2,13 @@ package io.github.brainage04.genshininminecraft.rules;
 
 import java.util.Map;
 
-/** Named level-20/20, refinement-1 weapons; published inputs are in damage.md. No artifacts. */
+/** Named level-20/20, refinement-1 weapons; pinned 7.1 numeric inputs are in datamine.md. No artifacts. */
 public final class StarterLoadout {
     public static final int LEVEL = 20;
     public static final int REFINEMENT = 1;
-    public static final Weapon HARBINGER_OF_DAWN = new Weapon("Harbinger of Dawn", 94, 0, 0, .18, 0);
-    public static final Weapon SLINGSHOT = new Weapon("Slingshot", 86, 0, .12, 0, 0);
-    public static final Weapon THRILLING_TALES = new Weapon("Thrilling Tales of Dragon Slayers", 94, .135, 0, 0, .24);
+    public static final Weapon HARBINGER_OF_DAWN = new Weapon("Harbinger of Dawn", 93.753946, 0, 0, .180234, 0);
+    public static final Weapon SLINGSHOT = new Weapon("Slingshot", 85.5570625, 0, .120156, 0, 0);
+    public static final Weapon THRILLING_TALES = new Weapon("Thrilling Tales of Dragon Slayers", 93.753946, .1353522, 0, 0, .24);
     public static final double HARBINGER_HP_THRESHOLD = .90;
     public static final double HARBINGER_CRIT_RATE = .14;
     public static final long SLINGSHOT_CLOSE_FRAMES = 18; // 0.3 seconds at 60 fps, from firing to impact.

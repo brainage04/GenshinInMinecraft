@@ -26,14 +26,14 @@ public final class KaeyaGameTests {
             context.assertTrue(runtime.receive(player, Intent.SKILL_PRESS), "Frostgnaw is available");
             session.advanceTo(start + 27);
             var target = runtime.target(enemy);
-            close(context, target.hp(), 885.200, "No skill damage before original frame28");
+            close(context, target.hp(), 885.2000016, "No skill damage before original frame28");
             session.advanceTo(start + 28);
-            double damage = talent(target, 48.04 + 94, 1.912, .10);
-            close(context, target.hp(), 885.200 - damage, "Talent1 191.2% Cryo uses spec Kaeya ATK and target DEF/RES");
+            double damage = talent(target, 48.0361896 + 93.753946, 1.912, .10);
+            close(context, target.hp(), 885.2000016 - damage, "Talent1 191.2% Cryo uses spec Kaeya ATK and target DEF/RES");
             close(context, target.aura().gauge(Element.CRYO), 2 * .8, "No-ICD 2U skill installs taxed Cryo aura");
-            close(context, enemy.getHealth(), 20 * target.hp() / 885.200, "Genshin HP mirrors to vanilla health");
+            close(context, enemy.getHealth(), 20 * target.hp() / 885.2000016, "Genshin HP mirrors to vanilla health");
             for (var excluded : new Hilichurl[]{behind, far, high})
-                close(context, runtime.target(excluded).hp(), 885.200, "Frontal reach excludes behind/far/high targets");
+                close(context, runtime.target(excluded).hp(), 885.2000016, "Frontal reach excludes behind/far/high targets");
             close(context, session.kit().energy(), 3 * 3, "Three adapted Cryo particles give on-field Kaeya9 energy");
             for (int slot : new int[]{0, 1, 3}) close(context, session.party().kit(slot).energy(), 3 * .6,
                     "Existing party table gives each off-field different-element recipient1.8");
@@ -62,11 +62,11 @@ public final class KaeyaGameTests {
             context.assertTrue(session.intent(Intent.SWITCH_3, start + 60), "Switch to Kaeya");
             context.assertTrue(session.intent(Intent.SKILL_PRESS, start + 60), "Cryo skill accepted on Electro target");
             session.advanceTo(start + 88);
-            double lisa = talent(target, 49.87 + 94, .396, .10);
-            double frostgnaw = talent(target, (48.04 + 94) * 1.24, 1.912, .10); // Lisa→Kaeya: R1 Thrilling Tales24% ATK.
+            double lisa = talent(target, 49.86613968 + 93.753946, .396, .10);
+            double frostgnaw = talent(target, (48.0361896 + 93.753946) * 1.24, 1.912, .10); // Lisa→Kaeya: R1 Thrilling Tales24% ATK.
             // damage.md current Superconduct1.5 * character K(20), bypasses DEF, Cryo RES10%.
             double superconduct = 1.5 * 80.584775 * (1 - .10);
-            close(context, target.hp(), 885.200 - lisa - frostgnaw - superconduct, "Superconduct is separate noncritical Cryo damage");
+            close(context, target.hp(), 885.2000016 - lisa - frostgnaw - superconduct, "Superconduct is separate noncritical Cryo damage");
             close(context, target.resistance(Element.PHYSICAL), .10 - .40, "Superconduct updates target Physical RES by40 percentage points");
             close(context, target.resistance(Element.CRYO), .10, "Superconduct does not shred Cryo RES");
             context.assertValueEqual(target.aura().physicalResistanceReductionUntilFrame(), start + 88 + 12 * 60,
@@ -74,10 +74,10 @@ public final class KaeyaGameTests {
             context.assertTrue(session.intent(Intent.ATTACK_PRESS, start + 113), "Following Kaeya Physical normal accepted");
             session.intent(Intent.ATTACK_RELEASE, start + 113);
             session.advanceTo(start + 127);
-            double physical = talent(target, (48.04 + 94) * 1.24, .5375, -.30); // Same ten-second ATK buff.
-            close(context, target.hp(), 885.200 - lisa - frostgnaw - superconduct - physical,
+            double physical = talent(target, (48.0361896 + 93.753946) * 1.24, .5375, -.30); // Same ten-second ATK buff.
+            close(context, target.hp(), 885.2000016 - lisa - frostgnaw - superconduct - physical,
                     "Subsequent Physical hit uses negative-RES branch1.15, not unshredded0.9");
-            context.assertTrue(physical > talent(target, (48.04 + 94) * 1.24, .5375, .10), "Shred increases actual Physical damage");
+            context.assertTrue(physical > talent(target, (48.0361896 + 93.753946) * 1.24, .5375, .10), "Shred increases actual Physical damage");
             session.advanceTo(start + 807);
             target.aura().advanceTo(start + 807);
             close(context, target.resistance(Element.PHYSICAL), -.30, "Shred remains one frame before expiry");
@@ -102,9 +102,9 @@ public final class KaeyaGameTests {
             context.assertTrue(session.intent(Intent.ATTACK_PRESS, start + 60), "Lisa Electro normal accepted");
             session.intent(Intent.ATTACK_RELEASE, start + 60);
             session.advanceTo(start + 86);
-            double damage = talent(target, 48.04 + 94, 1.912, .10) + talent(target, 49.87 + 94, .396, .10)
+            double damage = talent(target, 48.0361896 + 93.753946, 1.912, .10) + talent(target, 49.86613968 + 93.753946, .396, .10)
                     + 1.5 * 80.584775 * .9;
-            close(context, target.hp(), 885.200 - damage, "Electro-on-Cryo also deals current Superconduct damage");
+            close(context, target.hp(), 885.2000016 - damage, "Electro-on-Cryo also deals current Superconduct damage");
             close(context, target.resistance(Element.PHYSICAL), -.30, "Reverse trigger direction also installs Physical shred");
         });
         context.succeed();
@@ -119,7 +119,7 @@ public final class KaeyaGameTests {
             runtime.receive(player, Intent.SWITCH_3);
             runtime.receive(player, Intent.SKILL_PRESS);
             runtime.session(player).advanceTo(start + 28);
-            close(context, target.hp(), 885.200 - talent(target, 48.04 + 94, 1.912, .10) * 1.5,
+            close(context, target.hp(), 885.2000016 - talent(target, 48.0361896 + 93.753946, 1.912, .10) * 1.5,
                     "Reverse Melt amplifies the eligible Cryo talent by1.5 at zero EM");
             close(context, target.aura().gauge(Element.PYRO), 0, "2U Cryo consumes Pyro at0.5 gauge modifier");
             close(context, target.aura().gauge(Element.CRYO), 0, "Over-consuming trigger does not install leftover Cryo aura");
@@ -140,11 +140,11 @@ public final class KaeyaGameTests {
             context.assertTrue(session.intent(Intent.SKILL_PRESS, start + 60), "Palm Vortex accepted");
             session.intent(Intent.SKILL_RELEASE, start + 60);
             session.advanceTo(start + 92);
-            double damage = talent(target, 48.04 + 94, 1.912, .10)
-                    + talent(target, 45.75 + 94, 1.76, .10)
+            double damage = talent(target, 48.0361896 + 93.753946, 1.912, .10)
+                    + talent(target, 45.748752 + 93.753946, 1.76, .10)
                     + .6 * 80.584775 * .9
-                    + talent(target, 45.75 + 94, 1.76 * .25, .10);
-            close(context, target.hp(), 885.200 - damage, "Cryo Swirl uses Cryo RES and separate transformative damage plus absorption");
+                    + talent(target, 45.748752 + 93.753946, 1.76 * .25, .10);
+            close(context, target.hp(), 885.2000016 - damage, "Cryo Swirl uses Cryo RES and separate transformative damage plus absorption");
             context.assertValueEqual(target.swirlCount(), 1, "Traveler Swirls Kaeya's actual Cryo aura");
             context.assertValueEqual(session.skillAbsorbedElement(), Element.CRYO, "Traveler locks Cryo absorption before aura consumption");
         });
@@ -166,12 +166,12 @@ public final class KaeyaGameTests {
             context.assertTrue(runtime.receive(player, Intent.BURST_PRESS), "Full-energy burst accepted");
             close(context, session.kit().energy(), 0, "Burst reserves60 energy once");
             session.advanceTo(start + 51);
-            close(context, target.hp(), 885.200, "No damage before original first-contact frame52");
+            close(context, target.hp(), 885.2000016, "No damage before original first-contact frame52");
             session.advanceTo(start + 52);
-            double icicle = talent(target, 48.04 + 94, .776, .10);
-            close(context, target.hp(), 885.200 - icicle, "First contacted icicle deals sourced77.6% Cryo");
+            double icicle = talent(target, 48.0361896 + 93.753946, .776, .10);
+            close(context, target.hp(), 885.2000016 - icicle, "First contacted icicle deals sourced77.6% Cryo");
             context.assertTrue(target.aura().gauge(Element.CRYO) > 0, "Burst first contact applies1U Cryo");
-            close(context, runtime.target(center).hp(), 885.200, "Burst is not an unconditional radial tick");
+            close(context, runtime.target(center).hp(), 885.2000016, "Burst is not an unconditional radial tick");
             session.advanceTo(start + 75);
             context.assertFalse(session.intent(Intent.SWITCH_2, start + 75), "Burst swap window is not ready before76");
             context.assertTrue(session.intent(Intent.SWITCH_2, start + 76), "Switch out at sourced first swap trial");
@@ -180,17 +180,17 @@ public final class KaeyaGameTests {
             var followed = hilichurl(context, player.position().add(0, 0, 2.5));
             var followedTarget = runtime.target(followed);
             session.advanceTo(start + 88);
-            close(context, followedTarget.hp(), 885.200 - icicle,
+            close(context, followedTarget.hp(), 885.2000016 - icicle,
                     "Waltz follows active Amber and still deals Kaeya-owned damage after switching");
             close(context, target.hp(), oldHp, "Orbit follows active player rather than remaining at cast position");
             session.advanceTo(start + 250);
-            context.assertTrue(followedTarget.hp() < 885.200 - icicle, "Icicle contacts deal damage over time off-field");
+            context.assertTrue(followedTarget.hp() < 885.2000016 - icicle, "Icicle contacts deal damage over time off-field");
             context.assertValueEqual(session.party().kit(2).burstReadyFrame(), start + 48 + 900, "Off-field burst keeps15-second cooldown");
             session.advanceTo(start + 529);
             double beforeShatter = followedTarget.hp();
             session.advanceTo(start + 532);
             double shatterDamage = beforeShatter - followedTarget.hp();
-            context.assertTrue(Math.abs(shatterDamage - icicle) < .0001 || Math.abs(shatterDamage - icicle * 1.68) < .0001,
+            context.assertTrue(Math.abs(shatterDamage - icicle) < .0001 || Math.abs(shatterDamage - icicle * 1.680234) < .0001,
                     "Final contact-shatter is one77.6% Cryo hit (possibly crit) despite this icicle's recent ordinary hit lock");
             double endedHp = followedTarget.hp();
             session.advanceTo(start + 700);
@@ -208,22 +208,22 @@ public final class KaeyaGameTests {
             session.advanceTo(start + 51);
             var first = hilichurl(context, player.position().add(0, 0, 2.5));
             session.advanceTo(start + 52);
-            double icicle = (48.04 + 94) * .776 * .5 * .9; // kaeya.md / damage.md, Lv20 target.
-            close(context, runtime.target(first).hp(), 885.200 - icicle, "Unbuffed cast-time icicle value");
+            double icicle = (48.0361896 + 93.753946) * .776 * .5 * .9; // kaeya.md / damage.md, Lv20 target.
+            close(context, runtime.target(first).hp(), 885.2000016 - icicle, "Unbuffed cast-time icicle value");
             first.discard();
             context.assertTrue(session.intent(Intent.SWITCH_4, start + 76), "Switch to Lisa while Waltz persists");
             context.assertTrue(session.intent(Intent.SWITCH_3, start + 136), "Real Lisa-to-Kaeya switch grants Thrilling Tales");
-            close(context, session.kit().stats().atk(), (48.04 + 94) * 1.24, "Live Kaeya really gains24% ATK");
+            close(context, session.kit().stats().atk(), (48.0361896 + 93.753946) * 1.24, "Live Kaeya really gains24% ATK");
             session.advanceTo(start + 171);
             var later = hilichurl(context, player.position().add(0, 0, 2.5));
             session.advanceTo(start + 172);
-            close(context, runtime.target(later).hp(), 885.200 - icicle,
+            close(context, runtime.target(later).hp(), 885.2000016 - icicle,
                     "Waltz ignores Thrilling Tales gained after cast");
             later.discard();
             session.advanceTo(start + 531);
             var shatter = hilichurl(context, player.position().add(0, 0, 2.5));
             session.advanceTo(start + 532);
-            close(context, runtime.target(shatter).hp(), 885.200 - icicle, "Final shatter uses the same unbuffed snapshot");
+            close(context, runtime.target(shatter).hp(), 885.2000016 - icicle, "Final shatter uses the same unbuffed snapshot");
             shatter.discard();
         });
         context.succeed();
@@ -240,27 +240,27 @@ public final class KaeyaGameTests {
             session.advanceTo(start + 651);
             var first = hilichurl(context, player.position().add(0, 0, 2.5));
             session.advanceTo(start + 652);
-            double icicle = (48.04 + 94) * 1.24 * .776 * .5 * .9;
-            close(context, runtime.target(first).hp(), 885.200 - icicle, "Buffed cast-time icicle value");
+            double icicle = (48.0361896 + 93.753946) * 1.24 * .776 * .5 * .9;
+            close(context, runtime.target(first).hp(), 885.2000016 - icicle, "Buffed cast-time icicle value");
             first.discard();
             session.advanceTo(start + 660);
-            close(context, session.kit().stats().atk(), 48.04 + 94, "Live Kaeya loses24% ATK at exact buff expiry");
+            close(context, session.kit().stats().atk(), 48.0361896 + 93.753946, "Live Kaeya loses24% ATK at exact buff expiry");
             session.advanceTo(start + 771);
             var later = hilichurl(context, player.position().add(0, 0, 2.5));
             session.advanceTo(start + 772);
-            close(context, runtime.target(later).hp(), 885.200 - icicle, "Waltz retains cast-time Thrilling Tales after expiry");
+            close(context, runtime.target(later).hp(), 885.2000016 - icicle, "Waltz retains cast-time Thrilling Tales after expiry");
             later.discard();
             session.advanceTo(start + 1131);
             var shatter = hilichurl(context, player.position().add(0, 0, 2.5));
             session.advanceTo(start + 1132);
-            close(context, runtime.target(shatter).hp(), 885.200 - icicle, "Final shatter keeps expired cast-time buff");
+            close(context, runtime.target(shatter).hp(), 885.2000016 - icicle, "Final shatter keeps expired cast-time buff");
             shatter.discard();
             session.kit().grantEnergy(60);
             context.assertTrue(session.intent(Intent.BURST_PRESS, start + 1548), "Next Waltz casts after its cooldown with no buff");
             session.advanceTo(start + 1599);
             var recast = hilichurl(context, player.position().add(0, 0, 2.5));
             session.advanceTo(start + 1600);
-            close(context, runtime.target(recast).hp(), 885.200 - (48.04 + 94) * .776 * .5 * .9,
+            close(context, runtime.target(recast).hp(), 885.2000016 - (48.0361896 + 93.753946) * .776 * .5 * .9,
                     "A new cast replaces rather than reuses the previous buffed snapshot");
             recast.discard();
         });

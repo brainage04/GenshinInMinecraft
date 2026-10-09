@@ -196,7 +196,7 @@ public final class Hilichurl extends PathfinderMob implements GeoEntity {
                             && Math.abs(victim.getY() - getY()) <= MELEE_VERTICAL_RANGE
                             && (distance < .01 || swingX * dx + swingZ * dz >= MELEE_ARC_COSINE * Math.sqrt(distance))
                             && hasLineOfSight(victim)) {
-                        connected |= CombatRuntime.get(level.getServer()).enemyHit(victim, this, HilichurlProfile.ADAPTED_ATK,
+                        connected |= CombatRuntime.get(level.getServer()).enemyHit(victim, this, HilichurlProfile.attack(genshinLevel()),
                                 HilichurlProfile.CLUB_MULTIPLIER, genshinLevel());
                     }
                 }

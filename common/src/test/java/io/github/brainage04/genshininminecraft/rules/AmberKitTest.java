@@ -85,7 +85,7 @@ class AmberKitTest {
         assertTrue(hits.isEmpty());
         kit.advanceTo(45);
         assertEquals(Kind.BUNNY_LAND, hits.getFirst().kind());
-        assertEquals(2037.88 * .4136, kit.puppetHp(), 1e-12);
+        assertEquals(2037.8803158 * .4136, kit.puppetHp(), 1e-12);
         kit.advanceTo(524);
         assertTrue(kit.puppetAlive());
         assertEquals(1, hits.size());
@@ -109,7 +109,7 @@ class AmberKitTest {
         kit.intent(Intent.SKILL_PRESS, 0);
         kit.advanceTo(45);
         kit.damagePuppet(100, 60);
-        assertEquals(2037.88 * .4136 - 100, kit.puppetHp(), 1e-12);
+        assertEquals(2037.8803158 * .4136 - 100, kit.puppetHp(), 1e-12);
         assertEquals(1, hits.size());
         kit.damagePuppet(1000, 61);
         assertFalse(kit.puppetAlive());

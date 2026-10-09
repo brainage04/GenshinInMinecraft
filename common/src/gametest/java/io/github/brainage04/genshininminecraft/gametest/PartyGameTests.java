@@ -25,20 +25,20 @@ public final class PartyGameTests {
             runtime.receive(player, Intent.ATTACK_RELEASE);
             session.advanceTo(start + 25);
             var target = runtime.target(enemy);
-            close(context, target.hp(), 885.200, "Lisa normal cannot hit before source frame26");
+            close(context, target.hp(), 885.2000016, "Lisa normal cannot hit before source frame26");
             session.advanceTo(start + 26);
-            close(context, target.hp(), 885.200 - (49.87 + 94) * .396 * .5 * .9,
+            close(context, target.hp(), 885.2000016 - (49.86613968 + 93.753946) * .396 * .5 * .9,
                     "Talent1 Lisa normal uses Lisa level20/20 ATK, not Traveler stats");
             context.assertTrue(target.aura().gauge(Element.ELECTRO) > 0, "Lisa normal applies 1U Electro aura to hilichurl");
             context.assertTrue(session.intent(Intent.SWITCH_1, start + 60), "Switch back after sourced one second");
             context.assertTrue(session.intent(Intent.SKILL_PRESS, start + 60), "Traveler Palm accepted");
             session.intent(Intent.SKILL_RELEASE, start + 60);
             session.advanceTo(start + 92);
-            // Lisa normal=(49.87+94)*.396*.45; Lisa→Traveler R1 TTDS grants24% ATK.
-            // Palm176% plus absorbed25% share (45.75+94)*1.24; Swirl=.6*K20*.9, no ATK buff.
-            double lisaDamage = (49.87 + 94) * .396 * .45;
-            double palm = (45.75 + 94) * 1.24 * (1.76 + 1.76 * .25) * .45;
-            close(context, target.hp(), 885.200 - lisaDamage - palm - .6 * 80.584775 * .9,
+            // datamine.md: Lisa=(19.41072*2.569 +38.7413*2.42)*.396*.45; Lisa→Traveler R1 TTDS24%.
+            // Palm176%/absorbed25% use (17.808*2.569 +38.7413*2.42)*1.24; Swirl=.6*K20*.9, no ATK buff.
+            double lisaDamage = (49.86613968 + 93.753946) * .396 * .45;
+            double palm = (45.748752 + 93.753946) * 1.24 * (1.76 + 1.76 * .25) * .45;
+            close(context, target.hp(), 885.2000016 - lisaDamage - palm - .6 * 80.584775 * .9,
                     "Incoming Traveler receives the real Thrilling Tales ATK buff, not a formula multiplier");
             context.assertValueEqual(target.swirlCount(), 1, "Traveler skill Swirls Lisa's Electro aura");
             context.assertValueEqual(session.skillAbsorbedElement(), Element.ELECTRO, "Traveler absorbs Electro before consuming aura");
@@ -53,7 +53,7 @@ public final class PartyGameTests {
         HilichurlGameTests.withManaged(context, (runtime, player) -> {
             var session = runtime.session(player);
             long start = Frames.atServerTick(context.getLevel().getServer().getTickCount());
-            session.party().kit(1).setHp(2037.88 / 2);
+            session.party().kit(1).setHp(2037.8803158 / 2);
             context.assertTrue(runtime.receive(player, Intent.SWITCH_2), "Switch to Amber accepted");
             close(context, player.getHealth(), 10, "Active Amber HP fraction mirrors to vanilla health");
             context.assertFalse(runtime.receive(player, Intent.SWITCH_3), "A second switch inside one second is rejected");
@@ -74,7 +74,7 @@ public final class PartyGameTests {
             close(context, player.getHealth(), 20, "Lisa's full HP mirrors after switching away from half-HP Amber");
             context.assertValueEqual(session.visualSnapshot(3).action(), io.github.brainage04.genshininminecraft.rules.CombatVisual.Action.NONE,
                     "Switch cancels the old body's combat action immediately");
-            close(context, session.party().kit(1).hp(), 2037.88 / 2, "Off-field Amber retains her HP");
+            close(context, session.party().kit(1).hp(), 2037.8803158 / 2, "Off-field Amber retains her HP");
         });
         context.succeed();
     }

@@ -16,7 +16,7 @@ class StarterKitTest {
         assertEquals(List.of(14L, 36L, 68L, 124L, 177L), hits.stream().map(Hit::frame).toList());
         assertEquals(List.of(.5375, .5169, .6527, .7086, .8824), hits.stream().map(Hit::multiplier).toList());
         assertTrue(hits.stream().allMatch(hit -> hit.element() == Element.PHYSICAL && hit.gauge() == 0));
-        assertEquals(48.04 + 94, kit.stats().atk(), 1e-12); // damage.md: Kaeya20/20 + Harbinger20/20.
+        assertEquals(48.0361896 + 93.753946, kit.stats().atk(), 1e-12); // damage.md: Kaeya20/20 + Harbinger20/20.
     }
     @Test void amberTalentOneFivePhysicalArrowsUseFirstOriginalReleaseTrials() {
         var hits = new ArrayList<Hit>();
@@ -26,7 +26,7 @@ class StarterKitTest {
         assertEquals(List.of(14L, 36L, 75L, 111L, 145L), hits.stream().map(Hit::frame).toList());
         assertEquals(List.of(.3612, .3612, .4644, .473, .5934), hits.stream().map(Hit::multiplier).toList());
         assertTrue(hits.stream().allMatch(hit -> hit.element() == Element.PHYSICAL && hit.gauge() == 0));
-        assertEquals(2037.88, kit.maxHp());
+        assertEquals(2037.8803158, kit.maxHp());
     }
     @Test void lisaTalentOneStringIsFourElectroApplicationsWithSharedStandardIcdTag() {
         var hits = new ArrayList<Hit>();
@@ -37,7 +37,7 @@ class StarterKitTest {
         assertEquals(List.of(.396, .3592, .428, .5496), hits.stream().map(Hit::multiplier).toList());
         assertTrue(hits.stream().allMatch(hit -> hit.element() == Element.ELECTRO && hit.gauge() == 1
                 && "Lisa Electro DMG".equals(hit.icdTag()))); // lisa.md standard normal/tap shared group.
-        assertEquals(49.87 + 94, kit.stats().atk(), 1e-12); // damage.md: Lisa20/20 + Thrilling Tales20/20.
+        assertEquals(49.86613968 + 93.753946, kit.stats().atk(), 1e-12); // damage.md: Lisa20/20 + Thrilling Tales20/20.
     }
     @Test void kaeyaChargeSpendsTwentyOnceAndBothHitsLandAtTheSameSourceFrame() {
         var hits = new ArrayList<Hit>();

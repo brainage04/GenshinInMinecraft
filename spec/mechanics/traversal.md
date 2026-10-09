@@ -8,7 +8,7 @@ Reference target: **Genshin Impact Version 7.1**, as pinned in [the project brie
 
 No reproducible traversal measurement explicitly identifying the pinned release was found. Consequently, **no historical measurement below is adopted as a verified pinned-version constant**. Current wiki rules are candidate descriptions; historical tests are identified separately. `unknown` means a researched value is unavailable, not permission to invent a default or interpolate from another mechanic.
 
-The accessible sources are public wiki text, KQM's original evidence entries and linked recordings, and community posts/screenshots. No game code, extracted models/assets, or datamined configuration is used. Some wiki pages required their public `action=raw` view. HoYoLAB's article pages returned a loading shell; their public forum article data made the original text readable. Reddit direct reads were blocked; height figures available only through search-indexed post text are explicitly distinguished from directly read evidence.
+Behaviour sources below are public wiki/KQM evidence and recordings/community observations; no game code or extracted assets are used. [datamine.md](datamine.md#traversalstamina-constants-found) now adds owner-approved pinned7.1 numeric constants confirming5climb-entry/25climb-jump/3glide/18dash and selected stamina capacity/recovery delay, but no defensible speed mapping. Some wiki pages needed public `action=raw`; HoYoLAB text came through its public article data; blocked Reddit height excerpts remain distinguished from directly read evidence.
 
 ## Climbing
 
@@ -44,7 +44,7 @@ Do not turn the qualitative “nearly upside-down” rule into an exact angle, o
 
 A climb-jump can be performed while holding still or moving. With movement input, it follows the movement direction, except diagonal-down input produces a horizontal jump and pure-down input jumps off the surface ([Climbing — Climb Jump](https://genshin-impact.fandom.com/wiki/Climbing#Climb_Jump)). This is a wall traversal action, not the ordinary ground jump.
 
-**New cost conflict:** the citation-needed value already noted in `stamina.md` disagrees with an older community depletion-count calculation. Preserve both rather than resolving the disagreement silently.
+**Cost conflict resolved numerically for7.1:** pinned `CONST_VALUE_CLIMB_JUMP_COST_STAMINA=25` confirms the selected25 and supersedes the historical24 claim as runtime input. Both historical sources remain below for provenance; formula parameter meanings and billing boundaries are not inferred from the tuple. [Exact file/commit](datamine.md#traversalstamina-constants-found).
 
 | Quantity | Published value with units | Source and reliability |
 | --- | --- | --- |
@@ -55,7 +55,7 @@ A climb-jump can be performed while holding still or moving. With movement input
 | Historical child-model observation | Approximately 270 observed climbing actions before depletion of the same pool | [Same study](https://www.taptap.cn/moment/210923504076325385). No exact per-action cost or per-second conversion is adopted. |
 | Historical relative climb-jump displacement | Approximately the height of 6 ordinary climbing actions | [Same study](https://www.taptap.cn/moment/210923504076325385). A qualitative action-count comparison, **not** a distance in metres. |
 
-The study includes [ordinary-climb animation evidence](https://img2-tc.tapimg.com/bbcode/images/757f72a690c4a7138d71d51745459d4b.gif/_tap_ugc.gif) and [climb-jump animation evidence](https://img2-tc.tapimg.com/bbcode/images/a4517b8d507ef7fead5ea69068230b51.gif/_tap_ugc.gif), but no reproducible timestamped cost ledger or distance calibration. **[INFERENCE]** A pool-to-depletion action count alone cannot distinguish an exact action cost when the final action may overspend the remainder. Therefore the observations do not independently disprove the wiki value. Pinned-version climb-jump cost remains `unknown`.
+The study's [ordinary-climb](https://img2-tc.tapimg.com/bbcode/images/757f72a690c4a7138d71d51745459d4b.gif/_tap_ugc.gif) and [climb-jump](https://img2-tc.tapimg.com/bbcode/images/a4517b8d507ef7fead5ea69068230b51.gif/_tap_ugc.gif) animations are not a timestamped cost/distance ledger. **[INFERENCE]** Pool-to-depletion counts cannot distinguish exact billing if the final action overspends. Pinned numeric constant25 is now sourced independently; the observations do not override it.
 
 For stationary wall attachment, the same [historical study](https://www.taptap.cn/moment/210923504076325385) explicitly reports that stopping climbing stops consumption but **does not permit natural recovery while still attached**. Its pinned-version persistence and any exceptional recovery effect are `unknown`. This fills an evidence gap in `stamina.md`; it is not a replacement regeneration rule.
 

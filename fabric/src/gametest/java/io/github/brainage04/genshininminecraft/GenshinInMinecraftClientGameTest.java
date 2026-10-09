@@ -339,7 +339,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
                 var bunny = (BaronBunny) player.level().getEntity(bunnyId);
                 if (bunny.getHealth() != bunny.getMaxHealth()
-                        || ((AmberKit) CombatRuntime.get(minecraftServer).session(player).kit()).puppetHp() != 2037.88 * .4136)
+                        || ((AmberKit) CombatRuntime.get(minecraftServer).session(player).kit()).puppetHp() != 2037.8803158 * .4136)
                     throw new AssertionError("Fiery Rain must leave the source-scaled Bunny HP full");
                 player.level().getEntity(pyroMobId).discard();
             });
@@ -447,7 +447,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
                 var player = minecraftServer.getPlayerList().getPlayers().getFirst();
                 var mob = new Hilichurl(GenshinEntities.HILICHURL, player.level());
                 // This multi-tick EC/Rose fixture must survive several145.052595 reaction ticks.
-                // Keep the original sourced Lv20/885.200HP encounter; the arena-default fixture below tests Lv8.
+                // Pinned Lv20 HP=13.584*65.1649=885.2000016; the arena-default fixture below tests Lv8.
                 mob.setGenshinLevel(20);
                 mob.snapTo(player.position().add(0, 0, 3));
                 mob.setNoAi(true);
