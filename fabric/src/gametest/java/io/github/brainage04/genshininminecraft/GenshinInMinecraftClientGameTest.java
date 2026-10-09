@@ -41,6 +41,7 @@ public class GenshinInMinecraftClientGameTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext context) {
         if (System.getProperty("genshin.coopSmoke") != null) { CoopSmokeClient.run(context); return; }
+        if (System.getenv("GENSHIN_SOUND_REVIEW") != null) { SoundReview.run(context); return; }
         Properties serverProperties = ClientGameTestServers.flatServerProperties();
 
         ClientGameTestServers.withDedicatedServer(context, serverProperties, "GenshinInMinecraft GameTest", server -> { try {

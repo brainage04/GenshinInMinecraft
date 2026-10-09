@@ -5,6 +5,8 @@ import com.geckolib.animatable.manager.AnimatableManager;
 import com.geckolib.animatable.instance.AnimatableInstanceCache;
 import com.geckolib.util.GeckoLibUtil;
 import io.github.brainage04.genshininminecraft.client.enemy.SyncedEnemyController;
+import io.github.brainage04.genshininminecraft.combat.CombatSounds;
+import io.github.brainage04.genshininminecraft.rules.CombatAudio.Cue;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -35,6 +37,7 @@ public final class BaronBunny extends Rabbit implements GeoEntity {
         entityData.set(HURT_START, level().getGameTime() * 3);
         entityData.set(HURT_OCCURRENCE, hurtOccurrence() + 1);
     }
+    @Override public void playAmbientSound() { CombatSounds.play(this, Cue.BUNNY_IDLE); }
     @Override public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
         boolean accepted = super.hurtServer(level, source, amount);
         if (accepted && isAlive()) visualHurt();

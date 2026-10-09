@@ -13,8 +13,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.resources.Identifier;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.network.chat.Component;
 import io.github.brainage04.genshininminecraft.rules.kit.CharacterKit.Intent;
 
@@ -142,7 +140,6 @@ public final class GenshinHud {
             boolean normal = flashIntent == Intent.ATTACK_PRESS.ordinal() + 1;
             rejectionText = normal ? "" : Component.translatable("hud.genshininminecraft.rejection."
                     + state.rejection().name().toLowerCase(java.util.Locale.ROOT)).getString();
-            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK.value(), .7F, .25F));
         }
         traversalHint = "";
         if (state.climbing() || state.gliding()) {

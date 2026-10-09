@@ -331,7 +331,7 @@ Research is in [ui.md](../spec/mechanics/ui.md). The wiki directly documents one
 
 Send actual server-owned switch remaining/action gates and each cast's selected cooldown span in the existing shared character payload. Draw dim party rows with vertical decreasing sweep/remaining seconds, readable rebound slot keys, gray/X fallen rows; indefinite hold/traversal locks show **LOCK** without a made-up release time. Skill/Burst get precomputed64-step circular scanline sweeps above original diamonds/seconds; Burst energy independently fills its48-sample ring/diamond, with gold ready outline and an off-field ready pip. No fake charge display for this C0 single-use roster. Held Palm no longer manufactures a constant8-second “cooldown” before release. Amber aiming's party gate now matches the sourced restriction; normal/charged recovery and resource values otherwise remain unchanged.
 
-Actual rejected switch/E/Q presses send one-shot sequence/action/reason feedback immediately, even within the ordinary three-tick state throttle. The client does not suppress intents based on stale packets. Use sourced switch wording and explicitly adapted skill/burst explanations, a16-client-tick/.8s white border/text pulse and quiet Minecraft UI click. No normal-specific HUD timer/bar was found in the consulted PC sources: normal rejects get only that temporary click, no normal text/flash; **item20 is responsible for animation-visible recovery**. The existing lack of normal-input buffering remains an acknowledged timing adaptation, not “fixed” by inventing a new meter.
+Actual rejected switch/E/Q presses send immediate sequence/action/reason feedback inside the ordinary three-tick state throttle; the client never suppresses intents using stale packets. Sourced switch wording, adapted skill/burst explanations and16-client-tick/.8s border/text remain. The2026-10-10 sound review supersedes the original all-rejection click: only rejected bursts click, once per second. Normal refusal is silent without invented text/flash/timer; item20 owns animation-visible recovery. Input buffering remains a timing adaptation.
 
 Dash conclusion: freshly retrieved [Sprinting](https://genshin-impact.fandom.com/wiki/Sprinting) and [Stamina](https://genshin-impact.fandom.com/wiki/Stamina) still give **18 per dash/start** and **18/s held sprint**. The runtime calls dash on one movement-input edge; accepted dash sets sprinting, preventing a second start charge, and the rules defer drain until dash end. Existing shared GameTests assert100→82 immediately/still82 at18frames, then64 after a second of held sprint and no same-frame repeated charge. **No double charge or during-dash drain was found; no stamina number/billing code changed and no artificial failing-first “fix” is claimed.** A100-unit starting pool makes18 consume18%, versus7.5% at upgraded240; utility passives remain intentionally ungranted. Neither difference is claimed as newly measured proof of the owner's subjective cause.
 
@@ -363,7 +363,7 @@ Extend the existing public player-character packet to UUID+ID, accepted slot, lo
 
 `tools/models/generate.py` (Python stdlib only) authors all four actual cuboid silhouettes, per-face shaded/pixel-painted128×128 atlases, jointed limbs, hair/accessories/capes, signature weapons and deployable original gliders. It generates runtime files and its provenance block; `--check` compares expected bytes without writing. Normal Gradle builds use committed assets, not Python/Blockbench. Aether has a segmented blond braid/white-gold tunic/brown scarf, Amber a red ribbon headband/goggles, Kaeya dark skin/blue hair/eyepatch/asymmetric fur cape, Lisa a wide purple brim/dress/brown hair/book. Original presentation clips cover idle/walk/run, exactly18-frame dash, jump/fall,15-frame soft/30-frame hard land, idle/up/down/left/right climbing,18-frame climb-jump,24-frame mantle,18-frame glide start/90-frame loop/12-frame close and swimming. No claim of extracted or frame-faithful Genshin art/poses; kit attack/E/Q animation remains20b.
 
-Vanilla sounds, broadcast only from actual server transitions: dash `entity.breeze.slide` (.55 volume/1.25 pitch), glider open `item.armor.equip_elytra` (.7/1.1), close `item.armor.equip_leather` (.5/.8), climb attachment `block.stone.hit` (.4/1.25), landing `block.stone.fall` (volume clamp(.2+height/15,.2,1),pitch.8; water exempt). No copied audio or local marker replay on late tracking.
+Traversal sounds originate only at real server transitions, without copied audio or late-tracker replay. The complete current mapping superseding20a/20b/20c/item19 is [the2026-10-10 sound-review table](#2026-10-10--vanilla-sound-review-corrections-and-repeatable-capture).
 
 Visual inspection of the first passing gate caught two real presentation defects: the manually-set first-person X rotations pointed hands toward the near plane instead of forward, and the old dense green particle wings concealed the new glider geometry. Correct the camera-local radians (JSON/GeckoLib axis conversion is not repeated there), remove the obsolete server particle-wing generator/unused constants, and recapture. Standing evidence waits for switch dust to retire and chooses a front3/4 orbit relative to the **extracted body yaw**, rather than assuming teleporting the view immediately resets vanilla torso yaw; F1/55° FOV gives unobstructed full-character standing captures and is restored before hands/gameplay assertions.
 
@@ -385,19 +385,7 @@ Conditional phase timing is preserved: Traveler early tap stays on the original 
 
 Distinguish **player gestures from independent field/projectile impacts**: Amber's player throw recovers at32, before Bunny lands at45; use the existing cooldown-start5 as a named **adapted throw-pose/release anchor**, not a claim of measured throw release. Lisa tap's gesture is orb launch17; target-dependent impact starts no earlier than22. Lightning Rose summon/placement56 ends the cast at85, whereas formation59 and discharge119 remain independent field events. Existing server hit/field schedules and persistent effects are unchanged; no animation keyframe launches a second projectile or deals damage.
 
-Vanilla sound mapping (server broadcast only, no copied audio or client replay on late tracking):
-
-| Action/event | Minecraft event | Volume / pitch |
-| --- | --- | --- |
-| Traveler/Kaeya normal and charged strike | `entity.player.attack.sweep` | .65 / normal1.1, charged.9 |
-| Amber normal/aim release | `entity.arrow.shoot` | .65 / normal1.1, aimed.9 |
-| Lisa normal/charged and Violet Arc orb launch | `block.amethyst_block.chime` | .65 / normal-orb1.1, charged.9 |
-| Palm Vortex/Lisa skill acceptance | `entity.evoker.cast_spell` | .6 /1.1 |
-| Frostgnaw acceptance / hit | `block.glass.break` | .6 /1.1; .65 /1.1 |
-| Baron Bunny throw acceptance | `entity.snowball.throw` | .6 /1.1 |
-| All burst cast acceptance | `entity.illusioner.cast_spell` | .85 /1.0 (Lisa.85) |
-| Palm Vortex final storm release | `entity.breeze.wind_burst` | .65 /1.1 |
-| Violet Arc hold release / Lightning Rose placement | `entity.evoker.cast_spell` | .65 /1.1 |
+The server-owned action cues use the [current consolidated vanilla sound table](#2026-10-10--vanilla-sound-review-corrections-and-repeatable-capture); the2026-10-10 recording review replaces the original20b mapping.
 
 Same-kit/same-kind/same-frame sound deduplication prevents Kaeya's simultaneous charged damage components from playing the sweep twice. Rejected inputs do not play cast sounds or publish a new combat occurrence. This completes player action sounds only; item19's ranged projectile/reaction/hit-effects scope remains separate.
 
@@ -433,7 +421,7 @@ Baron Bunny becomes concrete `BaronBunny extends Rabbit implements GeoEntity`; f
 
 No server entity is added early or kept after retirement. An accepted Amber throw sends an inert cosmetic snapshot (adapted release5→landing45, original1.1-block parabolic apex) to nearby same-dimension viewers; real landing retires it and plays15-frame squash/ear settling before idle wobble. Nonlethal club hits explicitly publish hurt. Actual detonation sends the24-frame inflate/scatter/shrink GeoObject continuation before immediate server discard/damage. Cancellation sends only CANCEL; dimension/managed-off/disconnect clear cached presentations. Deferred submission consumes extraction snapshots, never live entity/session state.
 
-All sounds are existing Minecraft events broadcast on actual server events, with no marker replay: Hilichurl telegraph `entity.piglin.angry` (.65/.75), whoosh `entity.player.attack.sweep` (.7/.7), connected impact `entity.player.attack.strong` (.8/.65), kit hurt `entity.piglin.hurt` (.7/.8), death `entity.piglin.death` (.8/.8); Bunny land `block.wool.fall` (.8/.85), explosion `entity.generic.explode` (.8/1.25). Natural vanilla hurt uses the same piglin event. No imported audio.
+Enemy/Bunny cues are vanilla-only real server transitions, never animation markers. Their current mapping and bounded shared vanilla/kit hurt path are in [the2026-10-10 table](#2026-10-10--vanilla-sound-review-corrections-and-repeatable-capture).
 
 Item25 review confirmed Amber's head-crossing arms/bow in the existing Fiery Rain capture. Spread shoulders outward and counterrotate the bow to stay skyward beyond the head silhouette. Invert the complete parent ZYX rotation, not the individual Euler components; a numeric JUnit checks the resulting world-up bow axis at windup and the sourced impact. The other front3/4 E/Q captures showed the raised Kaeya sword hand close to the head and Lisa's raised Rose palm hidden at the broad hat: move those shoulders outward too, keeping the book clear of the face. Traveler burst and the other non-channel skill gestures need no changed impact pose. The client capture saves every E/Q plus Traveler/Lisa skill-start, held channel and full release both front3/4 and the default4-block rear orbit (body-facing yaw, pitch0, ordinary FOV), without changing any kit frames. Final visual review and gate evidence are recorded below after execution.
 
@@ -465,32 +453,9 @@ One S2C-only `ProjectileVisualPayload` carries owner/dimension/identity, absolut
 
 ### Additional vanilla sound mapping
 
-All cues are server broadcasts at actual gameplay transitions, not animation-marker callbacks or snapshot acceptance. Existing20a/20b/20c action, traversal, landing, enemy-impact and Bunny mappings above remain in effect.
+All cues are server broadcasts at actual gameplay transitions, not animation-marker callbacks or snapshot acceptance. The [2026-10-10 consolidated table](#2026-10-10--vanilla-sound-review-corrections-and-repeatable-capture) replaces this original item19 table and the20a/20b/20c tables; there is one runtime mapping in plain-Java `CombatAudio`, with `CombatSounds` only a Minecraft playback adapter.
 
-| Event | Minecraft sound event | Volume / pitch | Session-wide minimum interval |
-| --- | --- | --- | --- |
-| Physical hit | `entity.player.attack.strong` | .35 / .9 | 6 frames |
-| Pyro hit | `block.fire.ambient` | .35 / 1.2 | 6 frames |
-| Cryo hit | `block.glass.hit` | .35 / 1.2 | 6 frames |
-| Electro hit | `entity.breeze.shoot` | .35 / 1.2 | 6 frames |
-| Anemo hit | `entity.breeze.slide` | .35 / 1.2 | 6 frames |
-| Hydro hit (debug-seeded reaction support) | `block.fire.extinguish` | .35 / 1.2 | 6 frames |
-| Overloaded | `entity.generic.explode` | .55 / 1.2 | 12 frames |
-| Superconduct | `block.amethyst_block.break` | .35 / 1.2 | 12 frames |
-| Melt / Vaporize | `block.fire.extinguish` | .35 / 1.2 | 12 frames per reaction |
-| Swirl | `entity.breeze.slide` | .35 / 1.2 | 12 frames |
-| Electro-Charged reaction / periodic ticks | `entity.breeze.shoot` | .25 / 1.2 | 30 frames, shared across targets |
-| Frozen / Shatter | `block.glass.hit` / `block.glass.break` | .35 / 1.2 | 12 frames per reaction |
-| Actual critical talent hit | `entity.player.attack.crit` | .35 / 1.5 | 12 frames |
-| Lightning Rose selected-target discharge | `entity.breeze.shoot` | .25 / 1.2 | 12 frames |
-| Energy particle pickup (existing immediate collection) | `entity.experience_orb.pickup` | .35 / 1.25 | One cue per collection, not per particle/recipient |
-| Burst becomes ready (alive, full energy, no burst cooldown) | `block.note_block.chime` | .35 / 1.5 | Rising edge only |
-| Skill cooldown ends | `ui.button.click` | .18 / 1.4 | Falling cooldown edge only |
-| Accepted manual / forced switch | `item.armor.equip_leather` | .4 / 1.3 | Actual switch only |
-| Character falls (including forced replacement/wipe) | `entity.player.death` | .6 / .9 | Actual fall only |
-| Enemy first acquires an aggro target | `entity.piglin.angry` | .45 / .95 | Null-to-target edge only |
-
-Per-session cue budgets coalesce AoE hits/reactions and duplicate EC initial/tick feedback, without suppressing another element or reaction. Rose's30-frame discharge schedule is additionally bounded by its12-frame cue budget. Rejected casts/switches do not play success cues. Resource sounds do not add physical energy travel/funnelling or replay when an unchanged state sync arrives.
+Per-session cue budgets coalesce AoE hits/reactions and EC initial/tick feedback. The2026-10-10 rules additionally replace an element hit with its reaction, and deduplicate Rose/Electro/EC's shared event on the actual playback tick. Rejected casts/switches never play success cues; resource sounds do not add physical particle travel/funnelling or replay unchanged sync.
 
 ### Acceptance evidence
 
@@ -675,4 +640,72 @@ Spawn finding: checked WorldLevel/SceneExcel,scene3LevelLayout/WorldArea,LevelMe
 The bounded traversal check found constants matching18dash/start,3glide,5climb-entry,25climb-jump,100base/140extra and1.5s recovery wait. Rename `ADAPTED_CLIMB_JUMP_COST`→`CLIMB_JUMP_COST` now that25 is numerically sourced. Climb tuples/formula semantics cannot establish a per-second rate or speeds; retain owner5.36/s and all existing motion adaptations. No traversal number changes.
 
 Acceptance gate: `./gradlew --no-daemon build runAllGameTests` **passed9m04s** (544.72s wall;49actionable tasks,27executed/22up-to-date).93required server GameTests passed in each Fabric/NeoForge development/production run; connectedFabric production client suite, both loader builds and common unit tests passed. New `MonsterCurveTest` has four passing numeric golden cases covering families/levels/DEF/incoming hits/character and weapon bases/passives. Existing expectations were updated in rule `AmberKitTest`, `CoopTest`, `DamageTest`, `KaeyaKitTest`, `LisaKitTest`, `PartySaveTest`, `PartyTest`, `StarterKitTest`, `StarterLoadoutTest`, `TravelerAnemoKitTest`; shared server `AmberGameTests`, `CoopGameTests`, `HilichurlGameTests`, `KaeyaGameTests`, `LisaGameTests`, `PartyGameTests`, `StaminaGameTests`, `TravelerCombatGameTests`, `TraversalGameTests`; Fabric `GenshinInMinecraftClientGameTest` and the co-op smoke helper `CoopSmokeServer` (its numeric result fixture, **not separately smoke-run**). No assertion tolerance/kill-count target was weakened. Raw gate output is available in session artifact1135; durable reports under`common/build/test-results/test/` and loader build/run logs. Item28 ticked only after success. No commit, push or git identity change.
+
+## 2026-10-10 — vanilla sound-review corrections and repeatable capture
+
+The baseline `run/sound-review/20261009-234316/review.md` identified17 required fixes through selected-asset RMS and real SoundEngine receipts, **not listening**. This table replaces the old20a/20b/20c/item19 tables. Runtime has one plain-Java `CombatAudio.Cue` table (vanilla event/volume/pitch/interval); `CombatSounds` caches verified registered events once and only adapts playback. No audio assets, compatibility aliases or animation-marker replay.
+
+Rendered ranges below were measured for **every26.2 sounds.json variant**, at the chosen volume including sounds.json per-file volume: loudest100ms RMS in10ms steps +20log10(resolved volume). Pitch is reported but not resampled, matching the baseline method; overlap, distance and music are excluded. Numbers are signal evidence, not perceptual audibility/timbre/Genshin-equivalence claims. All listed replacements exist in26.2 and have non-silent onset/levels; variant details are written by the launcher in `validated-candidates.json`.
+
+| Cue / action | Vanilla event | Volume / pitch | Rendered dBFS range | Reason / policy |
+| --- | --- | --- | --- | --- |
+| Physical melee hit | `entity.player.attack.strong` | .35 / .9 | −27.2…−22.5 | Unchanged6-frame AoE budget |
+| Physical arrow hit | `entity.arrow.hit` | .35 /1.2 | −28.2…−25.1 | #14 projectile impact, not sword |
+| Pyro hit | `item.firecharge.use` | .15 /1.3 | −25.9 | #4 transient instead of1.8s ambient loop |
+| Cryo hit | `entity.player.hurt_freeze` | .6 /1.3 | −27.3…−25.7 | #2 actual icy asset instead of stone-footstep alias |
+| Electro hit / EC / Rose discharge | `block.sculk_sensor.clicking` | .4 /1.6 | −27.8…−24.4 | #3/#7/#10;6/30/12-frame budgets plus one shared event per actual playback tick |
+| Anemo hit | `entity.breeze.deflect` | .3 /1.2 | −26.1…−24.8 | #5 crisp transient replaces buried long slide |
+| Hydro hit | `block.fire.extinguish` | .35 /1.2 | −26.1 | Unchanged; no Hydro starter kit |
+| Overloaded | `entity.generic.explode` | .55 /1.2 | −13.4…−12.0 | Unchanged12-frame budget |
+| Superconduct | `block.amethyst_block.break` | .7 /1.2 | −24.8…−23.7 | #7 raise reaction relative to element layer |
+| Melt / Vaporize | `block.fire.extinguish` | .6 /1.2 | −21.4 | #7 raise reaction; each12-frame budget |
+| Swirl | `item.trident.riptide_1` | .45 /1.4 | −24.7 | #7 distinct spinning-wind asset |
+| Frozen | `block.amethyst_cluster.break` |1 / .8 | −28.8…−26.8 | #2/#7 crystal break, not stone alias |
+| Shatter | `block.glass.break` | .35 /1.2 | −26.5…−21.5 | Unchanged; no reachable starter Shatter path |
+| Critical talent hit | `entity.player.attack.crit` | .35 /1.5 | −21.3…−20.3 | Unchanged12-frame budget |
+| Traveler/Kaeya normal / charged swing | `entity.player.attack.sweep` | .65 /1.1 or .9 | −18.5…−15.4 | Existing same-kit/kind/frame charged dedup |
+| Amber normal / aimed launch | `entity.arrow.shoot` | .65 /1.1 or .9 | −18.4 | Unchanged |
+| Lisa normal/charged / Violet Arc launch | `block.amethyst_cluster.place` |1 /1.3 | −29.6…−28.2 | #1 replaces −59dB shimmer (per-file volume .9) |
+| Palm Vortex / Lisa skill acceptance | `entity.evoker.cast_spell` | .6 /1.1 | −19.6…−18.6 | Unchanged |
+| Frostgnaw acceptance | `entity.player.attack.sweep` | .4 /1.4 | −22.7…−19.6 | #13 distinct from its hit |
+| Frostgnaw hit | `block.glass.break` | .65 /1.1 | −21.1…−16.2 | Keep glass break on hit only |
+| Bunny throw | `entity.witch.throw` | .5 /1.1 | −22.3…−19.9 | #12 snowball/bow alias removed |
+| All burst acceptance | `entity.illusioner.mirror_move` | .6 /1 | −13.8…−13.6 | #8 no shared evoker-cast sample |
+| Palm Vortex final release | `entity.breeze.wind_burst` | .65 /1.1 | −15.1…−13.4 | Unchanged |
+| Violet Arc hold release / Rose placement | `entity.evoker.cast_spell` | .65 /1.1 | −19.0…−17.9 | Unchanged field placement |
+| Energy pickup | `entity.experience_orb.pickup` | .35 /1.25 | −24.9 | Actual collection only |
+| Burst ready | `block.note_block.chime` | .8 /1.5 | −27.0 | #15 active-member rising edge only; off-field edges latched silently, no switch/sync replay |
+| Skill ready | `ui.button.click` | .18 /1.4 | −35.1 | Existing falling cooldown edge |
+| Accepted switch | `item.armor.equip_leather` | .4 /1.3 | −34.1…−27.6 | Actual manual/forced switch |
+| Member fallen | `block.beacon.deactivate` | .5 /1.2 | −21.2 | #9 distinct power-down instead of hurt/death alias |
+| Rejected burst | `ui.button.click` | .25 / .7 | −32.2 | #11 only rejected burst, at most once/60frames; no client HUD playback |
+| Dash | `entity.breeze.deflect` | .3 /1.5 | −26.1…−24.8 | #17 crisp/short rather than slow slide |
+| Glider open | `entity.ender_dragon.flap` | .25 /1.5 | −29.6…−25.0 | #16 different asset from leather close/switch |
+| Glider close | `item.armor.equip_leather` | .5 / .8 | −32.2…−25.6 | Unchanged |
+| Climb attachment | `block.stone.hit` | .4 /1.25 | −37.4…−30.6 | Unchanged |
+| Safe landing | `block.stone.fall` | clamp(.2+height/15,.2,1) / .8 | −29.5…−22.6 at volume1 | #9 omit when vanilla calculated fall-damage branch supplies local sound; no water cue |
+| Enemy aggro / telegraph | `entity.piglin.angry` | .45/.95 or .65/.75 | −22.6…−17.5 / −19.4…−14.3 | Existing null→target / real windup |
+| Enemy swing / connected hit | `entity.player.attack.sweep` / `entity.player.attack.strong` | .7/.7 / .8/.65 | −17.9…−14.8 / −20.1…−15.3 | Existing strike transitions |
+| Enemy hurt | `entity.piglin.hurt` | .45 / .8 | −24.0…−22.2 | #6 one per enemy per10ticks, one per server tick across enemies; vanilla and kit damage share the budget |
+| Enemy death | `entity.piglin.death` | .8 / .8 | −15.3…−10.6 | Unchanged one authoritative death |
+| Bunny idle | `entity.rabbit.attack` | .4 /1.2 | −27.1…−25.4 | #12 replace −59dB rabbit-idle per-file volume alias |
+| Bunny land / explode | `block.wool.fall` / `entity.generic.explode` | .8/.85 / .8/1.25 | −29.3…−24.5 / −10.1…−8.7 | Unchanged |
+
+Reactions replace (not layer over) the trigger element's impact. Rose/Electro/EC additionally deduplicate by resolved event on the **world playback tick**, even when the timeline drains different original hitmarks in one server tick; independent cues retain their original intervals. Hurt throttling never throttles HP/damage/hurt animation. The fall mixin uses vanilla's own `calculateFallDamage`, rather than conflating the adapted5-block safe Genshin threshold with vanilla's attribute/effect threshold. High fall still performs actual HP loss/fallen/forced switch. Optional #18 waypoint audio remains intentionally unchanged.
+
+The shared client-only `PlayerFallSoundMixin` also omits the later fall-type hurt alias during managed play: vanilla LocalPlayer prediction already played big/small-fall plus the block sound, so `broadcastDamageEvent` must not produce another delayed “oof”. Other damage sources and unmanaged vanilla audio stay unchanged. `CombatAudio.playerHurt` is regression-tested beside landing precedence. This closes the reviewer's independent double-oof finding without touching HP/forced switch.
+
+Failing-first reproduction: `:common:test --tests '*CombatAudioTest'` reported both `roseAndElectroDoNotDoubleInOneTick` and `electroAndReactionDoNotDoubleInEitherOrder` failures before replacement. Nine plain-Java regressions cover those cases, delayed hitmark actual-tick dedup, retained AoE/EC budgets, exact6-play three-enemy hurt throttle over20ticks, no vanilla/mod landing double, burst-only60-frame rejection, active-only readiness/no replay and distinct mapping/projectile impact/reaction precedence. The existing Fabric payload test retains all codec/interval boundaries and adds the required shared-event no-double assertion.
+
+`python3 scripts/sound-review/run.py` is the durable launcher next to the co-op smoke in AGENTS. It reuses Loom's dev classpaths and the recording-only Fabric driver, starts no release scaffold, uses private Xvfb `-displayfd` and hardware-free PipeWire/Pulse with policy-only WirePlumber/null sink, and self-caps **all** Gradle/JVM/capture/decoder children to12GiB/3CPUs. MUSIC/RECORDS0%, other categories/master100%; ffmpeg's asynchronous resampler fills timestamp gaps without normalization. Output includes MP4, cue sheet, actual selected assets/resolved volume/pitch/world ticks, per-receipt/per-event rendered levels and busy counts in JSON, all-variant asset validation, and historical before/after analysis. Hydro/Shatter assets are validated but not claimed covered by an unavailable starter gameplay path.
+
+Capture preserves raw x11grab/Pulse wall-clock PTS with `-copyts`, checks both stream clock bases, recovers ffprobe's raw start epoch, and shifts both tracks together with one-input `-start_at_zero` MP4 remux. It does not guess epoch from Popen timing or force audio independently toPTS0. `aresample=async=1000:min_hard_comp=0.01` repairs small clock gaps; report includes audio packet-gap count/sum/max plus recorded full/busy mean/peak. Nix's reduced system ffmpeg lacks X11 input; the launcher resolves ffmpeg-full or accepts an explicit capture binary before any client.
+
+The recording-only flat fixture sets `max-tick-time=0` because Fabric lockstep Phasers can deliberately suspend server ticks while the capped software client/test thread advances. The launcher deadline and all accepted-action assertions remain; normal GameTests/production gate are unchanged. This is not a gameplay-watchdog override. Private llvmpipe workers and the JVM use two CPU workers/SerialGC to fit the combined3CPU scope.
+
+Post-fix recording: `run/sound-review/20261010-004757/sound-review.mp4` (441.8s), launched by the durable script. Its `before-after.md` contains every event's before/after median/min/max rendered level against `20261009-234316`; `report.json` and `validated-candidates.json` retain exact assets/variants. Full recorded mean/peak −36.1/−0.9dBFS; busy20s −27.2/−0.9dBFS; zero audio packet gaps above1ms. MUSIC0 is recorded in the category setup; SoundEngine can still resolve a muted music receipt, which the analyzer now explicitly excludes from audible levels.
+
+Busy-fight piglin hurt receipts50→20, rejected-burst clicks14→3, same-ID same-tick extra plays41→6, piglin hurt extras28→0. The original review reports24 same-ID hurt stacks; the regenerated historical≤50ms adjacent-receipt proxy finds16 groups with28 extra plays. These differently defined historical counts cannot establish exact server ticks; the new capture logs exact client world ticks and has zero duplicate hurt receipts. Remaining duplicate IDs are independent hilichurl aggro/club swings, vanilla player hurt and footsteps—not duplicate elemental/reaction/Rose/hilichurl-hurt cues. The isolated Lisa burst has30 single sculk discharges rather than59 breeze-shoot receipts, and the high fall has one vanilla big-fall plus vanilla block sound, no delayed hurt oof, one distinct fallen-member beacon cue and the real forced switch.
+
+Acceptance2026-10-10: `systemd-run --user --scope -p MemoryMax=12G -p CPUQuota=300% ./gradlew --no-daemon build runAllGameTests` **passed in9m08s** (548.59s wall;49tasks,22executed/27up-to-date). All93required server GameTests passed in all four Fabric/NeoForge development/production server runs; common/Fabric unit tests, both loader builds and the real connected Fabric production client suite passed. Gate output: `artifact://1344`. No tests were weakened; the recording-only watchdog setting is absent from the gate.
 

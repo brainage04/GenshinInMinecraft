@@ -1,6 +1,6 @@
 package io.github.brainage04.genshininminecraft;
 
-import io.github.brainage04.genshininminecraft.combat.CombatSounds;
+import io.github.brainage04.genshininminecraft.rules.CombatAudio;
 import io.github.brainage04.genshininminecraft.network.ProjectileVisualPayload;
 import io.github.brainage04.genshininminecraft.rules.Element;
 import io.github.brainage04.genshininminecraft.rules.Reaction;
@@ -27,20 +27,21 @@ class ProjectileVisualPayloadTest {
         }
     }
     @Test void audioBudgetsBoundAoeEcRoseAndCritWithoutSuppressingDifferentCues() {
-        var budget = new CombatSounds.Budget();
-        for (var element : Element.values()) assertNotNull(CombatSounds.element(element));
-        for (var reaction : Reaction.Type.values()) assertNotNull(CombatSounds.reaction(reaction));
-        assertTrue(budget.allow(CombatSounds.Cue.PYRO, 0));
-        assertFalse(budget.allow(CombatSounds.Cue.PYRO, 5));
-        assertTrue(budget.allow(CombatSounds.Cue.PYRO, 6));
-        assertTrue(budget.allow(CombatSounds.Cue.CRIT, 6));
-        assertFalse(budget.allow(CombatSounds.Cue.CRIT, 17));
-        assertTrue(budget.allow(CombatSounds.Cue.CRIT, 18));
-        assertTrue(budget.allow(CombatSounds.Cue.ELECTRO_CHARGED, 0));
-        assertFalse(budget.allow(CombatSounds.Cue.ELECTRO_CHARGED, 29));
-        assertTrue(budget.allow(CombatSounds.Cue.ELECTRO_CHARGED, 30));
-        assertTrue(budget.allow(CombatSounds.Cue.ROSE, 30));
-        assertFalse(budget.allow(CombatSounds.Cue.ROSE, 41));
-        assertTrue(budget.allow(CombatSounds.Cue.ROSE, 42));
+        var budget = new CombatAudio.Budget();
+        for (var element : Element.values()) assertNotNull(CombatAudio.element(element, false, false));
+        for (var reaction : Reaction.Type.values()) assertNotNull(CombatAudio.reaction(reaction));
+        assertTrue(budget.allow(CombatAudio.Cue.PYRO, 0, 0));
+        assertFalse(budget.allow(CombatAudio.Cue.PYRO, 5, 1));
+        assertTrue(budget.allow(CombatAudio.Cue.PYRO, 6, 2));
+        assertTrue(budget.allow(CombatAudio.Cue.CRIT, 6, 2));
+        assertFalse(budget.allow(CombatAudio.Cue.CRIT, 17, 5));
+        assertTrue(budget.allow(CombatAudio.Cue.CRIT, 18, 6));
+        assertTrue(budget.allow(CombatAudio.Cue.ELECTRO_CHARGED, 0, 0));
+        assertFalse(budget.allow(CombatAudio.Cue.ELECTRO_CHARGED, 29, 9));
+        assertTrue(budget.allow(CombatAudio.Cue.ELECTRO_CHARGED, 30, 10));
+        assertFalse(budget.allow(CombatAudio.Cue.ROSE, 30, 10)); // Same resolved event cannot double.
+        assertTrue(budget.allow(CombatAudio.Cue.ROSE, 33, 11));
+        assertFalse(budget.allow(CombatAudio.Cue.ROSE, 44, 14));
+        assertTrue(budget.allow(CombatAudio.Cue.ROSE, 45, 15));
     }
 }

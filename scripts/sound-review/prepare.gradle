@@ -1,0 +1,21 @@
+// Recording-only development launch reuses Loom, the configured mods and the Fabric client GameTest driver.
+import groovy.json.JsonOutput
+
+gradle.projectsEvaluated {
+    def project = gradle.rootProject.project(':fabric')
+    def client = project.tasks.named('runClient').get()
+    project.tasks.register('prepareSoundReview') {
+        dependsOn client.taskDependencies.getDependencies(client)
+        dependsOn project.tasks.named('gametestClasses')
+        doLast {
+            def output = new File(project.rootDir, 'run/sound-review/launch.json')
+            output.parentFile.mkdirs()
+            def cp = (client.classpath + project.sourceSets.gametest.runtimeClasspath + project.sourceSets.gametest.output).asPath
+            output.text = JsonOutput.prettyPrint(JsonOutput.toJson([
+                java: client.javaLauncher.get().executablePath.asFile.absolutePath,
+                jvm: client.allJvmArgs.findAll { !it.startsWith('-Xmx') && !it.startsWith('-Xms') },
+                classpath: cp, main: client.mainClass.get(), args: client.args
+            ]))
+        }
+    }
+}

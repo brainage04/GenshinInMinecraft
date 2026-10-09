@@ -52,3 +52,4 @@ replay_*.log
 # Disposable map extractions, upgrades and palette reports (never map data in git).
 /run/map-port/
 /scripts/map-port/__pycache__/
+/scripts/sound-review/__pycache__/

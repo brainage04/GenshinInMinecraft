@@ -56,6 +56,7 @@ Goal: a player can join a world (test arena now, the ported map once it exists),
 3. ~~**Map upgrade sign-off.**~~ Answered 2026-10-04: the owner judged the lighting in `02-spawn-valley-below-default-height.png` fine; no relighting needed.
 4. **Next slice.** The formerly suggested map overlay, traversal, character persistence and dedicated-server co-op slices are implemented. The arena/four-kit draft and managed Mondstadt overlay are playable; see the README quickstart and durable brief for current scope. The next milestone/slice is not yet selected.
 5. ~~**Allow datamined numbers?**~~ Answered 2026-10-09: yes, AnimeGameData numbers for enemies, weapons and camp levels (numbers only; see decisions.md).
+6. **Genshin login CAPTCHA (2 min, at thomas-server's screen).** The launcher (`~/.local/aagl/result/bin/anime-game-launcher`) runs 7.1 on thomas-server, but the first login showed a slider CAPTCHA, so the agent stopped as instructed (`spec/mechanics/measurements-2026-10-10.md`). Options: (a) you start the launcher, log in and solve the CAPTCHA once, then tell me and I measure enemy levels/traversal; (b) skip in-game measurement. Recommendation: (a); the saved credentials file has been deleted, so you type the login yourself.
 
 ## Loader parity findings (2026-09-29)
 

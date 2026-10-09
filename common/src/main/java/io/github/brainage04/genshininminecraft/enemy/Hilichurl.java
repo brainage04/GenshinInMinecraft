@@ -8,8 +8,8 @@ import io.github.brainage04.genshininminecraft.client.enemy.SyncedEnemyControlle
 import io.github.brainage04.genshininminecraft.rules.EnemyAnimations;
 import io.github.brainage04.genshininminecraft.rules.EnemyAnimations.Phase;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
+import io.github.brainage04.genshininminecraft.combat.CombatSounds;
+import io.github.brainage04.genshininminecraft.rules.CombatAudio.Cue;
 import io.github.brainage04.genshininminecraft.combat.CombatRuntime;
 import io.github.brainage04.genshininminecraft.rules.HilichurlProfile;
 import io.github.brainage04.genshininminecraft.world.ManagedWorld;
@@ -62,6 +62,7 @@ public final class Hilichurl extends PathfinderMob implements GeoEntity {
     private int nextPathTick;
     private double swingX;
     private double swingZ;
+    private long lastHurtSoundTick = Long.MIN_VALUE;
 
     public Hilichurl(EntityType<? extends Hilichurl> type, Level level) {
         super(type, level);
@@ -109,12 +110,19 @@ public final class Hilichurl extends PathfinderMob implements GeoEntity {
         entityData.set(HURT_START, level().getGameTime() * 3);
         entityData.set(HURT_OCCURRENCE, hurtOccurrence() + 1);
     }
-    public void combatHurtSound() { visualHurt(); playSound(SoundEvents.PIGLIN_HURT, .7F, .8F); }
-    @Override protected SoundEvent getHurtSound(DamageSource source) { return SoundEvents.PIGLIN_HURT; }
+    public void combatHurtSound() {
+        visualHurt();
+        if (level() instanceof ServerLevel level && CombatRuntime.get(level.getServer())
+                .enemyHurtSound(lastHurtSoundTick, level.getGameTime())) {
+            lastHurtSoundTick = level.getGameTime();
+            CombatSounds.play(this, Cue.ENEMY_HURT);
+        }
+    }
+    @Override protected SoundEvent getHurtSound(DamageSource source) { return null; } // Shared budget owns vanilla and kit hurt.
     @Override protected SoundEvent getDeathSound() { return null; } // die owns the one broadcast for vanilla and kit damage.
     @Override public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
         boolean accepted = super.hurtServer(level, source, amount);
-        if (accepted && isAlive()) visualHurt();
+        if (accepted && isAlive()) combatHurtSound();
         return accepted;
     }
     @Override public void tick() {
@@ -174,7 +182,7 @@ public final class Hilichurl extends PathfinderMob implements GeoEntity {
             returnHome();
             return;
         }
-        if (getTarget() == null && target != null) playSound(SoundEvents.PIGLIN_ANGRY, .45F, .95F);
+        if (getTarget() == null && target != null) CombatSounds.play(this, Cue.ENEMY_AGGRO);
         setTarget(target);
         if (target == null) {
             returnHome();
@@ -210,8 +218,8 @@ public final class Hilichurl extends PathfinderMob implements GeoEntity {
                 readyTick = tickCount + RECOVERY_TICKS;
                 if (isAlive() && !CombatRuntime.isFrozen(this)) {
                     phase(Phase.STRIKE);
-                    playSound(SoundEvents.PLAYER_ATTACK_SWEEP, .7F, .7F);
-                    if (connected) playSound(SoundEvents.PLAYER_ATTACK_STRONG, .8F, .65F);
+                    CombatSounds.play(this, Cue.ENEMY_SWING);
+                    if (connected) CombatSounds.play(this, Cue.ENEMY_IMPACT);
                 } else if (isAlive() && frozenFrame() < 0) entityData.set(FROZEN_FRAME, level.getGameTime() * 3);
             }
             return;
@@ -236,7 +244,7 @@ public final class Hilichurl extends PathfinderMob implements GeoEntity {
                 setYHeadRot(yaw);
                 strikeTick = tickCount + WINDUP_TICKS;
                 phase(Phase.TELEGRAPH);
-                level.playSound(null, getX(), getY(), getZ(), SoundEvents.PIGLIN_ANGRY, SoundSource.HOSTILE, .65F, .75F);
+                CombatSounds.play(this, Cue.ENEMY_TELEGRAPH);
             }
         } else if (tickCount >= nextPathTick) {
             navigation.moveTo(target, 1);
@@ -272,7 +280,7 @@ public final class Hilichurl extends PathfinderMob implements GeoEntity {
     @Override public void die(DamageSource source) {
         if (level() instanceof ServerLevel) {
             if (!dead) io.github.brainage04.genshininminecraft.world.OverlayRuntime.memberDied(this);
-            if (!dead) playSound(SoundEvents.PIGLIN_DEATH, .8F, .8F);
+            if (!dead) CombatSounds.play(this, Cue.ENEMY_DEATH);
             phase(Phase.DEATH);
             entityData.set(FROZEN_FRAME, -1L);
         }

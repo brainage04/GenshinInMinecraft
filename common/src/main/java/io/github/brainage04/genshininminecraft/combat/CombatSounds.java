@@ -1,61 +1,39 @@
 package io.github.brainage04.genshininminecraft.combat;
 
-import io.github.brainage04.genshininminecraft.rules.Element;
-import io.github.brainage04.genshininminecraft.rules.Reaction;
-import java.util.Arrays;
+import io.github.brainage04.genshininminecraft.rules.CombatAudio;
+import io.github.brainage04.genshininminecraft.rules.CombatAudio.Cue;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 
-/** Vanilla-only cues at authoritative transitions; a session-wide budget coalesces AoE spam. */
+/** Minecraft playback adapter for the single, plain-Java vanilla mapping table. */
 public final class CombatSounds {
-    public enum Cue { PHYSICAL, PYRO, CRYO, ELECTRO, ANEMO, HYDRO,
-        OVERLOADED, SUPERCONDUCT, MELT, VAPORIZE, SWIRL, ELECTRO_CHARGED, FROZEN, SHATTER, CRIT, ROSE }
-    public static final class Budget {
-        private final long[] last = new long[Cue.values().length];
-        public Budget() { Arrays.fill(last, Long.MIN_VALUE); }
-        public boolean allow(Cue cue, long frame) {
-            int interval = cue == Cue.ELECTRO_CHARGED ? 30 : cue.ordinal() <= Cue.HYDRO.ordinal() ? 6 : 12;
-            int index = cue.ordinal();
-            if (last[index] != Long.MIN_VALUE && frame - last[index] < interval) return false;
-            last[index] = frame;
-            return true;
-        }
-        public void play(ServerLevel level, Vec3 position, Cue cue, long frame) {
-            if (!allow(cue, frame)) return;
-            level.playSound(null, position.x, position.y, position.z, event(cue), SoundSource.PLAYERS,
-                    cue == Cue.OVERLOADED ? .55F : cue == Cue.ROSE || cue == Cue.ELECTRO_CHARGED ? .25F : .35F,
-                    cue == Cue.CRIT ? 1.5F : cue == Cue.PHYSICAL ? .9F : 1.2F);
+    private static final SoundEvent[] EVENTS;
+    static {
+        Cue[] cues = Cue.values();
+        EVENTS = new SoundEvent[cues.length];
+        for (Cue cue : cues) {
+            var id = Identifier.withDefaultNamespace(cue.event);
+            if (!BuiltInRegistries.SOUND_EVENT.containsKey(id)) throw new IllegalStateException("Missing vanilla sound " + id);
+            EVENTS[cue.ordinal()] = BuiltInRegistries.SOUND_EVENT.getValue(id);
         }
     }
     private CombatSounds() {}
-    public static Cue element(Element element) {
-        return switch (element) {
-            case PHYSICAL -> Cue.PHYSICAL; case PYRO -> Cue.PYRO; case CRYO -> Cue.CRYO;
-            case ELECTRO -> Cue.ELECTRO; case ANEMO -> Cue.ANEMO; case HYDRO -> Cue.HYDRO;
-        };
+    public static SoundEvent event(Cue cue) { return EVENTS[cue.ordinal()]; }
+    public static void play(Entity entity, Cue cue) {
+        entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(), event(cue), entity.getSoundSource(), cue.volume, cue.pitch);
     }
-    public static Cue reaction(Reaction.Type type) {
-        return switch (type) {
-            case OVERLOADED -> Cue.OVERLOADED; case SUPERCONDUCT -> Cue.SUPERCONDUCT;
-            case MELT -> Cue.MELT; case VAPORIZE -> Cue.VAPORIZE; case SWIRL -> Cue.SWIRL;
-            case ELECTRO_CHARGED -> Cue.ELECTRO_CHARGED; case FROZEN -> Cue.FROZEN; case SHATTER -> Cue.SHATTER;
-        };
+    public static void play(ServerLevel level, Vec3 position, Cue cue, long frame, CombatAudio.Budget budget) {
+        if (budget.allow(cue, frame, level.getGameTime()))
+            level.playSound(null, position.x, position.y, position.z, event(cue), SoundSource.PLAYERS, cue.volume, cue.pitch);
     }
-    public static SoundEvent event(Cue cue) {
-        return switch (cue) {
-            case PHYSICAL -> SoundEvents.PLAYER_ATTACK_STRONG;
-            case PYRO -> SoundEvents.FIRE_AMBIENT;
-            case CRYO, FROZEN -> SoundEvents.GLASS_HIT;
-            case ELECTRO, ELECTRO_CHARGED, ROSE -> SoundEvents.BREEZE_SHOOT;
-            case ANEMO, SWIRL -> SoundEvents.BREEZE_SLIDE;
-            case HYDRO, MELT, VAPORIZE -> SoundEvents.FIRE_EXTINGUISH;
-            case OVERLOADED -> SoundEvents.GENERIC_EXPLODE.value();
-            case SUPERCONDUCT -> SoundEvents.AMETHYST_BLOCK_BREAK;
-            case SHATTER -> SoundEvents.GLASS_BREAK;
-            case CRIT -> SoundEvents.PLAYER_ATTACK_CRIT;
-        };
+    public static void landing(Entity entity, double height) {
+        Cue cue = Cue.LANDING;
+        entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(), event(cue), SoundSource.PLAYERS,
+                (float) Math.clamp(.2 + height / 15, .2, 1), cue.pitch);
     }
 }

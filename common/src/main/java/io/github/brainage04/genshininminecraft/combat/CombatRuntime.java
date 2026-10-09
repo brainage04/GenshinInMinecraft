@@ -48,12 +48,13 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
+import io.github.brainage04.genshininminecraft.rules.CombatAudio;
+import io.github.brainage04.genshininminecraft.rules.CombatAudio.Cue;
 
 /** One simulation per server; loader hooks only forward intents, tick and send payloads. */
 public final class CombatRuntime {
+    private final CombatAudio.EnemyHurtBudget enemyHurtBudget = new CombatAudio.EnemyHurtBudget();
+    public boolean enemyHurtSound(long lastEnemyTick, long tick) { return enemyHurtBudget.allow(lastEnemyTick, tick); }
     public static final double SWORD_RADIUS = 3;
     public static final double SWORD_ARC_COSINE = .5; // 120 degree total arc.
     public static final double SKILL_RADIUS = 4;
@@ -339,7 +340,7 @@ public final class CombatRuntime {
         return true;
     }
     /** Environmental max-HP loss bypasses DEF/RES/shields and dash protection. */
-    public boolean fallDamage(ServerPlayer player, double height, DamageSource source) {
+    public boolean fallDamage(ServerPlayer player, double height, DamageSource source, boolean vanillaFallSound) {
         if (!ManagedWorld.isManaged(player.level())) return false;
         if (!player.isAlive() || player.isCreative() || player.isSpectator()) return true;
         Session state = session(player);
@@ -350,8 +351,8 @@ public final class CombatRuntime {
         double fraction = state.traversal.active() ? 0 : Traversal.fallHpFraction(height, horizontalSpeed,
                 TraversalGeometry.safeWater(player));
         state.locomotion.land(height, frame);
-        if (height > .15 && !TraversalGeometry.safeWater(player))
-            state.motionSound(SoundEvents.STONE_FALL, (float) Math.clamp(.2 + height / 15, .2, 1), .8F);
+        if (CombatAudio.landing(height, TraversalGeometry.safeWater(player), vanillaFallSound))
+            CombatSounds.landing(player, height);
         if (fraction > 0) applyCharacterLoss(state, state.kit().maxHp() * fraction, source, frame);
         return true;
     }
@@ -523,8 +524,7 @@ public final class CombatRuntime {
         private long projectileSequence;
         private record Presentation(ServerLevel level, ProjectileVisualPayload packet) {}
         private final Map<Long, Presentation> presentations = new HashMap<>();
-        private final CombatSounds.Budget soundBudget = new CombatSounds.Budget();
-        private final boolean[] burstWasReady = new boolean[Party.SIZE];
+        private final CombatAudio.Budget soundBudget = new CombatAudio.Budget();
         private final boolean[] skillWasCooling = new boolean[Party.SIZE];
 
         private Session(ServerPlayer player, int preferred, int allocation) {
@@ -630,10 +630,9 @@ public final class CombatRuntime {
                 projectile(ProjectileVisualPayload.Kind.PALM_VORTEX, (ServerLevel) player.level(),
                         player.position().add(forward(player).scale(1.5)), Vec3.ZERO, frame, 24);
             if (accepted && intent == Intent.SKILL_PRESS)
-                motionSound(kit() instanceof AmberKit ? SoundEvents.SNOWBALL_THROW
-                        : kit() instanceof KaeyaKit ? SoundEvents.GLASS_BREAK : SoundEvents.EVOKER_CAST_SPELL, .6F, 1.1F);
-            if (accepted && intent == Intent.BURST_PRESS)
-                motionSound(SoundEvents.ILLUSIONER_CAST_SPELL, .85F, kit() instanceof LisaKit ? .85F : 1F);
+                motionSound(kit() instanceof AmberKit ? Cue.BUNNY_THROW
+                        : kit() instanceof KaeyaKit ? Cue.FROSTGNAW_CAST : Cue.SKILL_CAST);
+            if (accepted && intent == Intent.BURST_PRESS) motionSound(Cue.BURST_CAST);
             sync();
             return accepted;
         }
@@ -658,6 +657,7 @@ public final class CombatRuntime {
             rejectionSerial++;
             rejectedIntent = intent.ordinal() + 1;
             rejection = reason;
+            if (soundBudget.rejected(intent, frame)) motionSound(Cue.REJECTED_BURST);
         }
         public void advanceTo(long frame) {
             reconcileDimension();
@@ -693,11 +693,10 @@ public final class CombatRuntime {
             for (int slot = 0; slot < Party.SIZE; slot++) {
                 CharacterKit member = party.kit(slot);
                 boolean ready = member.state().alive() && member.energy() >= member.state().burstCost() && member.burstRemaining() == 0;
-                if (ready && !burstWasReady[slot]) motionSound(SoundEvents.NOTE_BLOCK_CHIME.value(), .35F, 1.5F);
-                burstWasReady[slot] = ready;
+                if (soundBudget.burstReady(slot, party.activeSlot(), ready, player.level().getGameTime())) motionSound(Cue.BURST_READY);
                 boolean cooling = member.skillRemaining() > 0;
                 if (!cooling && skillWasCooling[slot] && member.state().alive())
-                    motionSound(SoundEvents.UI_BUTTON_CLICK.value(), .18F, 1.4F);
+                    motionSound(Cue.SKILL_READY);
                 skillWasCooling[slot] = cooling;
             }
         }
@@ -745,7 +744,7 @@ public final class CombatRuntime {
                 }
                 dashLevel = (ServerLevel) player.level();
                 locomotion.begin(Locomotion.Phase.DASH, frame);
-                motionSound(SoundEvents.BREEZE_SLIDE, .55F, 1.25F);
+                motionSound(Cue.DASH);
             }
             sprintKeyHeld = held;
             if (eligible && moving && held) {
@@ -772,15 +771,13 @@ public final class CombatRuntime {
                     (input.forward() ? 1 : 0) - (input.backward() ? 1 : 0),
                     (input.left() ? 1 : 0) - (input.right() ? 1 : 0), player.fallDistance);
             if (locomotion.phase() == Locomotion.Phase.GLIDE_START && previous != Locomotion.Phase.GLIDE_START)
-                motionSound(SoundEvents.ARMOR_EQUIP_ELYTRA.value(), .7F, 1.1F);
+                motionSound(Cue.GLIDER_OPEN);
             else if ((previous == Locomotion.Phase.GLIDE_START || previous == Locomotion.Phase.GLIDE_LOOP)
-                    && mode != 2) motionSound(SoundEvents.ARMOR_EQUIP_LEATHER.value(), .5F, .8F);
+                    && mode != 2) motionSound(Cue.GLIDER_CLOSE);
             else if (mode == 1 && !previous.name().startsWith("CLIMB"))
-                motionSound(SoundEvents.STONE_HIT, .4F, 1.25F);
+                motionSound(Cue.CLIMB);
         }
-        private void motionSound(SoundEvent sound, float volume, float pitch) {
-            player.level().playSound(null, player.getX(), player.getY(), player.getZ(), sound, SoundSource.PLAYERS, volume, pitch);
-        }
+        private void motionSound(Cue cue) { CombatSounds.play(player, cue); }
         private boolean tickTraversal(long frame, net.minecraft.world.entity.player.Input input, boolean moving, boolean jumped) {
             int before = traversalFlags(frame);
             boolean eligible = valid() && !player.isSpectator() && !player.isPassenger()
@@ -912,7 +909,7 @@ public final class CombatRuntime {
         }
         private boolean forceSwitch(long frame) {
             if (kit().visual().action(frame) == CombatVisual.Action.FALLEN) return false;
-            motionSound(SoundEvents.PLAYER_DEATH, .6F, .9F);
+            motionSound(Cue.FALLEN);
             ProjectileVisualPayload.Kind field = kit() instanceof KaeyaKit ? ProjectileVisualPayload.Kind.WALTZ_ICICLE
                     : kit() instanceof TravelerAnemoKit ? ProjectileVisualPayload.Kind.TORNADO : null;
             if (field != null) {
@@ -958,7 +955,7 @@ public final class CombatRuntime {
             lastVisualFrame = party.frame();
         }
         private void switchEffect() {
-            motionSound(SoundEvents.ARMOR_EQUIP_LEATHER.value(), .4F, 1.3F);
+            motionSound(Cue.SWITCH);
             broadcastCharacter(party.activeSlot());
             DustParticleOptions dust = switch (party.activeMember().element()) {
                 case ANEMO -> ANEMO_DUST; case PYRO -> PYRO_DUST; case CRYO -> CRYO_DUST; case ELECTRO -> ELECTRO_DUST;
@@ -1171,7 +1168,7 @@ public final class CombatRuntime {
                 if (recipient.valid() && recipient.player.level() == player.level()
                         && recipient.player.position().distanceToSqr(player.position()) <= Coop.ADAPTED_ENERGY_RADIUS * Coop.ADAPTED_ENERGY_RADIUS) {
                     recipient.party.collect(Energy.Item.PARTICLE, element, count);
-                    recipient.motionSound(SoundEvents.EXPERIENCE_ORB_PICKUP, .35F, 1.25F);
+                    recipient.motionSound(Cue.ENERGY_PICKUP);
                     recipient.resourceSounds();
                 }
         }
@@ -1194,18 +1191,20 @@ public final class CombatRuntime {
         }
         private void actionSound(CharacterKit kit, Hit hit) {
             if (lastActionSoundFrame == hit.frame() && lastActionSoundKit == kit && lastActionSoundKind == hit.kind()) return;
-            SoundEvent sound = switch (hit.kind()) {
-                case NORMAL, CHARGED -> kit.weapon() == CharacterKit.Weapon.SWORD ? SoundEvents.PLAYER_ATTACK_SWEEP
-                        : kit.weapon() == CharacterKit.Weapon.BOW ? SoundEvents.ARROW_SHOOT : SoundEvents.AMETHYST_BLOCK_CHIME;
-                case STORM -> SoundEvents.BREEZE_WIND_CHARGE_BURST.value();
-                case FROSTGNAW -> SoundEvents.GLASS_BREAK;
-                case VIOLET_ORB -> SoundEvents.AMETHYST_BLOCK_CHIME;
-                case VIOLET_HOLD, ROSE_PLACE -> SoundEvents.EVOKER_CAST_SPELL;
+            Cue cue = switch (hit.kind()) {
+                case NORMAL, CHARGED -> kit.weapon() == CharacterKit.Weapon.SWORD
+                        ? hit.kind() == Kind.CHARGED ? Cue.SWORD_CHARGED : Cue.SWORD_NORMAL
+                        : kit.weapon() == CharacterKit.Weapon.BOW
+                        ? hit.kind() == Kind.CHARGED ? Cue.BOW_CHARGED : Cue.BOW_NORMAL : Cue.CATALYST_LAUNCH;
+                case STORM -> Cue.STORM_RELEASE;
+                case FROSTGNAW -> Cue.FROSTGNAW_HIT;
+                case VIOLET_ORB -> Cue.CATALYST_LAUNCH;
+                case VIOLET_HOLD, ROSE_PLACE -> Cue.FIELD_CAST;
                 default -> null;
             };
-            if (sound == null) return;
+            if (cue == null) return;
             lastActionSoundFrame = hit.frame(); lastActionSoundKit = kit; lastActionSoundKind = hit.kind();
-            motionSound(sound, .65F, hit.kind() == Kind.CHARGED ? .9F : 1.1F);
+            motionSound(cue);
         }
         private LivingEntity nearestEnemy(ServerLevel level, Vec3 center, double radius) {
             LivingEntity nearest = null;
@@ -1347,7 +1346,7 @@ public final class CombatRuntime {
             LivingEntity selected = candidates.get(candidates.size() == 1 ? 0 : roseTargets.nextInt(candidates.size()));
             Vec3 start = roseOrigin.add(0, 1.1, 0), end = selected.position().add(0, selected.getBbHeight() / 2, 0);
             projectile(ProjectileVisualPayload.Kind.ROSE_BOLT, roseLevel, start, end, hit.frame(), 12);
-            soundBudget.play(roseLevel, start, CombatSounds.Cue.ROSE, hit.frame());
+            CombatSounds.play(roseLevel, start, Cue.ROSE, hit.frame(), soundBudget);
             for (LivingEntity enemy : nearby(roseLevel, selected.position(), ROSE_IMPACT_RADIUS))
                 deal(lisa, target(enemy), Element.ELECTRO, hit.multiplier(), 1, hit.icdTag(), hit.frame(), false, lisa.roseStats());
         }
@@ -1373,7 +1372,7 @@ public final class CombatRuntime {
                 bunny.landed();
                 puppetLevel.addFreshEntity(bunny);
                 bunnyVisual(BunnyVisualPayload.Kind.CANCEL, Vec3.ZERO, Vec3.ZERO, 0, 0);
-                puppetLevel.playSound(null, bunny.getX(), bunny.getY(), bunny.getZ(), SoundEvents.WOOL_FALL, SoundSource.NEUTRAL, .8F, .85F);
+                CombatSounds.play(bunny, Cue.BUNNY_LAND);
                 puppetLevel.sendParticles(PYRO_DUST, bunny.getX(), bunny.getY() + .5, bunny.getZ(), 16, .4, .5, .4, 0);
                 return;
             }
@@ -1381,7 +1380,7 @@ public final class CombatRuntime {
             Vec3 center = bunny.position().add(0, .5, 0);
             bunnyVisual(BunnyVisualPayload.Kind.EXPLODE, bunny.position(), bunny.position(),
                     puppetLevel.getGameTime() * 3, bunny.getYRot());
-            puppetLevel.playSound(null, center.x, center.y, center.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.NEUTRAL, .8F, 1.25F);
+            CombatSounds.play(bunny, Cue.BUNNY_EXPLODE);
             bunny.discard();
             bunny = null;
             puppetLevel.sendParticles(ParticleTypes.EXPLOSION, center.x, center.y, center.z, 1, 0, 0, 0, 0);
@@ -1507,11 +1506,13 @@ public final class CombatRuntime {
             if (applied) {
                 lastCombatFrame = frame;
                 feedback(target, amount, element, amplification == null ? null : amplification.type(), critical);
-                soundBudget.play((ServerLevel) target.entity().level(), target.entity().position(), CombatSounds.element(element), frame);
-                if (critical) soundBudget.play((ServerLevel) target.entity().level(), target.entity().position(), CombatSounds.Cue.CRIT, frame);
+                // Reaction wins over its triggering element; Rose already owns this tick's crackle.
+                Cue impact = CombatAudio.element(element, kit.weapon() == CharacterKit.Weapon.BOW, !reactions.isEmpty());
+                if (impact != null) CombatSounds.play((ServerLevel) target.entity().level(), target.entity().position(), impact, frame, soundBudget);
+                if (critical) CombatSounds.play((ServerLevel) target.entity().level(), target.entity().position(), Cue.CRIT, frame, soundBudget);
             }
             for (Reaction reaction : reactions) {
-                soundBudget.play((ServerLevel) target.entity().level(), target.entity().position(), CombatSounds.reaction(reaction.type()), frame);
+                CombatSounds.play((ServerLevel) target.entity().level(), target.entity().position(), CombatAudio.reaction(reaction.type()), frame, soundBudget);
                 if (reaction.type() == Reaction.Type.SWIRL) target.countSwirl();
                 if (reaction.amplifying()) continue;
                 if (conductiveTap && (reaction.type() == Reaction.Type.OVERLOADED || reaction.type() == Reaction.Type.SUPERCONDUCT)) {
@@ -1571,8 +1572,8 @@ public final class CombatRuntime {
                             target.ecOwner.level(), target.ecOwner.elementalMastery(), 0, target.resistance(Element.ELECTRO));
                     if (target.damage(target.ecPlayer, damage)) {
                         feedback(target, damage, Element.ELECTRO, Reaction.Type.ELECTRO_CHARGED, false);
-                        soundBudget.play((ServerLevel) target.entity().level(), target.entity().position(),
-                                CombatSounds.Cue.ELECTRO_CHARGED, frame);
+                        CombatSounds.play((ServerLevel) target.entity().level(), target.entity().position(),
+                                Cue.ELECTRO_CHARGED, frame, soundBudget);
                     }
                 }
                 syncAura(target);
@@ -1589,7 +1590,7 @@ public final class CombatRuntime {
             if (enemy == null) return null;
             CombatTarget target = target(enemy);
             for (Reaction reaction : target.aura().applyHit(element, gauge, frame))
-                soundBudget.play(level, target.entity().position(), CombatSounds.reaction(reaction.type()), frame);
+                CombatSounds.play(level, target.entity().position(), CombatAudio.reaction(reaction.type()), frame, soundBudget);
             if (element == Element.HYDRO || element == Element.ELECTRO) {
                 target.ecOwner = kit().stats();
                 target.ecPlayer = player;
