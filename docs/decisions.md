@@ -657,3 +657,7 @@ Snapshots live in the owning concrete kit beside its existing cast identity/gene
 
 Acceptance: **`./gradlew --no-daemon build runAllGameTests` passed in8m54s**,49 actionable tasks (28 executed/21 up-to-date). All **93 required server GameTests passed in each Fabric/NeoForge development/production run**, including the six failing-first snapshot cases and the dynamic Palm Vortex case; the connected Fabric production client suite and both loader builds passed. Common JUnit reports show Kaeya10/Lisa11/Traveler10 tests with zero failures/errors/skips, including all four new snapshot-identity/lifecycle cases. No test was weakened, and no commit, push or git identity change was made.
 
+
+## 2026-10-09 - owner allows AnimeGameData numbers
+
+The owner allows exact numeric tables from AnimeGameData (the public datamine of the 7.1 game files) for enemy, weapon and camp-level numbers. Use numbers only, cited by repository path at the pinned 7.1 commit; never copy assets, code, text or audio. Public wiki/KQM sources stay preferred for behaviour descriptions; where a datamined number contradicts an earlier sourced or adapted value, the datamined value wins and the change is recorded here and in `spec/fidelity.md`.

@@ -55,6 +55,7 @@ Goal: a player can join a world (test arena now, the ported map once it exists),
 2. ~~**Where is Mondstadt on the map?**~~ Answered2026-10-08: the owner's 1.21.10 camera coordinates directly match the upgraded26.2 map. City plaza/gate, Starfell Lake/island and Windrise oak/travel sculptures were confirmed using private screenshots and read-only block/entity probes; precise coordinates, entity-only overlay and tour evidence are in [docs/map-landmarks.md](docs/map-landmarks.md).
 3. ~~**Map upgrade sign-off.**~~ Answered 2026-10-04: the owner judged the lighting in `02-spawn-valley-below-default-height.png` fine; no relighting needed.
 4. **Next slice.** The formerly suggested map overlay, traversal, character persistence and dedicated-server co-op slices are implemented. The arena/four-kit draft and managed Mondstadt overlay are playable; see the README quickstart and durable brief for current scope. The next milestone/slice is not yet selected.
+5. ~~**Allow datamined numbers?**~~ Answered 2026-10-09: yes, AnimeGameData numbers for enemies, weapons and camp levels (numbers only; see decisions.md).
 
 ## Loader parity findings (2026-09-29)
 
